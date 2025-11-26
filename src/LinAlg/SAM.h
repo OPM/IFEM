@@ -191,9 +191,10 @@ public:
 
   //! \brief Returns the internal node number and local index for a global DOF.
   //! \param[in] idof Global DOF-number in the range [1,NDOF]
+  //! \param[in] eqno If \e true, \a idof is the 1-based global equation number
   //! \return first = internal node number in the range [1,NNOD]
   //! \return second = local DOF number in the range [1,NNDOF]
-  std::pair<int,int> getNodeAndLocalDof(int idof) const;
+  std::pair<int,int> getNodeAndLocalDof(int idof, bool eqno = false) const;
 
   //! \brief Finds the equation number corresponding to a local nodal DOF.
   //! \param[in] inod Identifier for the node to get the equation number for
@@ -318,6 +319,8 @@ protected:
   void printStatusCodes(std::ostream& os) const;
   //! \brief Prints out a constraint equation to the given stream.
   void printCEQ(std::ostream& os, int iceq) const;
+  //! \brief Prints out the equation number mapping to the given stream.
+  void printMEQN(std::ostream& os) const;
 
 private:
   int mpar[50]; //!< Matrix of parameters

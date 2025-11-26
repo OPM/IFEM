@@ -98,13 +98,21 @@ SAM::~SAM ()
 }
 
 
-std::pair<int,int> SAM::getNodeAndLocalDof (int idof) const
+std::pair<int,int> SAM::getNodeAndLocalDof (int idof, bool eqno) const
 {
+  if (eqno)
+  {
+    if (int* eq = std::find(meqn,meqn+ndof,idof); eq != meqn+ndof)
+      idof = std::distance(meqn,eq);
+    else
+      return { 0, 0 };
+  }
+
   for (int n = 1; n <= nnod; n++)
     if (madof[n] > idof)
-      return std::make_pair(minex ? minex[n-1] : n, idof-madof[n-1]+1);
+      return { minex ? minex[n-1] : n, idof-madof[n-1]+1 };
 
-  return std::make_pair(0,0);
+  return { 0, 0 };
 }
 
 
@@ -138,7 +146,6 @@ void SAM::print (std::ostream& os) const
   os <<"\n\nSAM::mpar: "<< mpar[0];
   for (int i = 1; i < 30; i++)
     os << ((i%10) ? " " : "\n           ") << mpar[i];
-  os << std::endl;
 
   if (mmnpc && mpmnpc && nel > 0)
   {
@@ -153,7 +160,6 @@ void SAM::print (std::ostream& os) const
           else if (mmnpc[i-1] < 0)
             os <<' '<< (minex ? -minex[-mmnpc[i-1]-1] : mmnpc[i-1]);
       }
-    os << std::endl;
   }
 
   if (ttcc && mmceq && mpmceq && nceq > 0)
@@ -164,13 +170,19 @@ void SAM::print (std::ostream& os) const
       os <<'\n'<< std::setw(4) << i+1 <<": ";
       this->printCEQ(os,i);
     }
-    os << std::endl;
   }
+  os << std::endl;
 
+  this->printMEQN(os);
+}
+
+
+void SAM::printMEQN (std::ostream& os) const
+{
   if (meqn && madof && nnod > 0 && neq > 0)
   {
     char code[7], dofType[7];
-    os <<"\n\nNode --> Equations";
+    os <<"\nNode --> Equations";
     for (int n = 0; n < nnod; n++)
     {
       int dof, i = 0;
@@ -195,22 +207,25 @@ void SAM::print (std::ostream& os) const
 
 void SAM::printStatusCodes (std::ostream& os) const
 {
-  os <<"\nNode\tDOFs\t MSC";
-  for (int i = 0; i < nnod; i++)
+  if (msc && madof && nnod > 0)
   {
-    os <<"\n"<< std::setw(4) << 1+i
-       <<"\t"<< madof[i] <<" - "<< madof[i+1]-1 <<"\t";
-    for (int j = madof[i]; j < madof[i+1]; j++)
-      os <<" "<< msc[j-1];
+    os <<"\nNode\tDOFs\t MSC";
+    for (int i = 0; i < nnod; i++)
+    {
+      os <<"\n"<< std::setw(4) << 1+i
+         <<"\t"<< madof[i] <<" - "<< madof[i+1]-1 <<"\t";
+      for (int j = madof[i]; j < madof[i+1]; j++)
+        os <<" "<< msc[j-1];
+    }
+    os << std::endl;
   }
-  os << std::endl;
 }
 
 
 bool SAM::initSystemEquations ()
 {
 #ifdef SP_DEBUG
-  std::cout <<"SAM::initSystemEquations()"<< std::endl;
+  std::cout <<"\nSAM::initSystemEquations()"<< std::endl;
 #endif
   if (!msc && ndof > 0) return false;
   if ((!msc || !mpmceq) && nceq > 0) return false;
@@ -307,6 +322,9 @@ bool SAM::initSystemEquations ()
     else if (msc[idof] == 2)
       meqn[idof] = j++;
 #endif
+#if SP_DEBUG > 1
+  this->printMEQN(std::cout);
+#endif
 
   if (ierr == 0) return true;
 
@@ -365,20 +383,15 @@ void SAM::getDofCouplings (std::vector<IntSet>& dofc) const
     this->getElmEqns(meen,iel);
 
     for (size_t j = 0; j < meen.size(); j++)
-    {
-      int jeq = meen[j];
-      if (jeq > 0)
+      if (int jeq = meen[j]; jeq > 0)
       {
         dofc[jeq-1].insert(jeq);
         for (size_t i = 0; i < j; i++)
-        {
-          int ieq = meen[i];
-          if (ieq > 0)
+          if (int ieq = meen[i]; ieq > 0)
           {
             dofc[ieq-1].insert(jeq);
             dofc[jeq-1].insert(ieq);
           }
-        }
       }
       else if (jeq < 0)
       {
@@ -410,7 +423,6 @@ void SAM::getDofCouplings (std::vector<IntSet>& dofc) const
             }
           }
       }
-    }
   }
 }
 
@@ -514,7 +526,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
 #ifdef USE_F77SAM
   int* work = new int[eS.size()];
   addev2_(&eS.front(), ttcc, mpar, madof, meqn, mpmnpc, mmnpc, mpmceq, mmceq,
-	  iel, eS.size(), 6, sysRHS.getPtr(), work, ierr);
+          iel, eS.size(), 6, sysRHS.getPtr(), work, ierr);
   delete[] work;
 #else
   IntVec meen;
@@ -543,13 +555,10 @@ bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
 
   if (reactionForces)
   {
-    int k = 0;
+    int k = 0, nReact = reactionForces->size();
     for (int j = madof[inod-1]; j < madof[inod]; j++, k++)
-    {
-      int ipR = -msc[j-1];
-      if (ipR > 0 && ipR <= static_cast<int>(reactionForces->size()))
+      if (int ipR = -msc[j-1]; ipR > 0 && ipR <= nReact)
         (*reactionForces)[ipR-1] += nS[k];
-    }
   }
 
   return true;
@@ -614,18 +623,12 @@ void SAM::assembleReactions (RealArray& rf, const RealArray& eS, int iel) const
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
   for (int i = 0; i < nenod; i++, ip++)
-  {
-    int node = mmnpc[ip-1];
-    if (node < 0)
+    if (int node = mmnpc[ip-1]; node < 0)
       k += madof[-node] - madof[-node-1];
     else if (node > 0)
       for (int j = madof[node-1]; j < madof[node] && k < eS.size(); j++, k++)
-      {
-        int ipR = -msc[j-1];
-        if (ipR > 0 && ipR <= static_cast<int>(rf.size()))
+        if (int ipR = -msc[j-1]; ipR > 0 && ipR <= static_cast<int>(rf.size()))
           rf[ipR-1] += eS[k];
-      }
-  }
 }
 
 
@@ -678,13 +681,10 @@ bool SAM::getElmEqns (IntVec& meen, int iel, size_t nedof) const
 #else
   meen.reserve(nedof > 0 ? nedof : neldof);
   for (int i = 0; i < nenod; i++, ip++)
-  {
-    int node = mmnpc[ip];
-    if (node > 0)
+    if (int node = mmnpc[ip]; node > 0)
       meen.insert(meen.end(),meqn+madof[node-1]-1,meqn+madof[node]-1);
     else if (node < 0)
       meen.insert(meen.end(),madof[-node]-madof[-node-1],0);
-  }
   neldof = meen.size();
 #endif
   if (nedof == 0 || neldof == static_cast<int>(nedof)) return true;
@@ -789,27 +789,20 @@ bool SAM::expandVector (const Real* solVec, Vector& dofVec, Real scaleSD) const
   dofVec.resize(ndof,true);
 #ifdef USE_F77SAM
   expand_(solVec, ttcc, mpmceq, mmceq, meqn, Real(1), scaleSD, ndof, neq,
-	  dofVec.ptr());
+          dofVec.ptr());
 #else
   for (int idof = 0; idof < ndof; idof++)
-  {
-    int ieq = meqn[idof];
-    int iceq = -ieq;
-    if (ieq > 0)
+    if (int ieq = meqn[idof]; ieq > 0)
       dofVec[idof] += solVec[ieq-1];
-    else if (iceq > 0)
+    else if (int iceq = -meqn[idof]; iceq > 0)
     {
       int ip = mpmceq[iceq-1];
       dofVec[idof] += scaleSD*ttcc[ip-1];
       for (; ip < mpmceq[iceq]-1; ip++)
-	if (mmceq[ip] > 0)
-	{
-	  ieq = meqn[mmceq[ip]-1];
-	  if (ieq > 0 && ieq <= neq)
-	    dofVec[idof] += ttcc[ip]*solVec[ieq-1];
-	}
+        if (mmceq[ip] > 0)
+          if (int ieq = meqn[mmceq[ip]-1]; ieq > 0 && ieq <= neq)
+            dofVec[idof] += ttcc[ip]*solVec[ieq-1];
     }
-  }
 #endif
 
   return true;
@@ -822,11 +815,8 @@ bool SAM::getSolVec (RealArray& solVec, const RealArray& dofVec) const
 
   solVec.resize(neq,Real(0));
   for (int idof = 0; idof < ndof; idof++)
-  {
-    int ieq = meqn[idof];
-    if (ieq > 0)
+    if (int ieq = meqn[idof]; ieq > 0)
       solVec[ieq-1] = dofVec[idof];
-  }
 
   return true;
 }
@@ -837,16 +827,13 @@ bool SAM::applyDirichlet (Vector& dofVec) const
   if (!meqn) return false;
 
   for (int idof = 0; idof < ndof; idof++)
-  {
-    int iceq = -meqn[idof];
-    if (iceq > 0)
+    if (int iceq = -meqn[idof]; iceq > 0)
     {
       int ip = mpmceq[iceq-1];
       dofVec[idof] = ttcc[ip-1];
     }
     else if (iceq == 0)
       dofVec[idof] = Real(0);
-  }
 
   return true;
 }
@@ -900,8 +887,7 @@ Real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
   else if (nodeType.empty() && dof_type.empty())
   {
     // All DOFs are of the same type and the number of nodal DOFs is constant
-    int nndof = madof[1] - madof[0];
-    if (static_cast<int>(comp) <= nndof)
+    if (int nndof = madof[1] - madof[0]; static_cast<int>(comp) <= nndof)
       return x.normInf(--comp,nndof);
     else
       return Real(0);
@@ -923,15 +909,12 @@ Real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
           }
     }
     else if (nodeType[i] == dofType)
-    {
-      int idof = madof[i] + icmp - 2;
-      if (idof >= 0 && idof < madof[i+1]-1)
+      if (int idof = madof[i] + icmp - 2; idof >= 0 && idof < madof[i+1]-1)
         if (fabs(x[idof]) > retVal)
         {
           comp = i+1;
           retVal = fabs(x[idof]);
         }
-    }
 
   return retVal;
 }
@@ -962,11 +945,9 @@ bool SAM::haveReaction (int dir, const IntVec* nodes) const
   if (dir > 0 && nspdof > 0)
     for (int i = 0; i < nnod; i++)
       if (!nodes || std::find(nodes->begin(),nodes->end(),i+1) != nodes->end())
-      {
-        int idof = madof[i]+dir-2;
-        if (idof < madof[i+1]-1 && msc[idof] < 0 && -msc[idof] <= nspdof)
-          return true;
-      }
+        if (int idof = madof[i]+dir-2; idof < madof[i+1]-1)
+          if (msc[idof] < 0 && -msc[idof] <= nspdof)
+            return true;
 
   return false;
 }
@@ -979,16 +960,14 @@ Real SAM::getReaction (int dir, const RealArray& rf, const IntVec* nodes) const
   if (dir > 0 && nspdof > 0)
     for (int i = 0; i < nnod; i++)
       if (!nodes || std::find(nodes->begin(),nodes->end(),i+1) != nodes->end())
-      {
-        int idof = madof[i]+dir-2;
-        int ipr = idof < madof[i+1]-1 ? -msc[idof]-1 : -1;
-        if (ipr >= 0 && ipr < static_cast<int>(rf.size()))
-        {
-          retVal += rf[ipr];
-          if (nodes) // clear this force component to avoid it being added twice
-            const_cast<RealArray&>(rf)[ipr] = 0.0;
-        }
-      }
+        if (int idof = madof[i]+dir-2; idof < madof[i+1]-1)
+          if (int ipr = -msc[idof]-1; ipr >= 0)
+            if (ipr < static_cast<int>(rf.size()))
+            {
+              retVal += rf[ipr];
+              if (nodes) // clear force component to avoid it being added twice
+                const_cast<RealArray&>(rf)[ipr] = 0.0;
+            }
 
   return retVal;
 }
