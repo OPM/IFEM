@@ -239,6 +239,7 @@ SPRMatrix::SAM64::SAM64 (const SAM& sam)
   mpmceq = copyTo64(sam.mpmceq,sam.nceq+1);
   mmceq  = copyTo64(sam.mmceq,sam.nmmceq);
   meqn   = copyTo64(sam.meqn,sam.ndof);
+  minex  = sam.minex;
 }
 
 
@@ -251,6 +252,23 @@ SPRMatrix::SAM64::~SAM64 ()
   delete[] mpmceq;
   delete[] mmceq;
   delete[] meqn;
+}
+
+
+std::pair<int,int> SPRMatrix::SAM64::getNodeAndLocalDof (int ieq, bool) const
+{
+  const Int_ nnod = mpar[0];
+  const Int_ ndof = mpar[2];
+  if (Int_* idof = std::find(meqn,meqn+ndof,ieq); idof != meqn+ndof)
+    ieq = std::distance(meqn,idof);
+  else
+    return { 0, 0 };
+
+  for (int n = 1; n <= nnod; n++)
+    if (madof[n] > static_cast<Int_>(ieq))
+      return { minex ? minex[n-1] : n, ieq-madof[n-1]+1 };
+
+  return { 0, 0 };
 }
 #endif
 
@@ -677,11 +695,23 @@ bool SPRMatrix::solve (SystemVector& B, Real*)
   Int_ iop = mpar[0] < 5 ? 3 : 4;
   sprsol_(iop, mpar, mtrees, msifa, values, B.getPtr(),
           B.dim(), 1, tol, iWork.data(), rWork.data(), 6, ierr);
-  if (!ierr) return true;
+  if (ierr < 0)
+    std::cerr <<"SAM::SPRSOL: Failure ("<< ierr <<")";
+  else if (ierr == 3)
+    std::cerr <<"SAM::SPRSOL: Negative pivot";
+  else
+    return true;
 
-  std::cerr <<"SAM::SPRSOL: Failure "<< ierr << std::endl;
+  std::pair<int,int> dof = mySam->getNodeAndLocalDof(mpar[26],true);
+  if (dof.first > 0)
+    std::cerr <<" detected in node "<< dof.first <<", local DOF "<< dof.second;
+  else if (mpar[26] > 0)
+    std::cerr <<", for equation "<< mpar[26] <<" (unknown) ";
+  std::cerr << std::endl;
+#else
+  ierr = -99;
 #endif
-  return false;
+  return ierr >= 0;
 }
 
 

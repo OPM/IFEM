@@ -79,7 +79,7 @@ public:
   //! \details When multi-point constraints are present, contributions from
   //! these are also added into the system right-hand-side vector, \a B.
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-			SystemVector& B, int e);
+                        SystemVector& B, int e);
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
   //! \param[in] sam Auxiliary data for FE assembly management
@@ -127,7 +127,7 @@ public:
   //! \param[in] shift Eigenvalue shift
   //! \param[in] iop Option telling whether to factorize matrix \a A or \b B.
   bool solveEig(SPRMatrix& B, RealArray& val, Matrix& vec, int nev,
-		Real shift = 0.0, int iop = 1);
+                Real shift = 0.0, int iop = 1);
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const;
@@ -178,11 +178,14 @@ private:
     Int_* mpmceq; //!< Matrix of pointers to MCEQs in MMCEQ
     Int_* mmceq;  //!< Matrix of matrices of constraint equation definitions
     Int_* meqn;   //!< Matrix of equation numbers
+    int*  minex;  //!< Matrix of internal to external node number mapping
 
     //! \brief The constructor copies the 32-bit arrays into 64-bit versions.
     SAM64(const SAM& sam);
     //! \brief The destructor frees the dynamically allocated arrays.
     ~SAM64();
+    //! \brief Returns the node and local DOF number for the equation \a ieq.
+    std::pair<int,int> getNodeAndLocalDof(int ieq, bool) const;
   };
 
   bool sharedSam = false; //!< True if SAM object is shared with another matrix
