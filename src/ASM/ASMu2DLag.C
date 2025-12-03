@@ -463,6 +463,7 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
   IntVec status(nel,0);
 
   using IntSet = std::set<int>;
+  IntSet slaveNodes;
   std::vector<IntSet> nodeConn(nnod); // node-to-element connectivity
   std::vector<IntSet> nodeNode(nnod); // node-to-node connectivity via MPCs
 
@@ -471,16 +472,17 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
       for (size_t i = 0; i < mpc->getNoMaster(); i++)
         if (int mastr = this->getNodeIndex(mpc->getMaster(i).node); mastr > 0)
         {
-          nodeNode[slave-1].insert(mastr-1);
+          slaveNodes.insert(slave-1);
           nodeNode[mastr-1].insert(slave-1);
         }
 
   size_t fixedElements = 0;
   for (size_t iel = 0; iel < nel; iel++)
     if (separateGroup1noded && MNPC[iel].size() == 1 &&
-        nodeNode[MNPC[iel].front()].empty())
+        slaveNodes.find(MNPC[iel].front()) == slaveNodes.end())
     {
-      status[iel] = 1; // Separate group for all single-noded elements
+      // Separate color for all single-noded elements
+      status[iel] = 1; // whose element node is not a slave
       if (++fixedElements == 1)
         threadGroups[0].resize(1, { static_cast<int>(iel) });
       else
@@ -488,11 +490,30 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
     }
     else
       for (int node : MNPC[iel])
-      {
         nodeConn[node].insert(iel);
-        for (int master : nodeNode[node])
-          nodeConn[master].insert(iel);
-      }
+
+  // Second pass - account for the MPC couplings
+  for (size_t master = 0; master < nodeNode.size(); master++)
+    if (!nodeNode[master].empty())
+    {
+      IntSet commonElms(nodeConn[master]);
+      for (int slave : nodeNode[master])
+        commonElms.insert(nodeConn[slave].begin(),nodeConn[slave].end());
+      nodeConn[master].insert(commonElms.begin(),commonElms.end());
+      for (int slave : nodeNode[master])
+        nodeConn[slave] = commonElms;
+    }
+
+#if SP_DEBUG > 1
+  std::cout <<"\nNode to element connectivity (incl. MPC couplings):";
+  for (size_t inod = 0; inod < nnod; inod++)
+  {
+    std::cout <<"\n"<< inod <<" ->";
+    for (int e : nodeConn[inod])
+      std::cout <<" "<< e;
+  }
+  std::cout << std::endl;
+#endif
 
   for (size_t nColors = fixedElements > 0; fixedElements < nel; ++nColors)
   {
@@ -501,7 +522,7 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
                   [](int& s) { if (s < 0) s = 0; });
 
     // Look for available elements
-    IntVec thisColor;
+    IntVec& thisColor = threadGroups[0].emplace_back();
     for (size_t i = 0; i < nel; ++i)
       if (status[i] == 0)
       {
@@ -514,8 +535,6 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
             if (status[j] == 0) // if not assigned a color yet
               status[j] = -1;   // set as unavailable (with current color)
       }
-
-    threadGroups[0].emplace_back(thisColor);
   }
 
   if (!silence)
