@@ -156,7 +156,7 @@ bool SIMoptions::parseDiscretizationTag (const tinyxml2::XMLElement* elem)
 bool SIMoptions::parseOutputTag (const tinyxml2::XMLElement* elem)
 {
   const char* value = nullptr;
-  if (!strcasecmp(elem->Value(),"vtfformat")) {
+  if (!strcasecmp(elem->Value(),"vtfformat") && format >= -1) {
     if (elem->FirstChild()) {
       if (!strcasecmp(elem->FirstChild()->Value(),"ascii"))
         format = 0;
@@ -329,6 +329,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     nGauss[0] = nGauss[1] = atoi(argv[++i]);
   else if (!strcmp(argv[i],"-vtf") && i < argc-1)
     format = atoi(argv[++i]);
+  else if (!strcmp(argv[i],"-no-vtf"))
+    format = -2;
   else if (!strcmp(argv[i],"-nviz") && i < argc-1)
     nViz[0] = nViz[1] = nViz[2] = atoi(argv[++i]);
   else if (!strcmp(argv[i],"-nu") && i < argc-1)
