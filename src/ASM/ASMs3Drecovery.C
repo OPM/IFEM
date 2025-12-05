@@ -194,8 +194,8 @@ bool ASMs3D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
   SplineUtils::getGaussParameters(gpar[2],ng3,zg,proj->basis(2));
 
   // Evaluate basis functions at all integration points
-  std::vector<Go::BasisPts>    spl1;
-  std::vector<Go::BasisDerivs> spl2;
+  std::vector<GoBasisPtsVol>    spl1;
+  std::vector<GoBasisDerivsVol> spl2;
   if (continuous)
     geo->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl2);
 

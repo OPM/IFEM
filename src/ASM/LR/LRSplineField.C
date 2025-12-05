@@ -114,11 +114,11 @@ bool LRSplineField::evalMapping (const LR::LRSplineVolume& vol,
   Matrix dNdu;
   Matrix3D d2Ndu2;
   if (Hess) {
-    Go::BasisDerivs2 spline2;
+    GoBasisDerivsVol2 spline2;
     vol.computeBasis(x.u,x.v,x.w,spline2,iel);
     SplineUtils::extractBasis(spline2, N, dNdu, d2Ndu2);
   } else {
-    Go::BasisDerivs spline;
+    GoBasisDerivsVol spline;
     vol.computeBasis(x.u,x.v,x.w,spline,iel);
     SplineUtils::extractBasis(spline, N, dNdu);
   }
@@ -154,11 +154,11 @@ bool LRSplineField::evalBasis (const LR::LRSplineVolume& vol,
   Matrix dNdu;
   Matrix3D d2Ndu2;
   if (Hess) {
-    Go::BasisDerivs2 spline2;
+    GoBasisDerivsVol2 spline2;
     vol.computeBasis(x.u,x.v,x.w,spline2,iel);
     SplineUtils::extractBasis(spline2, N, dNdu, d2Ndu2);
   } else {
-    Go::BasisDerivs spline;
+    GoBasisDerivsVol spline;
     vol.computeBasis(x.u,x.v,x.w,spline,iel);
     SplineUtils::extractBasis(spline, N, dNdu);
   }

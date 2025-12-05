@@ -119,7 +119,7 @@ bool SplineField::evalMapping (const Go::SplineVolume& vol,
   Matrix3D d2Ndu2;
 
   if (Hess) {
-    Go::BasisDerivs2 spline2;
+    GoBasisDerivsVol2 spline2;
 #pragma omp critical
     vol.computeBasis(x.u,x.v,x.w,spline2);
     SplineUtils::extractBasis(spline2, N, dNdu, d2Ndu2);
@@ -128,7 +128,7 @@ bool SplineField::evalMapping (const Go::SplineVolume& vol,
                        spline2.left_idx,ip);
 
   } else {
-    Go::BasisDerivs spline;
+    GoBasisDerivsVol spline;
 #pragma omp critical
     vol.computeBasis(x.u,x.v,x.w,spline);
     SplineUtils::extractBasis(spline, N, dNdu);
@@ -163,7 +163,7 @@ bool SplineField::evalBasis (const Go::SplineVolume& vol,
 
   ip.clear();
   if (Hess) {
-    Go::BasisDerivs2 spline2;
+    GoBasisDerivsVol2 spline2;
 #pragma omp critical
     vol.computeBasis(x.u,x.v,x.w,spline2);
     SplineUtils::extractBasis(spline2, N, dNdu, d2Ndu2);
@@ -171,7 +171,7 @@ bool SplineField::evalBasis (const Go::SplineVolume& vol,
                        vol.order(0),vol.order(1),vol.order(2),
                        spline2.left_idx,ip);
   } else {
-    Go::BasisDerivs spline;
+    GoBasisDerivsVol spline;
 #pragma omp critical
     vol.computeBasis(x.u,x.v,x.w,spline);
     SplineUtils::extractBasis(spline, N, dNdu);
