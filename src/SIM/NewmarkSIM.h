@@ -114,7 +114,7 @@ protected:
   int    maxIncr;   //!< Maximum number of iterations with increasing norm
   int    nupdat;    //!< Number of iterations with updated tangent
   int    saveIts;   //!< Time step for which iteration result should be saved
-  bool   saveVelAc; //!< If \e true, save velocity and acceleration to VTF
+  char   saveVelAc; //!< Flag the saving of velocity and acceleration to VTF
   double rTol;      //!< Relative convergence tolerance
   double aTol;      //!< Absolute convergence tolerance
   double divgLim;   //!< Relative divergence limit

@@ -2225,12 +2225,10 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
       compNames->push_back(myProblem->getField1Name(i));
 
   if (psol.size() > 2 && (opt.discretization >= ASM::Spline || !points.empty()))
-  {
     // Extract nodal point velocity and acceleration
-    Vector locVec;
-    size_t idxvel = psol.size() - 2;
-    for (size_t idx = idxvel; idx < psol.size() && ok; idx++)
+    for (size_t idx = 1; idx < 3 && ok; idx++)
     {
+      Vector locVec;
       patch->extractNodalVec(psol[idx],locVec,mySam->getMADOF(),-2);
       if (opt.discretization >= ASM::Spline)
         ok = patch->evalSolution(tmp,locVec,params.data(),false);
@@ -2239,14 +2237,13 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
       if (ok) ok = sol1.augmentRows(tmp);
       if (ok && getNames)
       {
-        const char* velacc = idx == idxvel ? "velocity" : "acceleration";
+        const char* velacc = idx == 1 ? "velocity" : "acceleration";
         if (tmp.rows() == 1)
           compNames->push_back(velacc);
         else for (size_t i = 0; i < tmp.rows(); i++)
           compNames->push_back(std::string(velacc) + "_" + std::to_string(i+1));
       }
     }
-  }
 
   if (myProblem->getNoFields(2) < 1 || !ok)
     return ok; // no secondary solution variables
