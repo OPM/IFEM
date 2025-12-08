@@ -361,6 +361,15 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
             ndof1 = psol.size();
           }
         }
+        if (entry.second.ncmps == 6)
+        {
+          // This is a model with rotational degrees of freedom.
+          // We want the translations only.
+          for (size_t i = 1; 6*i < psol.size(); i++)
+            memcpy(psol.ptr()+3*i,psol.ptr()+6*i,3*sizeof(double));
+          ndof1 /= 2;
+          psol.resize(ndof1,utl::RETAIN);
+        }
         const double* data = psol.ptr();
         if (usedescription)
           // Field assumed to be on basis 1 for now
