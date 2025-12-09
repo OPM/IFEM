@@ -68,12 +68,18 @@ bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
   }
   else if (!strcasecmp(elem->Value(),"postprocessing"))
   {
-    if (elem->FirstChildElement("saveVelAcc"))
+    const tinyxml2::XMLElement* child = nullptr;
+    if ((child = elem->FirstChildElement("saveVelAcc")))
       saveVelAc = 'y';
-    else if (elem->FirstChildElement("saveVel"))
+    else if ((child = elem->FirstChildElement("saveVel")))
       saveVelAc = 'v';
-    else if (elem->FirstChildElement("saveAcc"))
+    else if ((child = elem->FirstChildElement("saveAcc")))
       saveVelAc = 'a';
+
+    bool saveVec = false;
+    if (child && utl::getAttribute(child,"vector",saveVec) && saveVec)
+      saveVelAc = toupper(saveVelAc);
+
     if (elem->FirstChildElement("saveExtForce") && nRHSvec < 2)
       nRHSvec = 3;
   }
@@ -657,14 +663,14 @@ bool NewmarkSIM::saveStep (int iStep, TimeStep& param)
     return true;
 
   int nCmp = 10 + model.getNoFields();
-  if (saveVelAc != 'a')
+  if (tolower(saveVelAc) != 'a')
     if (!model.writeGlvS1(this->realSolution(1),iStep,nBlock,param.time.t,
-                          "velocity",40,nCmp))
+                          "velocity",40,nCmp,islower(saveVelAc)))
       return false;
 
-  if (saveVelAc != 'v')
+  if (tolower(saveVelAc) != 'v')
     if (!model.writeGlvS1(this->realSolution(2),iStep,nBlock,param.time.t,
-                          "acceleration",50,nCmp))
+                          "acceleration",50,nCmp,islower(saveVelAc)))
       return false;
 
   return true;
