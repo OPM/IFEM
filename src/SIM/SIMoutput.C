@@ -421,6 +421,9 @@ void SIMoutput::preprocessResultPoints ()
 
   if (myProblem && !myPoints.empty())
   {
+    IFEM::cout <<"\nSecondary solution components (sol1):";
+    for (size_t i = 0; i < myProblem->getNoFields(1); i++)
+      IFEM::cout <<" \""<< myProblem->getField1Name(i) <<"\"";
     IFEM::cout <<"\nSecondary solution components (sol2):";
     for (size_t i = 0; i < myProblem->getNoFields(2); i++)
       IFEM::cout <<" \""<< myProblem->getField2Name(i) <<"\"";
@@ -1013,7 +1016,7 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
   idBlock = this->writeGlvS1(psol,iStep,nBlock,time,
                              pvecName,idBlock,psolComps);
 
-  if (idBlock > jBl && !opt.pSolOnly)
+  if (idBlock > jBl)
     idBlock = this->writeGlvS2(psol,iStep,nBlock,time,idBlock,psolComps);
 
   if (idBlock < 0) return false;
@@ -1055,10 +1058,14 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   if (psol.empty() || !myVtf)
     return idBlock; // no primary solution (silently ignore)
 
-  const bool piolaMapping = myProblem ?
-    myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
+  size_t nf = scalarOnly ? 1 : this->getNoFields();
+  bool piolaMapping = false;
+  if (myProblem)
+  {
+    if (size_t nf1 = myProblem->getNoFields(1); nf1 > 0) nf = nf1;
+    piolaMapping = myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING;
+  }
 
-  size_t nf     = scalarOnly ? 1 : this->getNoFields();
   size_t nVcomp = nf > this->getNoSpaceDim() ? this->getNoSpaceDim() : nf;
   bool haveXsol = false;
   if (mySol && psolComps >= 0)
@@ -1218,7 +1225,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       if (pvecName && psolComps < 0)
         pname = std::string(pvecName) + " " + pname;
     }
-    else if (i == nf && i+1 == sID.size() && pvecName)
+    else if (i+1 == sID.size() && i%nVcomp == 0 && pvecName)
       pname = pvecName;
     else if (i > 0 && nVcomp > 1 && i%nVcomp == 0)
     {
@@ -1254,7 +1261,7 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     return -99; // no integrand (should not happen at this point)
 
   size_t nf = myProblem->getNoSolutions() > 0 ? myProblem->getNoFields(2) : 0;
-  if (nf < 1) return idBlock; // no secondary solution
+  if (nf < 1 || opt.pSolOnly) return idBlock; // no secondary solution
 
   bool haveAsol = false;
   if (mySol)
