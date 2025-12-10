@@ -99,6 +99,14 @@ public:
 
 #ifdef HAS_HDF5
 protected:
+  //! \brief Internal helper adding a new empty group, unless already existing.
+  //! \param[in] path Path to the new/existing data group
+  void addGroup(const std::string& path) const;
+  //! \brief Internal helper returning the handle to a new or existing group.
+  //! \param[in] path Path to the new/existing data group
+  //! \param[in] group Parent group of the new group
+  hid_t getGroup(const std::string& path, hid_t group = -1) const;
+
   //! \brief Internal helper function writing a data array to file.
   //! \param[in] group The HDF5 group to write data into
   //! \param[in] name The name of the array

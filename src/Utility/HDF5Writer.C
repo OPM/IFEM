@@ -65,20 +65,13 @@ int HDF5Writer::getLastTimeLevel ()
   hid_t acc_tpl = H5P_DEFAULT;
 #endif
 
-  m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
-  if (m_file < 0)
-  {
+  if (hid_t fid = H5Fopen(m_name.c_str(),m_flag,acc_tpl); fid >= 0) {
+    for (bool ok = true; ok; result++)
+      ok = checkGroupExistence(fid, ("/" + std::to_string(result)).c_str());
+    H5Fclose(fid);
+  }
+  else
     std::cerr <<" *** HDF5Writer: Failed to open "<< m_name << std::endl;
-    return -2;
-  }
-
-  for (bool ok = true; ok; result++) {
-    std::stringstream str;
-    str << '/' << result;
-    ok = checkGroupExistence(m_file,str.str().c_str());
-  }
-  H5Fclose(m_file);
-  m_file = -1;
 #endif
   return result-1;
 }
@@ -90,32 +83,25 @@ void HDF5Writer::openFile(int level)
   if (m_file != -1)
     return;
 
-  if (m_flag == H5F_ACC_RDWR) {
-    struct stat buffer;
-    if (stat(m_name.c_str(),&buffer) != 0)
+  if (m_flag == H5F_ACC_RDWR)
+    if (struct stat buffer; stat(m_name.c_str(),&buffer) != 0)
       m_flag = H5F_ACC_TRUNC;
-  }
 
   if (m_flag == H5F_ACC_RDWR) {
 #ifdef HAVE_GET_CURRENT_DIR_NAME
-      char* cwd = get_current_dir_name();
-      struct statvfs vfs;
-      statvfs(cwd,&vfs);
-      if (((int64_t)vfs.f_bavail)*vfs.f_bsize < HDF5_SANITY_LIMIT) {
-        std::cerr << "HDF5Writer: Low disk space detected, bailing" << std::endl;
-        exit(1);
-      }
-      free(cwd);
+    char* cwd = get_current_dir_name();
+    struct statvfs vfs;
+    statvfs(cwd,&vfs);
+    if (static_cast<int64_t>(vfs.f_bavail)*vfs.f_bsize < HDF5_SANITY_LIMIT) {
+      std::cerr <<" *** HDF5Writer: Low disk space detected, bailing.\n";
+      exit(1);
+    }
+    free(cwd);
 #endif
   }
 
-  if (!HDF5Base::openFile(m_flag))
-    return;
-
-  std::stringstream str;
-  str << '/' << level;
-  if (!checkGroupExistence(m_file,str.str().c_str()))
-    H5Gclose(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
+  if (HDF5Base::openFile(m_flag))
+    this->addGroup("/" + std::to_string(level));
 #endif
 }
 
@@ -123,7 +109,7 @@ void HDF5Writer::openFile(int level)
 void HDF5Writer::closeFile(int level)
 {
 #ifdef HAS_HDF5
-  if (m_file) {
+  if (m_file != -1) {
     H5Fflush(m_file,H5F_SCOPE_GLOBAL);
     H5Fclose(m_file);
   }
@@ -134,6 +120,27 @@ void HDF5Writer::closeFile(int level)
 
 
 #ifdef HAS_HDF5
+void HDF5Writer::addGroup(const std::string& path) const
+{
+  if (checkGroupExistence(m_file, path.c_str()))
+    return;
+
+  H5Gclose(H5Gcreate2(m_file, path.c_str(), 0, H5P_DEFAULT, H5P_DEFAULT));
+}
+
+
+hid_t HDF5Writer::getGroup(const std::string& path, hid_t group) const
+{
+  if (group < 0)
+    group = m_file;
+
+  if (checkGroupExistence(group, path.c_str()))
+    return H5Gopen2(group, path.c_str(), H5P_DEFAULT);
+  else
+    return H5Gcreate2(group, path.c_str(), 0, H5P_DEFAULT, H5P_DEFAULT);
+}
+
+
 void HDF5Writer::writeArray(hid_t group, const std::string& name, int patch,
                             int len, const void* data, hid_t type)
 {
@@ -141,39 +148,28 @@ void HDF5Writer::writeArray(hid_t group, const std::string& name, int patch,
   std::cout <<"HDF5Writer::writeArray: "<< name <<" for patch "<< patch
             <<" size="<< len << std::endl;
 #endif
+  hsize_t siz = static_cast<hsize_t>(len);
+  hsize_t start = 0;
 #ifdef HAVE_MPI
-  hsize_t siz;
-  hsize_t start;
-  if (m_adm.dd.isPartitioned()) {
-    siz = static_cast<hsize_t>(len);
-    start = 0;
-  } else {
+  if (!m_adm.dd.isPartitioned()) {
     std::vector<int> lens(m_size), lens2(m_size);
     std::fill(lens.begin(), lens.end(), len);
     MPI_Alltoall(lens.data(),1,MPI_INT,lens2.data(),1,MPI_INT,*m_adm.getCommunicator());
     siz   = std::accumulate(lens2.begin(), lens2.end(), hsize_t(0));
     start = std::accumulate(lens2.begin(), lens2.begin() + m_rank, hsize_t(0));
   }
-#else
-  hsize_t siz   = (hsize_t)len;
-  hsize_t start = 0;
 #endif
   hid_t space, set;
   hid_t group1 = -1;
   if (patch > -1) {
-    if (checkGroupExistence(group, name.c_str()))
-      group1 = H5Gopen2(group, name.c_str(),H5P_DEFAULT);
-    else
-      group1 = H5Gcreate2(group, name.c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+    group1 = this->getGroup(name,group);
     space = H5Screate_simple(1,&siz,nullptr);
-    std::stringstream str;
-    str << patch;
-    set = H5Dcreate2(group1,str.str().c_str(),
-                     type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    set = H5Dcreate2(group1, std::to_string(patch).c_str(), type, space,
+                     H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   } else {
     space = H5Screate_simple(1,&siz,nullptr);
-    set = H5Dcreate2(group,name.c_str(),
-                     type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+    set = H5Dcreate2(group, name.c_str(), type, space,
+                     H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   }
   if (len > 0) {
     hid_t file_space = H5Dget_space(set);
@@ -204,9 +200,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
   if (redundant)
     MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
 #endif
-  std::stringstream str;
-  str << level;
-  hid_t group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+  hid_t group = H5Gopen2(m_file, std::to_string(level).c_str(), H5P_DEFAULT);
   if (entry.second.field == DataExporter::VECTOR) {
     Vector* dvec = (Vector*)entry.second.data;
     int len = !redundant || rank == 0 ? dvec->size() : 0;
@@ -305,42 +299,21 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       normGrp = 1+projPfx.size();
   }
 
+  bool exportSol = results & (DataExporter::PRIMARY | DataExporter::SECONDARY);
+  std::string str = std::to_string(level) + "/" + sim->getName();
   std::vector<hid_t> egroup, group;
   egroup.reserve(sim->getNoBasis());
   group.reserve(sim->getNoBasis()+1);
   for (size_t b = 1; b <= sim->getNoBasis(); ++b) {
-    std::stringstream str;
-    str << level;
-    str << '/' << sim->getName() << "-" << b;
-    if (!checkGroupExistence(m_file,str.str().c_str()))
-      H5Gclose(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
-    if (norm) {
-      std::stringstream str2;
-      str2 << str.str() << "/knotspan";
-      if (checkGroupExistence(m_file,str2.str().c_str()))
-        egroup.push_back(H5Gopen2(m_file,str2.str().c_str(),H5P_DEFAULT));
-      else
-        egroup.push_back(H5Gcreate2(m_file,str2.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
-    }
-    if (results & (DataExporter::PRIMARY | DataExporter::SECONDARY) && !sol->empty()) {
-      str << "/fields";
-      if (checkGroupExistence(m_file,str.str().c_str()))
-        group.push_back(H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT));
-      else
-        group.push_back(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
-    }
+    std::string basis = str + "-" + std::to_string(b);
+    this->addGroup(basis);
+    if (norm)
+      egroup.push_back(this->getGroup(basis + "/knotspan"));
+    if (exportSol && !sol->empty())
+      group.push_back(this->getGroup(basis + "/fields"));
   }
-
-  if (proj && sim->fieldProjections()) {
-    std::stringstream str;
-    str << level;
-    str << '/' << sim->getName() << "-proj";
-    str << "/fields";
-    if (checkGroupExistence(m_file,str.str().c_str()))
-      group.push_back(H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT));
-    else
-      group.push_back(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
-  }
+  if (proj && sim->fieldProjections())
+    group.push_back(this->getGroup(str + "-proj/fields"));
 
   // Lambda function for extracting projected solution for a patch.
   size_t projOfs = 0;
@@ -387,6 +360,15 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
             psol = sField;
             ndof1 = psol.size();
           }
+        }
+        if (entry.second.ncmps == 6)
+        {
+          // This is a model with rotational degrees of freedom.
+          // We want the translations only.
+          for (size_t i = 1; 6*i < psol.size(); i++)
+            memcpy(psol.ptr()+3*i,psol.ptr()+6*i,3*sizeof(double));
+          ndof1 /= 2;
+          psol.resize(ndof1,utl::RETAIN);
         }
         const double* data = psol.ptr();
         if (usedescription)
@@ -465,29 +447,18 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         const std::vector<Mode>* modes = static_cast<const std::vector<Mode>*>(entry.second.data2.front());
         for (const Mode& mode : *modes)
         {
-          std::stringstream str;
-          str << level << '/' << sim->getName() << "-1/Eigenmode";
-          hid_t gid;
-          if (checkGroupExistence(m_file,str.str().c_str()))
-            gid = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-          else
-            gid = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
-
-          std::stringstream str2;
-          str2 << ++iMode;
-          size_t ndof1 = sim->extractPatchSolution(mode.eigVec,psol,pch);
-          this->writeArray(gid, str2.str(), idx, ndof1, psol.ptr(),
-                           H5T_NATIVE_DOUBLE);
+          hid_t gid = this->getGroup(str + "-1/Eigenmode");
+          std::string str2 = std::to_string(++iMode);
+          size_t len = sim->extractPatchSolution(mode.eigVec,psol,pch);
+          this->writeArray(gid, str2, idx, len, psol.ptr(), H5T_NATIVE_DOUBLE);
           if (sim->opt.eig == 3 || sim->opt.eig == 4 || sim->opt.eig == 6)
-            str2 << "/Frequency";
+            str2 += "/Frequency";
           else
-            str2 << "/Value";
-          this->writeArray(gid, str2.str(), -1, 1, &mode.eigVal,
-                           H5T_NATIVE_DOUBLE);
+            str2 += "/Value";
+          this->writeArray(gid, str2, -1, 1, &mode.eigVal, H5T_NATIVE_DOUBLE);
           if (idx == 1) {
-            std::stringstream str3;
-            str3 << iMode << "/eqn/";
-            this->writeArray(gid, str3.str(), idx, mode.eqnVec.size(),
+            str2 = std::to_string(iMode) + "/eqn/";
+            this->writeArray(gid, str2, idx, mode.eqnVec.size(),
                              mode.eqnVec.ptr(), H5T_NATIVE_DOUBLE);
           }
           H5Gclose(gid);
@@ -569,40 +540,31 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
   const Vector* sol = static_cast<const Vector*>(entry.second.data2.front());
   if (!sim || !sol) return;
 
+#ifdef HAS_HDF5
+  std::string str = std::to_string(level) + "/" + sim->getName() + "-1";
+  this->addGroup(str);
+
+  hid_t group = this->getGroup(str + "/knotspan");
+
   Matrix infield(1,sol->size());
   infield.fillRow(1,sol->ptr());
+  double dummy = 0.0;
 
-#ifdef HAS_HDF5
-  std::stringstream str;
-  str << level << '/' << sim->getName() << "-" << 1;
-  if (!checkGroupExistence(m_file,str.str().c_str())) {
-    hid_t group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
-    H5Gclose(group);
-  }
-
-  str << "/knotspan";
-  hid_t group2;
-  if (checkGroupExistence(m_file,str.str().c_str()))
-    group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  else
-    group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
-  for (int idx = 1; idx <= sim->getNoPatches(); idx++) {
-    int loc = sim->getLocalPatchIndex(idx);
-    if (loc > 0 && (sim->getProcessAdm().isParallel() ||
+  for (int idx = 1; idx <= sim->getNoPatches(); idx++)
+    if (int loc = sim->getLocalPatchIndex(idx);
+        loc > 0 && (sim->getProcessAdm().isParallel() ||
                     sim->getGlobalProcessID() == 0)) // we own the patch
     {
-      Matrix patchEnorm;
-      sim->extractPatchElmRes(infield,patchEnorm,loc-1);
-      writeArray(group2,prefix+entry.second.description,idx,patchEnorm.cols(),
-                 patchEnorm.getRow(1).ptr(),H5T_NATIVE_DOUBLE);
+      Matrix elmRes;
+      sim->extractPatchElmRes(infield,elmRes,loc-1);
+      writeArray(group,prefix+entry.second.description,idx,
+                 elmRes.cols(),elmRes.getRow(1).ptr(),H5T_NATIVE_DOUBLE);
     }
-    else { // must write empty dummy records for the other patches
-      double dummy=0.0;
-      writeArray(group2,prefix+entry.second.description,idx,0,&dummy,H5T_NATIVE_DOUBLE);
-    }
+    else // must write empty dummy records for the other patches
+      writeArray(group,prefix+entry.second.description,idx,
+                 0,&dummy,H5T_NATIVE_DOUBLE);
 
-  }
-  H5Gclose(group2);
+  H5Gclose(group);
 #else
   std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
 #endif
@@ -613,18 +575,13 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
 void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
                              int basis, int level, bool redundant, bool l2g)
 {
-  std::stringstream str;
-  str << "/" << level << '/' << name;
-  hid_t group;
   int rank = 0;
 #ifdef HAVE_MPI
   if (redundant)
     MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
 #endif
-  if (checkGroupExistence(m_file,str.str().c_str()))
-    group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  else
-    group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+
+  hid_t group = this->getGroup("/" + std::to_string(level) + "/" + name);
 
   std::map<int, int> l2gNode;
   std::map<int, int> prevNode;
@@ -685,7 +642,6 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
       adm.send(iNode, adm.getProcId() + 1);
     }
 #endif
-
   }
 
   for (int idx = 1; idx <= sim->getNoPatches(); idx++) {
@@ -731,17 +687,9 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
 bool HDF5Writer::writeTimeInfo (int level, int interval, const TimeStep& tp)
 {
 #ifdef HAS_HDF5
-  std::stringstream str;
-  str << "/" << level << "/timeinfo";
-  hid_t group;
-  if (checkGroupExistence(m_file,str.str().c_str()))
-    group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  else
-    group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
-
+  hid_t group = this->getGroup("/" + std::to_string(level) + "/timeinfo");
   // parallel nodes != 0 write dummy entries
-  int toWrite=(m_rank == 0);
-
+  int toWrite = (m_rank == 0);
   // !TODO: different names
   writeArray(group,"level",-1,toWrite,&tp.time.t,H5T_NATIVE_DOUBLE);
   H5Gclose(group);
@@ -753,20 +701,10 @@ bool HDF5Writer::writeTimeInfo (int level, int interval, const TimeStep& tp)
 void HDF5Writer::writeNodalForces (int level, const DataEntry& entry)
 {
 #ifdef HAS_HDF5
-  std::stringstream str;
-  str << level << "/nodal";
+  std::string str = std::to_string(level) + "/nodal";
+  this->addGroup(str);
 
-  hid_t group2;
-  if (!checkGroupExistence(m_file,str.str().c_str())) {
-    hid_t group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
-    H5Gclose(group);
-  }
-
-  str << "/" << entry.first;
-  if (checkGroupExistence(m_file,str.str().c_str()))
-    group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  else
-    group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+  hid_t group = this->getGroup(str + "/" + entry.first);
 
   if (m_rank == 0) {
     SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
@@ -783,14 +721,14 @@ void HDF5Writer::writeNodalForces (int level, const DataEntry& entry)
         values[i*3+j] = val[j];
       }
     }
-    writeArray(group2,"values",-1,values.size(),values.ptr(),H5T_NATIVE_DOUBLE);
-    writeArray(group2,"coords",-1,coords.size(),coords.ptr(),H5T_NATIVE_DOUBLE);
+    writeArray(group,"values",-1,values.size(),values.ptr(),H5T_NATIVE_DOUBLE);
+    writeArray(group,"coords",-1,coords.size(),coords.ptr(),H5T_NATIVE_DOUBLE);
   } else {
     double dummy=0.0;
-    writeArray(group2,"values",-1,0,&dummy,H5T_NATIVE_DOUBLE);
-    writeArray(group2,"coords",-1,0,&dummy,H5T_NATIVE_DOUBLE);
+    writeArray(group,"values",-1,0,&dummy,H5T_NATIVE_DOUBLE);
+    writeArray(group,"coords",-1,0,&dummy,H5T_NATIVE_DOUBLE);
   }
-  H5Gclose(group2);
+  H5Gclose(group);
 #else
   std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
 #endif
@@ -800,11 +738,7 @@ void HDF5Writer::writeNodalForces (int level, const DataEntry& entry)
 bool HDF5Writer::writeLog (const std::string& data, const std::string& name)
 {
 #ifdef HAS_HDF5
-  hid_t group;
-  if (checkGroupExistence(m_file,"/log"))
-    group = H5Gopen2(m_file,"/log",H5P_DEFAULT);
-  else
-    group = H5Gcreate2(m_file,"/log",0,H5P_DEFAULT,H5P_DEFAULT);
+  hid_t group = this->getGroup("/log");
 
   int rank = 0;
   int size = 1;
@@ -816,8 +750,8 @@ bool HDF5Writer::writeLog (const std::string& data, const std::string& name)
   for (int i = 0; i < size; i++)
     writeArray(group, name.c_str(), i, rank == i ? data.size() : 0, data.data(), H5T_NATIVE_CHAR);
   H5Gclose(group);
-  return true;
 
+  return true;
 #else
   return false;
 #endif
