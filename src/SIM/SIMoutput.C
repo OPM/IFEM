@@ -1012,16 +1012,13 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
                            double time, const char* pvecName,
                            int idBlock, int psolComps)
 {
-  int jBl = idBlock;
-  idBlock = this->writeGlvS1(psol,iStep,nBlock,time,
+  int jBl = this->writeGlvS1(psol,iStep,nBlock,time,
                              pvecName,idBlock,psolComps);
 
-  if (idBlock > jBl)
-    idBlock = this->writeGlvS2(psol,iStep,nBlock,time,idBlock,psolComps);
+  if (jBl > idBlock)
+    jBl = this->writeGlvS2(psol,iStep,nBlock,time,jBl,psolComps);
 
-  if (idBlock < 0) return false;
-
-  return this->writeAddFuncs(nBlock,idBlock,psol,iStep,time);
+  return jBl < 0 ? false : this->writeAddFuncs(nBlock,jBl,psol,iStep,time);
 }
 
 
@@ -1066,6 +1063,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     piolaMapping = myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING;
   }
 
+  bool writeDeformation = !pvecName || psolComps < 0;
+
   size_t nVcomp = nf > this->getNoSpaceDim() ? this->getNoSpaceDim() : nf;
   bool haveXsol = false;
   if (mySol && psolComps >= 0)
@@ -1081,10 +1080,11 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   sID.reserve(nf);
   if (haveXsol) xID.reserve(nf);
 
-  // Any app-dependent vector field (from writeGlvA)?
-  for (const auto& [geo, dis] : addDisBlk)
-    if (myVtf->getBlock(geo))
-      vID[0].push_back(dis);
+  // Any app-dependent displacement field (from writeGlvA)?
+  if (writeDeformation)
+    for (const auto& [geo, dis] : addDisBlk)
+      if (myVtf->getBlock(geo))
+        vID[0].push_back(dis);
 
   Matrix field;
   Vector lovec;
@@ -1177,8 +1177,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
         return -3;
     }
 
-    // Get solution for the immersed geometry nodes
-    if (pch->immersedSolution(field,lovec))
+    // Get displacements for the immersed geometry nodes
+    if (writeDeformation && pch->immersedSolution(field,lovec))
     {
       if (!myVtf->writeVres(field,++nBlock,++geoID1))
         return -2;
@@ -1186,8 +1186,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       vID[0].push_back(nBlock);
     }
 
-    // Get solution for the extra geometry nodes
-    if (pch->extraSolution(field,lovec))
+    // Get displacements for the extra geometry nodes
+    if (writeDeformation && pch->extraSolution(field,lovec))
     {
       if (!myVtf->writeVres(field,++nBlock,++geoID2))
         return -2;
@@ -1205,10 +1205,10 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     if (!vID[i].empty())
     {
       std::string vname(i == 1 ? "Exact " + pname : pname);
-      if (pvecName && psolComps >= 0)
-        ok = myVtf->writeVblk(vID[i],vname.c_str(),idBlock+i,iStep);
-      else
+      if (writeDeformation)
         ok = myVtf->writeDblk(vID[i],vname.c_str(),idBlock+i,iStep);
+      else
+        ok = myVtf->writeVblk(vID[i],vname.c_str(),idBlock+i,iStep);
     }
 
   int nbc = this->getNoFields(1);

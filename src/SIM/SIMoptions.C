@@ -195,7 +195,7 @@ bool SIMoptions::parseOutputTag (const tinyxml2::XMLElement* elem)
       hdf5 = "(default)";
   }
 
-  else if (!strcasecmp(elem->Value(),"primarySolOnly"))
+  else if (!strncasecmp(elem->Value(),"primarySolOnly",10))
     pSolOnly = true;
 
   else if (!strncasecmp(elem->Value(),"saveTrac",8))
