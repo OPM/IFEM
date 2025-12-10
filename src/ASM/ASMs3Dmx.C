@@ -687,7 +687,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   integrand.setNeumannOrder(1 + lIndex/10);
 
   // Evaluate basis function derivatives at all integration points
-  std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size() + separateGeometry);
+  std::vector<std::vector<GoBasisDerivsVol>> splinex(m_basis.size() + separateGeometry);
 #pragma omp parallel for schedule(static)
   for (size_t i = 0; i < m_basis.size(); ++i)
     m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex[i]);
@@ -1036,7 +1036,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                 // Fetch basis function derivatives at current integration point
                 BasisValues bfs(2*nB);
                 for (size_t b = 1; b <= nB; b++) {
-                  Go::BasisDerivs spline;
+                  GoBasisDerivsVol spline;
                   this->getBasis(b)->computeBasis(fe.u,fe.v,fe.w,spline,faceDir < 0);
                   SplineUtils::extractBasis(spline,fe.basis(b),bfs[b-1].dNdu);
                   this->getBasis(b)->computeBasis(fe.u,fe.v,fe.w,spline,faceDir > 0);
@@ -1100,7 +1100,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
                              bool regular, int, int nf) const
 {
   // Evaluate the basis functions at all points
-  std::vector<std::vector<Go::BasisPts>> splinex(m_basis.size());
+  std::vector<std::vector<GoBasisPtsVol>> splinex(m_basis.size());
   if (regular)
   {
     for (size_t b = 0; b < m_basis.size(); ++b)
@@ -1168,7 +1168,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   const bool separateGeometry = geo != svol.get();
 
   // Evaluate the basis functions and their derivatives at all points
-  std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size() + separateGeometry);
+  std::vector<std::vector<GoBasisDerivsVol>> splinex(m_basis.size() + separateGeometry);
   if (regular)
   {
     for (size_t b = 0; b < m_basis.size(); ++b)
