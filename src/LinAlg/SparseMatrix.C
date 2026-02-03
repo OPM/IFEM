@@ -1272,7 +1272,7 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   if (ierr == (int)ncol+1)
   {
     ierr = 0; // Accept near-singular matrices
-    IFEM::cout <<"  ** Warning: The condition number "<< slu->rcond
+    IFEM::cout <<"  ** Warning: The reciprocal condition number "<< slu->rcond
                <<" is less than machine precision.\n"
                <<"              The solution is computed, but be aware..."
                << std::endl;
