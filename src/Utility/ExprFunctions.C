@@ -728,6 +728,15 @@ RealFunc* utl::parseExprRealFunc (const std::string& function, bool autodiff)
 }
 
 
+VecFunc* utl::parseExprVecFunc (const std::string& function, bool autodiff)
+{
+  if (autodiff)
+    return new EvalMultiFunction<VecFunc,Vec3,autodiff::var>(function, "");
+  else
+    return new EvalMultiFunction<VecFunc,Vec3,Real>(function, "");
+}
+
+
 template class EvalFuncScalar<Real>;
 template class EvalFuncScalar<autodiff::var>;
 template class EvalFuncSpatial<Real>;
