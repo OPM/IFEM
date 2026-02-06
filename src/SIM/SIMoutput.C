@@ -421,7 +421,7 @@ void SIMoutput::preprocessResultPoints ()
 
   if (myProblem && !myPoints.empty())
   {
-    IFEM::cout <<"\nSecondary solution components (sol1):";
+    IFEM::cout <<"\nPrimary solution components (sol1):";
     for (size_t i = 0; i < myProblem->getNoFields(1); i++)
       IFEM::cout <<" \""<< myProblem->getField1Name(i) <<"\"";
     IFEM::cout <<"\nSecondary solution components (sol2):";
