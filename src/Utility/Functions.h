@@ -646,6 +646,14 @@ namespace utl
   //! for encapsulation of the autodiff package.
   RealFunc* parseExprRealFunc(const std::string& function, bool autodiff);
 
+  //! \brief Creates a scalar-valued function by parsing a character string.
+  //! \param[in] function %Function expression
+  //! \param[in] autodiff if \e true, auto-differentiation is enabled
+  //!
+  //! \details The implementation of this method is in the file ExprFunctions.C
+  //! for encapsulation of the autodiff package.
+  VecFunc* parseExprVecFunc(const std::string& functions, bool autodiff);
+
   //! \brief Creates a scalar-valued int function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type %Function definition type flag
