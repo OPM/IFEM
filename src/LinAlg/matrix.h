@@ -602,7 +602,9 @@ namespace utl //! General utility classes and functions.
     vector<T> getRow(size_t r) const
     {
       CHECK_INDEX("matrix::getRow: Row-index ",r,nrow);
-      if (nrow < 2) return this->elem;
+      if (nrow < 2)
+        return this->elem;
+
       vector<T> row(ncol);
       for (size_t i = 0; i < ncol; i++)
         row[i] = this->elem[r-1+nrow*i];
@@ -613,7 +615,9 @@ namespace utl //! General utility classes and functions.
     std::vector<T> getColumn(size_t c) const
     {
       CHECK_INDEX("matrix::getColumn: Column-index ",c,ncol);
-      if (ncol < 2) return this->elem;
+      if (ncol < 2)
+        return this->elem;
+
       std::vector<T> col(nrow);
       memcpy(col.data(),this->ptr(c-1),nrow*sizeof(T));
       return col;
@@ -623,7 +627,8 @@ namespace utl //! General utility classes and functions.
     //! \brief Fill the matrix with vector data.
     void fill(const std::vector<T>& v, size_t n, size_t m = 0)
     {
-      if (n == 0 || v.size() < n) return;
+      if (n == 0 || v.size() < n)
+        return;
       if (m == 0) m = v.size()/n;
       this->resize(n,m,true);
       if (n*m == v.size())
@@ -807,13 +812,15 @@ namespace utl //! General utility classes and functions.
     //! \param[in] tol Comparison tolerance
     bool isSymmetric(T tol = T(0)) const
     {
-      if (nrow != ncol) return false;
+      if (nrow != ncol)
+        return false;
 
       for (size_t r = 0; r < nrow; r++)
         for (size_t c = 0; c < r; c++)
         {
           T diff = this->elem[r+nrow*c] - this->elem[c+nrow*r];
-          if (diff < -tol || diff > tol) return false;
+          if (diff < -tol || diff > tol)
+            return false;
         }
 
       return true;
@@ -913,7 +920,8 @@ namespace utl //! General utility classes and functions.
     //! \brief Return the infinite norm of the matrix.
     T normInf() const
     {
-      if (nrow == 0) return T(0);
+      if (nrow == 0)
+        return T(0);
 
       // Compute row sums
       vector<T> sums(nrow);
@@ -927,7 +935,8 @@ namespace utl //! General utility classes and functions.
     bool compatible(const std::vector<T>& X, bool transA) const
     {
       if (nrow > 0 && ncol > 0)
-        if ((transA ? nrow : ncol) == X.size()) return true;
+        if ((transA ? nrow : ncol) == X.size())
+          return true;
 
       std::cerr <<"matrix::multiply: Incompatible matrices: A("
                 << nrow <<','<< ncol <<"), X("<< X.size() <<")\n"
@@ -944,7 +953,8 @@ namespace utl //! General utility classes and functions.
       M = transA ? A.ncol : A.nrow;
       N = transB ? B.nrow : B.ncol;
       K = transA ? A.nrow : A.ncol;
-      if (K == (transB ? B.ncol : B.nrow)) return true;
+      if (K == (transB ? B.ncol : B.nrow))
+        return true;
 
       std::cerr <<"matrix::multiply: Incompatible matrices: A("
                 << A.nrow <<','<< A.ncol <<"), B("
@@ -964,7 +974,8 @@ namespace utl //! General utility classes and functions.
       M = transA ? A.ncol : A.nrow;
       K = transA ? A.nrow : A.ncol;
       N = K > 0 ? B.size()/K : 0;
-      if (N*K == B.size() && !B.empty()) return true;
+      if (N*K == B.size() && !B.empty())
+        return true;
 
       std::cerr <<"matrix::multiply: Incompatible matrices: A("
                 << A.nrow <<','<< A.ncol <<"), B(r*c="<< B.size() <<")\n"
@@ -982,7 +993,8 @@ namespace utl //! General utility classes and functions.
       N = transB ? B.nrow : B.ncol;
       K = transB ? B.ncol : B.nrow;
       M = K > 0 ? A.size() / K : 0;
-      if (M*K == A.size() && !A.empty()) return true;
+      if (M*K == A.size() && !A.empty())
+        return true;
 
       std::cerr <<"matrix::multiply: Incompatible matrices: A(r*c="<< A.size()
                 <<"), B("<< B.nrow <<","<< B.ncol <<")\n"
@@ -995,7 +1007,8 @@ namespace utl //! General utility classes and functions.
     //! \brief Check dimension compatibility for outer product multiplication.
     bool compatible(const std::vector<T>& X, const std::vector<T>& Y)
     {
-      if (X.size() == nrow && Y.size() == ncol) return true;
+      if (X.size() == nrow && Y.size() == ncol)
+        return true;
 
       std::cerr <<"matrix::outer_product: Incompatible matrix and vectors: A("
                 << nrow <<','<< ncol <<"), X("
@@ -1114,6 +1127,9 @@ namespace utl //! General utility classes and functions.
                                     unsigned int ofsx, int stridex,
                                     unsigned int ofsy, int stridey)
   {
+    if (myVec.empty() && stridex > 0 && stridey > 0)
+      myVec.resize(ofsy+stridey*(X.size()-ofsx)/stridex);
+
     int nx = stridex == 0 ? 1 : 1 +     (X.size()-ofsx-1)/abs(stridex);
     int ny = stridey == 0 ? 1 : 1 + (myVec.size()-ofsy-1)/abs(stridey);
     int n = nx < ny ? (stridex == 0 ? ny : nx) : (stridey == 0 ? nx : ny);
@@ -1128,6 +1144,9 @@ namespace utl //! General utility classes and functions.
                                       unsigned int ofsx, int stridex,
                                       unsigned int ofsy, int stridey)
   {
+    if (myVec.empty() && stridex > 0 && stridey > 0)
+      myVec.resize(ofsy+stridey*(X.size()-ofsx)/stridex);
+
     int nx = stridex == 0 ? 1 : 1 +     (X.size()-ofsx-1)/abs(stridex);
     int ny = stridey == 0 ? 1 : 1 + (myVec.size()-ofsy-1)/abs(stridey);
     int n = nx < ny ? (stridex == 0 ? ny : nx) : (stridey == 0 ? nx : ny);
@@ -1175,8 +1194,13 @@ namespace utl //! General utility classes and functions.
                                std::vector<float>& Y,
                                bool transA, char addTo) const
   {
-    if (!this->compatible(X,transA)) return false;
-    if (!addTo) Y.resize(transA ? ncol : nrow);
+    if (!this->compatible(X,transA))
+      return false;
+    else if (!addTo || Y.empty())
+    {
+      Y.resize(transA ? ncol : nrow);
+      if (addTo) std::fill(Y.begin(),Y.end(),0.0f);
+    }
 
     cblas_sgemv(CblasColMajor,
                 transA ? CblasTrans : CblasNoTrans,
@@ -1193,8 +1217,13 @@ namespace utl //! General utility classes and functions.
                                 std::vector<double>& Y,
                                 bool transA, char addTo) const
   {
-    if (!this->compatible(X,transA)) return false;
-    if (!addTo) Y.resize(transA ? ncol : nrow);
+    if (!this->compatible(X,transA))
+      return false;
+    else if (!addTo || Y.empty())
+    {
+      Y.resize(transA ? ncol : nrow);
+      if (addTo) std::fill(Y.begin(),Y.end(),0.0);
+    }
 
     cblas_dgemv(CblasColMajor,
                 transA ? CblasTrans : CblasNoTrans,
@@ -1221,13 +1250,12 @@ namespace utl //! General utility classes and functions.
       return false;
     }
 
-    if (ofsx == 0 && stridex == 1)
-      if (!this->compatible(X,transA)) return false;
-
-    if (beta == 0.0f)
+    if (ofsx == 0 && stridex == 1 && !this->compatible(X,transA))
+      return false;
+    else if (beta == 0.0f || Y.empty())
     {
       Y.resize(ofsy + 1 + ((transA ? ncol : nrow)-1)*abs(stridey));
-      std::fill(Y.begin(),Y.end(),0.0f);
+      if (beta != 0.0f) std::fill(Y.begin(),Y.end(),0.0f);
     }
 
     cblas_sgemv(CblasColMajor,
@@ -1255,13 +1283,12 @@ namespace utl //! General utility classes and functions.
       return false;
     }
 
-    if (ofsx == 0 && stridex == 1)
-      if (!this->compatible(X,transA)) return false;
-
-    if (beta == 0.0)
+    if (ofsx == 0 && stridex == 1 && !this->compatible(X,transA))
+      return false;
+    else if (beta == 0.0 || Y.empty())
     {
       Y.resize(ofsy + 1 + ((transA ? ncol : nrow)-1)*abs(stridey));
-      std::fill(Y.begin(),Y.end(),0.0);
+      if (beta != 0.0) std::fill(Y.begin(),Y.end(),0.0);
     }
 
     cblas_dgemv(CblasColMajor,
@@ -1282,19 +1309,21 @@ namespace utl //! General utility classes and functions.
   {
     size_t M, N, K;
     if (!this->compatible(A,B,transA,transB,M,N,K))
+    {
       this->clear();
-    else if (!addTo)
+      return *this;
+    }
+    else if (!addTo || this->empty())
       this->resize(M,N);
 
-    if (!this->empty())
-      cblas_sgemm(CblasColMajor,
-                  transA ? CblasTrans : CblasNoTrans,
-                  transB ? CblasTrans : CblasNoTrans,
-                  M, N, K, alpha,
-                  A.ptr(), A.nrow,
-                  B.ptr(), B.nrow,
-                  addTo ? 1.0f : 0.0f,
-                  this->ptr(), nrow);
+    cblas_sgemm(CblasColMajor,
+                transA ? CblasTrans : CblasNoTrans,
+                transB ? CblasTrans : CblasNoTrans,
+                M, N, K, alpha,
+                A.ptr(), A.nrow,
+                B.ptr(), B.nrow,
+                addTo ? 1.0f : 0.0f,
+                this->ptr(), nrow);
 
     return *this;
   }
@@ -1307,19 +1336,21 @@ namespace utl //! General utility classes and functions.
   {
     size_t M, N, K;
     if (!this->compatible(A,B,transA,transB,M,N,K))
+    {
       this->clear();
-    else if (!addTo)
+      return *this;
+    }
+    else if (!addTo || this->empty())
       this->resize(M,N);
 
-    if (!this->empty())
-      cblas_dgemm(CblasColMajor,
-                  transA ? CblasTrans : CblasNoTrans,
-                  transB ? CblasTrans : CblasNoTrans,
-                  M, N, K, alpha,
-                  A.ptr(), A.nrow,
-                  B.ptr(), B.nrow,
-                  addTo ? 1.0 : 0.0,
-                  this->ptr(), nrow);
+    cblas_dgemm(CblasColMajor,
+                transA ? CblasTrans : CblasNoTrans,
+                transB ? CblasTrans : CblasNoTrans,
+                M, N, K, alpha,
+                A.ptr(), A.nrow,
+                B.ptr(), B.nrow,
+                addTo ? 1.0 : 0.0,
+                this->ptr(), nrow);
 
     return *this;
   }
@@ -1330,8 +1361,10 @@ namespace utl //! General utility classes and functions.
                                   bool transA, bool addTo)
   {
     size_t M, N, K;
-    if (!this->compatible(A,B,transA,M,N,K)) return false;
-    if (!addTo) this->resize(M,N);
+    if (!this->compatible(A,B,transA,M,N,K))
+      return false;
+    else if (!addTo || this->empty())
+      this->resize(M,N);
 
     cblas_sgemm(CblasColMajor,
                 transA ? CblasTrans : CblasNoTrans, CblasNoTrans,
@@ -1350,8 +1383,10 @@ namespace utl //! General utility classes and functions.
                                    bool transA, bool addTo)
   {
     size_t M, N, K;
-    if (!this->compatible(A,B,transA,M,N,K)) return false;
-    if (!addTo) this->resize(M,N);
+    if (!this->compatible(A,B,transA,M,N,K))
+      return false;
+    else if (!addTo || this->empty())
+      this->resize(M,N);
 
     cblas_dgemm(CblasColMajor,
                 transA ? CblasTrans : CblasNoTrans, CblasNoTrans,
@@ -1370,8 +1405,10 @@ namespace utl //! General utility classes and functions.
                                   bool transB, bool addTo)
   {
     size_t M, N, K;
-    if (!this->compatible(A,B,transB,M,N,K)) return false;
-    if (!addTo) this->resize(M,N);
+    if (!this->compatible(A,B,transB,M,N,K))
+      return false;
+    else if (!addTo || this->empty())
+      this->resize(M,N);
 
     cblas_sgemm(CblasColMajor,
                 CblasNoTrans, transB ? CblasTrans : CblasNoTrans,
@@ -1390,8 +1427,10 @@ namespace utl //! General utility classes and functions.
                                    bool transB, bool addTo)
   {
     size_t M, N, K;
-    if (!this->compatible(A,B,transB,M,N,K)) return false;
-    if (!addTo) this->resize(M,N);
+    if (!this->compatible(A,B,transB,M,N,K))
+      return false;
+    else if (!addTo || this->empty())
+      this->resize(M,N);
 
     cblas_dgemm(CblasColMajor,
                 CblasNoTrans, transB ? CblasTrans : CblasNoTrans,
@@ -1533,6 +1572,8 @@ namespace utl //! General utility classes and functions.
     }
 
     std::vector<T>& Y = myVec;
+    if (Y.empty() && stridex > 0)
+      Y.resize(ofsy+stridey*(X.size()-ofsx)/stridex);
 
     for (; ofsx < X.size() && ofsy < Y.size(); ofsx += stridex, ofsy += stridey)
       Y[ofsy] += alfa*X[ofsx];
@@ -1562,11 +1603,12 @@ namespace utl //! General utility classes and functions.
   bool matrix<T>::multiply(const std::vector<T>& X, std::vector<T>& Y,
                            bool transA, char addTo) const
   {
-    if (!this->compatible(X,transA)) return false;
-    if (!addTo)
+    if (!this->compatible(X,transA))
+      return false;
+    else if (!addTo || Y.empty())
     {
-      Y.clear();
-      Y.resize(transA ? ncol : nrow, T(0));
+      Y.resize(transA ? ncol : nrow);
+      std::fill(Y.begin(),Y.end(),T(0));
     }
 
     for (size_t i = 0; i < Y.size(); i++)
@@ -1593,16 +1635,16 @@ namespace utl //! General utility classes and functions.
       return false;
     }
 
-    if (ofsx == 0 && stridex == 1)
-      if (!this->compatible(X,transA)) return false;
-
-    if (beta == T(0))
+    if (ofsx == 0 && stridex == 1 && !this->compatible(X,transA))
+      return false;
+    else if (beta == T(0) || Y.empty())
     {
       Y.resize(ofsy + 1 + ((transA ? ncol : nrow)-1)*stridey);
       std::fill(Y.begin(),Y.end(),T(0));
     }
-    else for (size_t i = ofsy; i < Y.size(); i += stridey)
-      Y[i] *= beta;
+    else if (beta != T(1))
+      for (size_t i = ofsy; i < Y.size(); i += stridey)
+        Y[i] *= beta;
 
     size_t a, b, i, j;
     for (a = 1, i = ofsy; i < Y.size(); a++, i += stridey)
@@ -1625,9 +1667,9 @@ namespace utl //! General utility classes and functions.
     if (!this->compatible(A,B,transA,transB,M,N,K))
     {
       this->clear();
-      M = 0;
+      return *this;
     }
-    else if (!addTo)
+    else if (!addTo || this->empty())
       this->resize(M,N,true);
 
     for (size_t i = 1; i <= M; i++)
@@ -1650,8 +1692,10 @@ namespace utl //! General utility classes and functions.
                               bool transA, bool addTo)
   {
     size_t M, N, K;
-    if (!this->compatible(A,B,transA,M,N,K)) return false;
-    if (!addTo) this->resize(M,N,true);
+    if (!this->compatible(A,B,transA,M,N,K))
+      return false;
+    else if (!addTo || this->empty())
+      this->resize(M,N,true);
 
     for (size_t i = 1; i <= M; i++)
       for (size_t j = 1; j <= N; j++)
@@ -1669,8 +1713,10 @@ namespace utl //! General utility classes and functions.
                               bool transB, bool addTo)
   {
     size_t M, N, K;
-    if (!this->compatible(A,B,transB,M,N,K)) return false;
-    if (!addTo) this->resize(M,N,true);
+    if (!this->compatible(A,B,transB,M,N,K))
+      return false;
+    else if (!addTo || this->empty())
+      this->resize(M,N,true);
 
     for (size_t i = 1; i <= M; i++)
       for (size_t j = 1; j <= N; j++)
