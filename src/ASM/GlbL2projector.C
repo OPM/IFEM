@@ -33,60 +33,72 @@
 LinAlg::MatrixType GlbL2::MatrixType   = LinAlg::SPARSE;
 LinSolParams*      GlbL2::SolverParams = nullptr;
 
-/*!
-  \brief Expands a 2D tensor parametrization point to an unstructured one.
-  \details Takes as input a tensor mesh, for instance
-     in[0] = {0,1,2}
-     in[1] = {2,3,5}
-   and expands this to an unstructured representation, i.e.,
-     out[0] = {0,1,2,0,1,2,0,1,2}
-     out[1] = {2,2,2,3,3,3,5,5,5}
-*/
 
-static const RealArray* expandTensorGrid2 (const RealArray* in, RealArray* out)
+namespace
 {
-  out[0].resize(in[0].size()*in[1].size());
-  out[1].resize(in[0].size()*in[1].size());
+  /*!
+    \brief Expands a 2D tensor parametrization point to an unstructured one.
+    \details Takes as input a tensor mesh, for instance
+    \code
+      in[0] = {0,1,2};
+      in[1] = {2,3,5};
+    \endcode
+    and expands this to an unstructured representation, i.e.,
+    \code
+      out[0] = {0,1,2,0,1,2,0,1,2};
+      out[1] = {2,2,2,3,3,3,5,5,5};
+    \endcode
+  */
 
-  size_t i, j, ip = 0;
-  for (j = 0; j < in[1].size(); j++)
-    for (i = 0; i < in[0].size(); i++, ip++) {
-      out[0][ip] = in[0][i];
-      out[1][ip] = in[1][j];
-    }
+  const RealArray* expandTensorGrid2 (const RealArray* in, RealArray* out)
+  {
+    out[0].resize(in[0].size()*in[1].size());
+    out[1].resize(in[0].size()*in[1].size());
 
-  return out;
-}
-
-
-/*!
-  \brief Expands a 3D tensor parametrization point to an unstructured one.
-  \details Takes as input a tensor mesh, for instance
-     in[0] = {0,1}
-     in[1] = {2,3}
-     in[2] = {7,9}
-   and expands this to an unstructured representation, i.e.,
-     out[0] = {0,1,0,1,0,1,0,1}
-     out[1] = {2,2,3,3,2,2,3,3}
-     out[2] = {7,7,7,7,9,9,9,9}
-*/
-
-static const RealArray* expandTensorGrid3 (const RealArray* in, RealArray* out)
-{
-  out[0].resize(in[0].size()*in[1].size()*in[2].size());
-  out[1].resize(in[0].size()*in[1].size()*in[2].size());
-  out[2].resize(in[0].size()*in[1].size()*in[2].size());
-
-  size_t i, j, k, ip = 0;
-  for (k = 0; k < in[2].size(); k++)
+    size_t i, j, ip = 0;
     for (j = 0; j < in[1].size(); j++)
       for (i = 0; i < in[0].size(); i++, ip++) {
         out[0][ip] = in[0][i];
         out[1][ip] = in[1][j];
-        out[2][ip] = in[2][k];
       }
 
-  return out;
+    return out;
+  }
+
+
+  /*!
+    \brief Expands a 3D tensor parametrization point to an unstructured one.
+    \details Takes as input a tensor mesh, for instance
+    \code
+      in[0] = {0,1}
+      in[1] = {2,3}
+      in[2] = {7,9}
+    \endcode
+    and expands this to an unstructured representation, i.e.,
+    \code
+      out[0] = {0,1,0,1,0,1,0,1}
+      out[1] = {2,2,3,3,2,2,3,3}
+      out[2] = {7,7,7,7,9,9,9,9}
+    \endcode
+  */
+
+  const RealArray* expandTensorGrid3 (const RealArray* in, RealArray* out)
+  {
+    out[0].resize(in[0].size()*in[1].size()*in[2].size());
+    out[1].resize(in[0].size()*in[1].size()*in[2].size());
+    out[2].resize(in[0].size()*in[1].size()*in[2].size());
+
+    size_t i, j, k, ip = 0;
+    for (k = 0; k < in[2].size(); k++)
+      for (j = 0; j < in[1].size(); j++)
+        for (i = 0; i < in[0].size(); i++, ip++) {
+          out[0][ip] = in[0][i];
+          out[1][ip] = in[1][j];
+          out[2][ip] = in[2][k];
+        }
+
+    return out;
+  }
 }
 
 
@@ -313,7 +325,7 @@ bool GlbL2::initElement (const IntVec& MNPC1,
   gl2.elem_sizes = elem_sizes;
   gl2.basis_sizes = basis_sizes;
   if (problem && gl2.elmData)
-    return problem->initElement(MNPC1,elem_sizes,basis_sizes,*gl2.elmData);
+    return problem->initElement(MNPC1,fe,elem_sizes,basis_sizes,*gl2.elmData);
   else
     return true;
 }
