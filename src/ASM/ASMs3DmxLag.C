@@ -318,7 +318,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,false);
-        if (!integrand.initElement(MNPC[iel], elem_size, nb, *A))
+        if (!integrand.initElement(MNPC[iel], fe, elem_size, nb, *A))
         {
           A->destruct();
           ok = false;
