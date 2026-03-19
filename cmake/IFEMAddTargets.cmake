@@ -1,18 +1,25 @@
 # Function for setting up a static library
-#   Adds a static library, setting up sources, filesets and associated tests
+#   Adds a static library, setting up sources and file sets
 # Single-valued parameters:
 #   NAME      - Name of library
 #     The target added will be ${NAME}
 # Multi-valued parameters:
+#   CONDITIONS - Conditions for building the library
 #   BASE_DIRS - Base directories for the headers file set
 #   HEADERS   - Header files associated with library
 #   LIBRARIES - Targets to link the library to
 #   SOURCES   - Source files for the library
 function(ifem_add_library)
   set(oneValueArgs NAME)
-  set(multiValueArgs BASE_DIRS HEADERS LIBRARIES SOURCES)
+  set(multiValueArgs CONDITIONS BASE_DIRS HEADERS LIBRARIES SOURCES)
   cmake_parse_arguments(PARAM "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
+  if(PARAM_CONDITIONS)
+    foreach(condition ${PARAM_CONDITIONS})
+      if(NOT (${condition}))
+        return()
+      endif()
+    endforeach()
+  endif()
   add_library(${PARAM_NAME} STATIC)
   target_sources(${PARAM_NAME} PRIVATE ${PARAM_SOURCES})
   if(PARAM_HEADERS)
@@ -42,19 +49,26 @@ function(ifem_add_library)
 endfunction()
 
 # Function for setting up an application
-#   Adds an executable, setting up sources, filesets and associated tests
+#   Adds an executable, setting up sources, file sets and associated tests
 # Single-valued parameters:
 #   NAME      - Name of application
 #     The target added will be ${NAME}
 # Multi-valued parameters:
+#   CONDITIONS - Conditions for building the application
 #   HEADERS   - Header files associated with library
 #   LIBRARIES - Targets to link the library to
 #   SOURCES   - Source files for the library
 function(ifem_add_application)
   set(oneValueArgs NAME)
-  set(multiValueArgs HEADERS LIBRARIES SOURCES)
+  set(multiValueArgs CONDITIONS HEADERS LIBRARIES SOURCES)
   cmake_parse_arguments(PARAM "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
+  if(PARAM_CONDITIONS)
+    foreach(condition ${PARAM_CONDITIONS})
+      if(NOT (${condition}))
+        return()
+      endif()
+    endforeach()
+  endif()
   add_executable(${PARAM_NAME})
   target_sources(${PARAM_NAME} PRIVATE ${PARAM_SOURCES})
   if(PARAM_HEADERS)
