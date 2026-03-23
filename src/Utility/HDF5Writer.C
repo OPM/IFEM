@@ -450,12 +450,12 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (norm) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(*eNorm,patchEnorm,loc-1);
-        for (size_t j = 1, l = 1; j <= normGrp && l < eNorm->rows(); j++)
-          for (size_t k = 1; k <= norm->getNoFields(j); k++)
+        for (size_t j = 1; j <= normGrp; ++j)
+          for (size_t k = 1; k <= norm->getNoFields(j); ++k)
             if (norm->hasElementContributions(j,k))
               this->writeArray(egroup.front(),
                                prefix+norm->getName(j, k, j > 1 ? projPfx[j-2] : nullptr),
-                               idx, patchEnorm.cols(), patchEnorm.getRow(l++).ptr(),
+                               idx, patchEnorm.cols(), patchEnorm.getRow(k).ptr(),
                                H5T_NATIVE_DOUBLE);
       }
 
