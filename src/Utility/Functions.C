@@ -872,19 +872,23 @@ IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
     int nv; // Number of elements to activate in v-w plane before advancing in u
     int nw; // Number of element divisions per layer in w-direction
     Real s; // Scaling factor
+    Real t; // Time offset
 
   public:
-    Parametric(int u, int v, int w, Real sf) : nu(u), nv(v), nw(w), s(sf) {}
+    explicit Parametric(int u, int v, int w, Real scale)
+      : nu(u), nv(v), nw(w), s(scale), t(Real(0)) {}
+    explicit Parametric(int u, Real offset, Real scale)
+      : nu(u), nv(1), nw(1), s(scale), t(offset) {}
 
   protected:
     Real evaluate(const int& x) const override
     {
       int ix = (x-1)%nu;
       int nx = (x-1)/nu;
-      if (ix < 1 && nx < nv) return Real(0);
+      if (ix < 1 && nx < nv) return t;
 
       Real delta = nw > 1 && nw < nv ? Real(1+nx/(nv/nw))/Real(nw) : Real(0);
-      return s*(Real(ix + nu*(nx/nv)) + delta);
+      return t + s*(Real(ix + nu*(nx/nv)) + delta);
     }
   };
 
@@ -898,6 +902,17 @@ IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
     Real sf = (s = strtok(nullptr," ")) ? atof(s) : Real(1);
     free(prms);
     return new Parametric(ne1,ne2,ne3,sf);
+  }
+
+  if (type == "offset" && !func.empty())
+  {
+    char* prms = strdup(func.c_str());
+    char* s = nullptr;
+    int ne1 = atoi(strtok(prms," "));
+    Real ts = (s = strtok(nullptr," ")) ? atof(s) : Real(0);
+    Real sf = (s = strtok(nullptr," ")) ? atof(s) : Real(1);
+    free(prms);
+    return new Parametric(ne1,ts,sf);
   }
 
   Real scaling(1);
