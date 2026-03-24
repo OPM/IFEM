@@ -593,9 +593,7 @@ void ASMbase::addLocal2GlobalCpl (int iSlave, int master, const Tensor& Tlg)
   // and that only the first nsd DOFs are subjected to transformation.
   int fixDirs = 0;
   for (unsigned char d = 1; d <= nf; d++)
-  {
-    MPC* cons = new MPC(MLGN[iSlave],d);
-    if (this->addMPC(cons) && cons)
+    if (MPC* cons = new MPC(MLGN[iSlave],d); this->addMPC(cons) && cons)
     {
       if (d > nsd)
       {
@@ -621,7 +619,6 @@ void ASMbase::addLocal2GlobalCpl (int iSlave, int master, const Tensor& Tlg)
         std::cout <<"Added constraint: "<< *cons;
 #endif
     }
-  }
 
   if (fixDirs > 0)
     this->fix(iSlave+1,fixDirs);
@@ -955,11 +952,10 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
   int ndeleted = 0;
   for (ASMbase* pch : model)
   {
-    std::pair<MPCIter,bool> ret;
     std::vector<MPC*> uniqueMPC;
     uniqueMPC.reserve(pch->getNoMPCs());
     for (MPC* mpc : pch->mpcs)
-      if ((ret = allMPCs.insert(mpc)).second)
+      if (std::pair<MPCIter,bool> ret = allMPCs.insert(mpc); ret.second)
 	uniqueMPC.push_back(mpc);
       else
       {
@@ -1046,8 +1042,7 @@ void ASMbase::resolveMPCchains (const MPCSet& allMPCs,
     for (size_t i = 0; i < mpc->getNoMaster();)
     {
       MPC master(mpc->getMaster(i).node,mpc->getMaster(i).dof);
-      MPCIter cit = allMPCs.find(&master);
-      if (cit != allMPCs.end())
+      if (MPCIter cit = allMPCs.find(&master); cit != allMPCs.end())
       {
         // We have a master DOF which is a slave in another constraint equation.
         // Invoke resolve() recursively to ensure that all master DOFs of that
@@ -1825,19 +1820,36 @@ void ASMbase::getBoundaryElms (int lIndex, IntVec& elms,
 }
 
 
-bool ASMbase::isElementActive (int elmId, double time) const
+bool ASMbase::isElementActive (int iel, double time) const
 {
-  if (elmId < 1)
+  if (iel < 0 || iel >= static_cast<int>(MLGE.size()))
+    return false;
+
+  if (MLGE[iel] < 1)
     return false; // element with zero extension
 
-  if (myElActive && time < (*myElActive)(elmId))
+  if (myElActive && time+1.0e-12 < (*myElActive)(1+iel))
     return false; // element not activated yet
 
   if (!myActiveEls)
     return true; // all elements are active
 
   return std::find(myActiveEls->begin(),
-                   myActiveEls->end(),elmId) != myActiveEls->end();
+                   myActiveEls->end(),MLGE[iel]) != myActiveEls->end();
+}
+
+
+bool ASMbase::inActive (double time) const
+{
+  if (myElActive)
+  {
+    for (size_t iel = 0; iel < nel; iel++)
+      if (MLGE[iel] > 0 && time+1.0e-12 > (*myElActive)(iel))
+        return false;
+    return true;
+  }
+
+  return myActiveEls ? myActiveEls->empty() : false;
 }
 
 

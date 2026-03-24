@@ -990,7 +990,7 @@ void SIMbase::updateForNewElements (Vector& solution,
   for (ASMbase* pch : myModel)
     if (pch->getElementActivator())
       for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
-        if (pch->isElementActive(pch->getElmID(iel),time.t-time.dt))
+        if (pch->isElementActive(iel-1,time.t-time.dt))
         {
           oldElms.insert(pch->getElmID(iel));
           for (int inod : pch->getElementNodes(iel))
@@ -1006,7 +1006,7 @@ void SIMbase::updateForNewElements (Vector& solution,
       pch->extractNodeVec(solution,pchSol);
       const size_t nf = pch->getNoFields();
       for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
-        if (pch->isElementActive(pch->getElmID(iel),time.t) &&
+        if (pch->isElementActive(iel-1,time.t) &&
             oldElms.find(pch->getElmID(iel)) == oldElms.end())
         {
           // This element is activated in current time step.
@@ -1480,7 +1480,7 @@ bool SIMbase::solveEqSystem (Vector& solution, size_t idxRHS, double* rCond,
     status = false;
 
 #if SP_DEBUG > 2
-  if (printSol < 1000) printSol = 1000;
+  printSol = 1000*SP_DEBUG;
 #endif
   if (printSol > 0 && status)
     this->printSolutionSummary(solution,printSol,compName);

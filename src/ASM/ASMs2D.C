@@ -1663,7 +1663,7 @@ double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC,
       }
     }
 
-  return this->getElementSize(XC);
+  return ASM2D::getElementSize(XC);
 }
 
 
@@ -1758,12 +1758,11 @@ bool ASMs2D::integrate (Integrand& integrand,
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
+        if (!this->isElementActive(iel,time.t))
+          continue; // zero-area or inactive element
 
         fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-area or inactive element
-
         int i1 = p1 + iel % nel1;
         int i2 = p2 + iel / nel1;
 
@@ -2045,12 +2044,11 @@ bool ASMs2D::integrate (Integrand& integrand,
 #endif
         if (itgPts[iel].empty())
           continue; // no integration points in this element
+        if (!this->isElementActive(iel,time.t))
+          continue; // zero-area or inactive element
 
         fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-area or inactive element
-
         int i1 = p1 + iel % nel1;
         int i2 = p2 + iel / nel1;
 
@@ -2216,12 +2214,13 @@ bool ASMs2D::integrate (Integrand& integrand,
   for (int i2 = p2; i2 <= n2 && jel < nels; i2++)
     for (int i1 = p1; i1 <= n1 && jel < nels; i1++, iel++)
     {
+      if (!this->isElementActive(iel,time.t))
+        continue; // zero-area or inactive element
+
       if (!hasInterfaceElms) jel = iel;
 
       fe.idx = firstEl + jel;
       fe.iel = abs(MLGE[jel]);
-      if (!this->isElementActive(fe.iel,time.t))
-        continue; // zero-area element
 
       short int status = iChk.hasContribution(iel,i1,i2);
       if (!status) continue; // no interface contributions for this element
@@ -2431,11 +2430,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 #endif
       if (!this->isElementInPartition(iel))
         continue; // this element is in the partition of another process
-
-      fe.idx = firstEl + doXelms+iel;
-      fe.iel = abs(MLGE[doXelms+iel]);
-      if (!this->isElementActive(fe.iel,time.t))
-        continue; // zero-area element
+      if (!this->isElementActive(iel,time.t))
+        continue; // zero-area or inactive element
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
@@ -2447,6 +2443,9 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 	case  2: if (i2 < n2) skipMe = true; break;
 	}
       if (skipMe) continue;
+
+      fe.idx = firstEl + doXelms+iel;
+      fe.iel = abs(MLGE[doXelms+iel]);
 
       // Get element edge length in the parameter space
       double dS = 0.5*this->getParametricLength(1+iel,t2);

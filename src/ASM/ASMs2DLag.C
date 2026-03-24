@@ -308,8 +308,8 @@ bool ASMs2DLag::integrateElm (Integrand& integrand, GlobalIntegral& glInt,
     return false;
   }
 
-  if (!this->isElementActive(MLGE[iel]))
-    return true; // zero-area or de-activated element, silently ignore
+  if (!this->isElementActive(iel,time.t))
+    return true; // zero-area or inactive element, silently ignore
 
   FiniteElement fe;
   Matrix Def, Vel;
@@ -574,11 +574,8 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
     {
       if (!this->isElementInPartition(iel))
         continue; // this element is in the partition of another process
-
-      fe.idx = firstEl + doXelms+iel;
-      fe.iel = abs(MLGE[doXelms+iel]);
-      if (!this->isElementActive(fe.iel))
-        continue; // zero-area element
+      if (!this->isElementActive(iel,time.t))
+        continue; // zero-area or inactive element
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
@@ -590,6 +587,9 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
         case  2: if (i2 < nely-1) skipMe = true; break;
       }
       if (skipMe) continue;
+
+      fe.idx = firstEl + doXelms+iel;
+      fe.iel = abs(MLGE[doXelms+iel]);
 
       // Set up nodal point coordinates for current element
       this->getElementCoordinates(fe.Xn,1+iel);

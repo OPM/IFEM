@@ -1199,10 +1199,11 @@ bool ASMs1D::integrate (Integrand& integrand,
     if (dbgElm < 0 && ielm != -dbgElm)
       continue; // Skipping all elements, except for -dbgElm
 #endif
+    if (!this->isElementActive(iel,time.t))
+      continue; // zero-length or inactive element
 
     fe.idx = firstEl + iel;
     fe.iel = MLGE[iel];
-    if (fe.iel < 1) continue; // zero-length element
 
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
     if (!A) continue; // no integrand contributions for this element
@@ -1386,10 +1387,11 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   if (dbgElm < 0 && ielm != -dbgElm)
     return true; // Skipping all elements, except for -dbgElm
 #endif
+  if (!this->isElementActive(iel,time.t))
+    return true; // zero-length or inactive element
 
   fe.idx = firstEl + iel;
   fe.iel = MLGE[iel];
-  if (fe.iel < 1) return true; // zero-length element
 
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);

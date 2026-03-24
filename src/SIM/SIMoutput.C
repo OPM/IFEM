@@ -725,8 +725,8 @@ bool SIMoutput::writeGlvG (int& nBlock, double time)
   for (const ASMbase* pch : myModel)
   {
     ++pidx;
-    if (pch->empty())
-      continue; // skip empty patches
+    if (pch->empty() || pch->inActive(time))
+      continue; // skip empty and inactive patches
 
     if (!(lvb = this->tesselatePatch(pidx-1)))
       return false;
@@ -734,7 +734,7 @@ bool SIMoutput::writeGlvG (int& nBlock, double time)
     if (pch->getElementActivator())
       // Remove the elements not yet activated
       for (int iel = pch->getNoElms(); iel > 0; --iel)
-        if (!pch->isElementActive(iel,time))
+        if (!pch->isElementActive(iel-1,time))
           lvb->removeElement(iel);
 
     if (msgLevel > 1)
@@ -1097,8 +1097,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   {
     if (!this->extractNodeVec(psol,lovec,pch,psolComps%10,empty))
       return -1;
-    else if (pch->empty())
-      continue; // skip empty patches
+    else if (pch->empty() || pch->inActive(time))
+      continue; // skip empty and inactive patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing primary solution for patch "
@@ -1291,8 +1291,8 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     if (!this->extractNodeVec(psol,myProblem->getSolution(),
                               pch,psolComps,empty))
       return -1;
-    else if (pch->empty())
-      continue; // skip empty patches
+    else if (pch->empty() || pch->inActive(time))
+      continue; // skip empty and inactive patches
 
     myProblem->initResultPoints(time,true); // include principal stresses
     if (!this->initPatchForEvaluation(pch->idx+1))
@@ -1422,8 +1422,8 @@ bool SIMoutput::eval2ndSolution (const Vector& psol, double time, int psolComps)
     if (!this->extractNodeVec(psol,myProblem->getSolution(),
                               pch,psolComps,empty))
       return false;
-    else if (pch->empty())
-      continue; // skip empty patches
+    else if (pch->empty() || pch->inActive(time))
+      continue; // skip empty and inactive patches
     else if (!this->initPatchForEvaluation(pch->idx+1))
       return false;
     else if (!pch->evalSolution(field,*myProblem,opt.nViz))

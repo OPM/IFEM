@@ -337,8 +337,10 @@ public:
 
   //! \brief Sets the list of active elements during assembly.
   void setActiveElements(IntVec* active) { myActiveEls = active; }
-  //! \brief Returns \e true if element with global id \a elmId is active.
-  bool isElementActive(int elmId, double time = -1.0) const;
+  //! \brief Returns \e true if element with 0-based index \a iel is active.
+  bool isElementActive(int iel, double time = -1.0) const;
+  //! \brief Returns \e true if none of the elements in the patch are active.
+  bool inActive(double time) const;
   //! \brief Returns \e true if element is in process partition.
   //! \param[in] iel 0-based element index local to current patch
   bool isElementInPartition(int iel) const;

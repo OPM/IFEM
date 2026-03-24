@@ -377,11 +377,11 @@ bool ASMs3DLag::integrate (Integrand& integrand,
           ok = false;
           break;
         }
+        if (!this->isElementActive(iel,time.t))
+          continue; // zero-volume or inactive element
 
         fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel))
-          continue; // zero-volume element
 
         // Set up nodal point coordinates for current element
         this->getElementCoordinates(fe.Xn,1+iel);
@@ -640,11 +640,11 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
           ok = false;
           break;
         }
+        if (!this->isElementActive(iel,time.t))
+          continue; // zero-volume or inactive element
 
         fe.idx = firstEl + doXelms+iel;
         fe.iel = abs(MLGE[doXelms+iel]);
-        if (!this->isElementActive(fe.iel))
-          continue; // zero-volume element
 
         // Set up nodal point coordinates for current element
         this->getElementCoordinates(fe.Xn,1+iel);
@@ -798,11 +798,8 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
       {
         if (!this->isElementInPartition(iel))
           continue; // this element is in the partition of another process
-
-        fe.idx = firstEl + iel;
-        fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel))
-          continue; // zero-volume element
+        if (!this->isElementActive(iel,time.t))
+          continue; // zero-volume or inactive element
 
         // Skip elements that are not on current boundary edge
         bool skipMe = false;
@@ -829,6 +826,9 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
           ip = i2*ng;
         else
           ip = i3*ng;
+
+        fe.idx = firstEl + iel;
+        fe.iel = MLGE[iel];
 
         // Set up nodal point coordinates for current element
         this->getElementCoordinates(fe.Xn,1+iel);

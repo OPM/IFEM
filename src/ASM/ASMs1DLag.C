@@ -235,9 +235,11 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   bool ok = true;
   for (size_t iel = 0; iel < nel && ok; iel++)
   {
+    if (!this->isElementActive(iel,time.t))
+      continue; // zero-length or inactive element
+
     fe.idx = firstEl + iel;
     fe.iel = MLGE[iel];
-    if (!this->isElementActive(fe.iel)) continue; // zero-length element
 
     // Set up nodal point coordinates for current element
     this->getElementCoordinates(fe.Xn,1+iel);
@@ -364,9 +366,11 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
+  if (!this->isElementActive(iel,time.t))
+    return true; // zero-length or inactive element
+
   fe.idx = firstEl + iel;
   fe.iel = MLGE[iel];
-  if (!this->isElementActive(fe.iel)) return true; // zero-length element
 
   // Extract the Neumann order flag (1 or higher) for the integrand
   integrand.setNeumannOrder(1 + lIndex/10);

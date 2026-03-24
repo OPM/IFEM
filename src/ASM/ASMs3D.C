@@ -2027,7 +2027,7 @@ double ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC,
         }
       }
 
-  return this->getElementSize(XC);
+  return ASM3D::getElementSize(XC);
 }
 
 
@@ -2108,12 +2108,11 @@ bool ASMs3D::integrate (Integrand& integrand,
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
+        if (!this->isElementActive(iel,time.t))
+          continue; // zero-volume or inactive element
 
         fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-volume or inactive element
-
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
         int i3 = p3 + iel / (nel1*nel2);
@@ -2384,12 +2383,11 @@ bool ASMs3D::integrate (Integrand& integrand,
 #endif
         if (itgPts[iel].empty())
           continue; // no integration points in this element
+        if (!this->isElementActive(iel,time.t))
+          continue; // zero-volume or inactive element
 
         fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-volume or inactive element
-
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
         int i3 = p3 + iel / (nel1*nel2);
@@ -2645,12 +2643,11 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
+        if (!this->isElementActive(iel,time.t))
+          continue; // zero-volume or inactive element
 
         fe.idx = firstEl + doXelms+iel;
         fe.iel = abs(MLGE[doXelms+iel]);
-        if (!this->isElementActive(fe.iel,time.t))
-          continue; // zero-volume or inactive element
-
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
         int i3 = p3 + iel / (nel1*nel2);
@@ -2879,10 +2876,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
       {
         if (!this->isElementInPartition(iel))
           continue; // this element is in the partition of another process
-
-        fe.idx = firstEl + iel;
-        fe.iel = MLGE[iel];
-        if (!this->isElementActive(fe.iel,time.t))
+        if (!this->isElementActive(iel,time.t))
           continue; // zero-volume or inactive element
 
 	// Skip elements that are not on current boundary edge
@@ -2926,6 +2920,9 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	  dS = svol->knotSpan(2,nodeInd[ip].K);
 	  ip = (i3-p3)*ng;
 	}
+
+        fe.idx = firstEl + iel;
+        fe.iel = MLGE[iel];
 
 	// Set up control point coordinates for current element
 	if (!this->getElementCoordinates(Xnod,1+iel)) return false;
