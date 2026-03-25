@@ -17,6 +17,7 @@
 #include "TimeStep.h"
 #include "Profiler.h"
 #include "IFEM.h"
+#include "tinyxml2.h"
 
 
 MultiStepSIM::MultiStepSIM (SIMbase& sim)
@@ -34,8 +35,21 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim)
   subiter = NONE;
   nRHSvec = 1;
   rotUpd  = false;
+  saveBCs = true;
 
   geoBlk = nBlock = lastSt = 0;
+}
+
+
+bool MultiStepSIM::parse (const tinyxml2::XMLElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"postprocessing"))
+    for (const tinyxml2::XMLElement* child = elem->FirstChildElement();
+         child && saveBCs; child = child->NextSiblingElement())
+      if (!strncasecmp(child->Value(),"noBC",4))
+        saveBCs = false;
+
+  return true;
 }
 
 
@@ -113,7 +127,7 @@ bool MultiStepSIM::saveModel (int& gBlock, int& rBlock,
     return false;
 
   // Write Dirichlet boundary conditions
-  return model.writeGlvBC(rBlock);
+  return !saveBCs || model.writeGlvBC(rBlock);
 }
 
 
@@ -122,7 +136,7 @@ bool MultiStepSIM::saveModel (int& gBlock, int& rBlock, double time)
   PROFILE1("MultiStepSIM::saveModel");
 
   // Write model geometry and BCs to already opened VTF-file
-  return model.writeGlvG(gBlock,time) && model.writeGlvBC(rBlock);
+  return model.writeGlvG(gBlock,time) && (!saveBCs || model.writeGlvBC(rBlock));
 }
 
 

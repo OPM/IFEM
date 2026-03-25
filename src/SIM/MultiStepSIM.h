@@ -46,6 +46,11 @@ public:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
 
+  using SIMadmin::parse;
+  //! \brief Parses a data section from an XML document.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const tinyxml2::XMLElement* elem);
+
   //! \brief Initializes time integration parameters for the integrand.
   virtual void initPrm();
 
@@ -198,7 +203,7 @@ public:
 
   //! \brief Returns a pointer to the reference norm variable.
   double* theRefNorm() { return &refNorm; }
-  //! \brief Returns const a pointer to the reference norm variable.
+  //! \brief Returns a const pointer to the reference norm variable.
   const double* getRefNorm() const { return &refNorm; }
 
 protected:
@@ -218,7 +223,8 @@ protected:
   int nBlock; //!< Running VTF result block counter
 
 private:
-  int lastSt; //!< The last step that was saved to VTF
+  bool saveBCs; //!< If \e true, Dirchlet boundary conditions are saved to VTF
+  int  lastSt;  //!< The last time/load step that was saved to VTF
 };
 
 #endif

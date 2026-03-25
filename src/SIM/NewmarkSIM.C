@@ -84,6 +84,8 @@ bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
       nRHSvec = 3;
   }
 
+  this->MultiStepSIM::parse(elem);
+
   if (strcasecmp(elem->Value(),inputContext))
     return model.parse(elem);
 
@@ -96,11 +98,9 @@ bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
   utl::getAttribute(elem,"beta",beta);
   utl::getAttribute(elem,"gamma",gamma);
 
-  const tinyxml2::XMLElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement())
-  {
-    const char* value = utl::getValue(child,"maxits");
-    if (value)
+  for (const tinyxml2::XMLElement* child = elem->FirstChildElement();
+       child; child = child->NextSiblingElement())
+    if (const char* value = utl::getValue(child,"maxits"); value)
       maxit = atoi(value);
     else if ((value = utl::getValue(child,"maxIncr")))
       maxIncr = atoi(value);
@@ -145,7 +145,6 @@ bool NewmarkSIM::parse (const tinyxml2::XMLElement* elem)
       solveDisp = true; // no need for value here
     else if (!strcasecmp(child->Value(),"printCond"))
       rCond = 0.0;
-  }
 
   return true;
 }

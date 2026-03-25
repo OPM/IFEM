@@ -29,11 +29,13 @@ EigenModeSIM::EigenModeSIM (SIMbase& sim) : MultiStepSIM(sim)
 
 bool EigenModeSIM::parse (const tinyxml2::XMLElement* elem)
 {
+  this->MultiStepSIM::parse(elem);
+
   if (strcasecmp(elem->Value(),"eigenmodes"))
     return model.parse(elem);
 
-  const tinyxml2::XMLElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement())
+  for (const tinyxml2::XMLElement* child = elem->FirstChildElement();
+       child; child = child->NextSiblingElement())
   {
     size_t imode = 0;
     double freq = 0.0;

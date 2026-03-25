@@ -99,23 +99,22 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 bool NonLinSIM::parse (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Value(),"postprocessing"))
-  {
-    const tinyxml2::XMLElement* child = elem->FirstChildElement();
-    for (; child && !saveExL; child = child->NextSiblingElement())
+    for (const tinyxml2::XMLElement* child = elem->FirstChildElement();
+         child && !saveExL; child = child->NextSiblingElement())
       saveExL = !strcasecmp(child->Value(),"saveExtForce");
-  }
+
+  this->MultiStepSIM::parse(elem);
 
   if (strcasecmp(elem->Value(),inputContext))
     return model.parse(elem);
 
-  std::string rotUpdate;
-  if (utl::getAttribute(elem,"rotation",rotUpdate,true) && !rotUpdate.empty())
-    rotUpd = rotUpdate.front();
+  if (std::string rotUpdate; utl::getAttribute(elem,"rotation",rotUpdate,true))
+    if (!rotUpdate.empty())
+      rotUpd = rotUpdate.front();
 
-  const tinyxml2::XMLElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement()) {
-    const char* value;
-    if ((value = utl::getValue(child,"maxits")))
+  for (const tinyxml2::XMLElement* child = elem->FirstChildElement();
+       child; child = child->NextSiblingElement())
+    if (const char* value = utl::getValue(child,"maxits"); value)
       maxit = atoi(value);
     else if ((value = utl::getValue(child,"maxIncr")))
       maxIncr = atoi(value);
@@ -158,7 +157,6 @@ bool NonLinSIM::parse (const tinyxml2::XMLElement* elem)
       updNewN = true;
     else if (!strcasecmp(child->Value(),"printCond"))
       rCond = 0.0; // Compute and report condition number in the iteration log
-  }
 
   if (iteNorm == NONE && nupdat < 0)
     iteNorm = NONE_UPTAN; // Recalculate tangent in each step in linear analysis
@@ -169,6 +167,8 @@ bool NonLinSIM::parse (const tinyxml2::XMLElement* elem)
 
 void NonLinSIM::initPrm ()
 {
+  if (iteNorm == NONE && updNewN && model.hasElementActivator())
+    iteNorm = NONE_UPTAN; // Need to (re)calculate tangent matrix at each step
   if (iteNorm <= NONE) // Flag to integrand that a linear solver is used
     model.setIntegrationPrm(3,1.0);
   if (iteNorm <= NONE && nupdat < maxit)
