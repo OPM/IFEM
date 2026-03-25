@@ -37,14 +37,14 @@ SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
   myPtSize = 0.0;
   myGeomID = myGeofs1 = myGeofs2 = 0;
   myVtf = nullptr;
-  logRpMap = false;
+  mergeVtf = logRpMap = false;
   idxGrid = -1;
 }
 
 
 SIMoutput::~SIMoutput ()
 {
-  if (myVtf) delete myVtf;
+  delete myVtf;
 
   for (std::pair<const std::string,RealFunc*>& func : myAddScalars)
     delete func.second;
@@ -106,6 +106,7 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
+  bool newGroup = false;
   if (const char* funcval = utl::getValue(elem,"function"); funcval)
   {
     std::string name;
@@ -122,10 +123,14 @@ bool SIMoutput::parseOutputTag (const tinyxml2::XMLElement* elem)
     myAddScalars[name] = f;
     return true;
   }
-  else if (strcasecmp(elem->Value(),"resultpoints"))
+  else if (!strcasecmp(elem->Value(),"resultpoints"))
+    newGroup = true; // we are parsing result points, below
+  else if (!strcasecmp(elem->Value(),"vtfformat"))
+    utl::getAttribute(elem,"merge",mergeVtf);
+
+  if (!newGroup)
     return this->SIMinput::parseOutputTag(elem);
 
-  bool newGroup = true;
   // Lambda function for adding a new result point to the myPoints container.
   auto&& addPoint = [&newGroup,&points=myPoints](const ResultPoint& newPoint)
   {
@@ -711,12 +716,18 @@ bool SIMoutput::writeGlvG (int& nBlock, double time)
   // Get the ID list of current node blocks, if any
   IntVec nodeBlocks;
   int i, nodeBlock;
+  size_t nNodeLast = 0;
   if (time > 0.0)
+  {
     for (i = 1; (nodeBlock = myVtf->getNodeBlock(i)); i++)
       nodeBlocks.push_back(nodeBlock);
+    if (mergeVtf) // Get the size of the last node block written
+      nNodeLast = myVtf->getBlock(i-1)->getNoNodes();
+  }
   if (time >= 0.0)
     myVtf->clearGeometryBlocks();
 
+  ElementBlock* singlePart = nullptr;
   ElementBlock* lvb;
   char pname[64];
 
@@ -737,14 +748,40 @@ bool SIMoutput::writeGlvG (int& nBlock, double time)
         if (!pch->isElementActive(iel-1,time))
           lvb->removeElement(iel);
 
-    if (msgLevel > 1)
-      IFEM::cout <<"Writing geometry for patch "
-                 << pch->idx+1 <<" ("<< lvb->getNoNodes() <<")"<< std::endl;
+    if (mergeVtf && myModel.size() > 1)
+    {
+      // Merge all element blocks into a single part
+      if (!singlePart)
+        singlePart = lvb;
+      else
+      {
+        singlePart->merge(*lvb,false);
+        delete lvb;
+      }
+    }
+    else
+    {
+      if (msgLevel > 1)
+        IFEM::cout <<"Writing geometry for patch "
+                   << pch->idx+1 <<" ("<< lvb->getNoNodes() <<")"<< std::endl;
 
-    sprintf(pname,"Patch %zu",pch->idx+1);
-    // Reuse the existing node block when time > 0.0
-    nodeBlock = i < static_cast<int>(nodeBlocks.size()) ? nodeBlocks[i++] : 0;
-    if (!myVtf->writeGrid(lvb,pname,++nBlock,nodeBlock))
+      sprintf(pname,"Patch %zu",pch->idx+1);
+      // Reuse the existing node block when time > 0.0
+      nodeBlock = i < static_cast<int>(nodeBlocks.size()) ? nodeBlocks[i++] : 0;
+      if (!myVtf->writeGrid(lvb,pname,++nBlock,nodeBlock))
+        return false;
+    }
+  }
+
+  if (singlePart)
+  {
+    if (msgLevel > 1)
+      IFEM::cout <<"Writing new geometry ("
+                 << singlePart->getNoNodes() <<")"<< std::endl;
+
+    // Reuse the last node block when time > 0.0 unless increased size
+    nodeBlock = singlePart->getNoNodes() > nNodeLast ? 0 : nodeBlocks.back();
+    if (!myVtf->writeGrid(singlePart,"FE model",++nBlock,nodeBlock))
       return false;
   }
 
@@ -795,6 +832,8 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 {
   if (!myVtf)
     return true;
+  if (mergeVtf && myModel.size() > 1)
+    return true; // not implemented for merged patches, ignore
 
   Matrix field;
   std::array<IntVec,6> dID;
@@ -933,6 +972,8 @@ bool SIMoutput::writeGlvV (const RealArray& vec, const char* fieldName,
 {
   if (vec.empty() || !myVtf)
     return true;
+  if (mergeVtf && myModel.size() > 1)
+    return true; // not implemented for merged patches, ignore
 
   Matrix field;
   Vector lovec;
@@ -973,6 +1014,8 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
 {
   if (scl.empty() || !myVtf)
     return true;
+  if (mergeVtf && myModel.size() > 1)
+    return false; // not implemented for merged patches, abort..
 
   const bool piolaMapping = myProblem ?
     myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
@@ -1086,6 +1129,14 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
       if (myVtf->getBlock(geo))
         vID[0].push_back(dis);
 
+  // Find the last active patch at current time
+  size_t lastActive = 0;
+  if (mergeVtf)
+    for (const ASMbase* pch : myModel)
+      if (!pch->empty() && !pch->inActive(time))
+        lastActive = pch->idx;
+
+  Matrix singleField;
   Matrix field;
   Vector lovec;
 
@@ -1108,6 +1159,19 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
     if (!pch->evalSolution(field,lovec,opt.nViz,0,piolaMapping))
       return -1;
+
+    if (lastActive > 0)
+    {
+      // We need to merge the results for all patches before writing them
+      if (singleField.empty())
+        std::swap(singleField,field);
+      else
+        singleField.augmentCols(field);
+      if (lastActive == pch->idx)
+        std::swap(field,singleField);
+      else
+        continue;
+    }
 
     const ElementBlock* grid = myVtf->getBlock(++geomID);
     pch->filterResults(field,grid);
@@ -1280,6 +1344,14 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
   std::vector<IntVec> sID;
   sID.reserve((haveAsol ? 2*nf : nf) + nProj);
 
+  // Find the last active patch at current time
+  size_t lastActive = 0;
+  if (mergeVtf)
+    for (const ASMbase* pch : myModel)
+      if (!pch->empty() && !pch->inActive(time))
+        lastActive = pch->idx;
+
+  Matrix singleField, projField;
   Matrix field, pdir;
   Vector lovec;
 
@@ -1294,7 +1366,7 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     else if (pch->empty() || pch->inActive(time))
       continue; // skip empty and inactive patches
 
-    myProblem->initResultPoints(time,true); // include principal stresses
+    myProblem->initResultPoints(time,!lastActive); // include principal stresses
     if (!this->initPatchForEvaluation(pch->idx+1))
       return -2;
 
@@ -1307,12 +1379,29 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     if (!pch->evalSolution(field,*myProblem,opt.nViz))
       return -1;
 
-    const ElementBlock* grid = myVtf->getBlock(++geomID);
-    pch->filterResults(field,grid);
-
     size_t k = 0;
-    if (!this->writeScalarFields(field,geomID,nBlock,sID,&k,ASM::SECONDARY))
-      return -4;
+    bool writeNow = true;
+    if (lastActive > 0)
+    {
+      // We need to merge the results for all patches before writing them
+      if (singleField.empty())
+        std::swap(singleField,field);
+      else
+        singleField.augmentCols(field);
+      if (lastActive == pch->idx)
+        std::swap(field,singleField);
+      else
+        writeNow = false;
+    }
+
+    const ElementBlock* grid = writeNow ? myVtf->getBlock(++geomID) : nullptr;
+
+    if (writeNow)
+    {
+      pch->filterResults(field,grid);
+      if (!this->writeScalarFields(field,geomID,nBlock,sID,&k,ASM::SECONDARY))
+        return -4;
+    }
 
     // Write principal directions, if any, as vector fields
 
@@ -1334,9 +1423,23 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       if (!pch->evalSolution(field,*myProblem,opt.nViz,'D'))
         return -1;
 
-      pch->filterResults(field,grid);
-      if (!this->writeScalarFields(field,geomID,nBlock,sID,&k,ASM::PROJECTED))
-        return -4;
+      if (lastActive > 0)
+      {
+        // We need to merge the results for all patches before writing them
+        if (projField.empty())
+          std::swap(projField,field);
+        else
+          projField.augmentCols(field);
+        if (lastActive == pch->idx)
+          std::swap(field,projField);
+      }
+
+      if (writeNow)
+      {
+        pch->filterResults(field,grid);
+        if (!this->writeScalarFields(field,geomID,nBlock,sID,&k,ASM::PROJECTED))
+          return -4;
+      }
     }
 
     if (haveAsol && grid)
@@ -1445,6 +1548,8 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
 {
   if (ssol.empty() || !myVtf)
     return true; // no projected solution
+  if (mergeVtf && myModel.size() > 1)
+    return true; // not implemented for merged patches, ignore
 
   // Lambda function for updating (patch-wise) maximum result values.
   auto&& updateMaxVal = [](PointValues& maxVal, double res,
@@ -1547,6 +1652,8 @@ bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
 {
   if (!myVtf)
     return true;
+  if (mergeVtf && myModel.size() > 1)
+    return true; // not implemented for merged patches, ignore
 
   const bool piolaMapping = state && myProblem ?
     myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
@@ -1607,6 +1714,8 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 {
   if (mode.eigVec.empty() || !myVtf)
     return true; // no eigen modes
+  if (mergeVtf && myModel.size() > 1)
+    return true; // not implemented for merged patches, ignore
 
   if (msgLevel > 1)
     IFEM::cout <<"Writing eigenvector for Mode "<< mode.eigNo << std::endl;
@@ -1683,6 +1792,8 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
 {
   if (norms.empty() || !myVtf)
     return true; // no element norms
+  if (mergeVtf && myModel.size() > 1)
+    return true; // not implemented for merged patches, ignore
 
   NormBase* norm = myProblem->getNormIntegrand(mySol);
 
@@ -1781,6 +1892,8 @@ bool SIMoutput::writeGlvE (const Vector& field, int iStep, int& nBlock,
 {
   if (!myVtf)
     return true;
+  if (mergeVtf && myModel.size() > 1)
+    return true; // not implemented for merged patches, ignore
 
   Vector lVec;
   IntVec sID;
