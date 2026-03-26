@@ -66,9 +66,9 @@ public:
   //! \param[in] elmId External element ID (generate if negative)
   size_t addLine(size_t i1, const Vec3& X2, int elmId = -1);
 
-  //! \brief Assigns an external id to an element.
+  //! \brief Assigns an external ID to an element.
   void setElmId(size_t i, int iel) { MINEX[i-1] = iel; }
-  //! \brief Returns the external id of an element.
+  //! \brief Returns the external ID of an element.
   int getElmId(size_t i) const { return MINEX[i-1]; }
   //! \brief Returns the internal index of an element in case of mixed types.
   size_t getElmIndex(size_t i) const { return i < elmIdx.size() ? elmIdx[i]:i; }
@@ -108,8 +108,8 @@ public:
 
   //! \brief Returns the coordinates of the center of the given element.
   utl::Point getCenter(size_t i) const;
-  //! \brief Removes the given element.
-  void removeElement(size_t i);
+  //! \brief Removes all elements with the specified external ID.
+  void removeElement(int iel);
 
 protected:
   using Prm3 = std::array<Real,3>; //!< Convenience type
@@ -136,7 +136,7 @@ public:
 class PlaneBlock : public ElementBlock
 {
 public:
-  //! \brief Constructor defining a plane from three points.
+  //! \brief The constructor defines a plane from three points.
   //! \param[in] X0 First corner
   //! \param[in] X1 Second corner
   //! \param[in] X2 Third corner
@@ -153,7 +153,7 @@ public:
 class CubeBlock : public ElementBlock
 {
 public:
-  //! \brief The constructor defines a cube centred at specified point.
+  //! \brief The constructor defines a cube centered at the specified point.
   //! \param[in] X0 Center of the cube
   //! \param[in] dX Length of each cube edge
   CubeBlock(const Vec3& X0, double dX);
@@ -169,7 +169,7 @@ public:
 class SphereBlock : public ElementBlock
 {
 public:
-  //! \brief The constructor defines a sphere centred at specified point.
+  //! \brief The constructor defines a sphere centered at the specified point.
   //! \param[in] X0 Center of the sphere
   //! \param[in] R Sphere diameter
   //! \param[in] nTheta Number of elements around equator
@@ -181,13 +181,13 @@ public:
 /*!
   \brief Class for cylinder geometries.
   \details This class is used to create cylinder shapes in the model,
-  for visualization of rigid contect objects, etc.
+  for visualization of rigid contact objects, etc.
 */
 
 class CylinderBlock : public ElementBlock
 {
 public:
-  //! \brief The constructor defines a sphere centred at specified point.
+  //! \brief The constructor defines a cylinder along an axis through 2 points.
   //! \param[in] X0 First end point
   //! \param[in] X1 Second end point
   //! \param[in] R Cylinder diameter

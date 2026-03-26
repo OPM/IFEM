@@ -20,8 +20,12 @@
 
 double ElementBlock::eps = 0.0;
 
-//! \brief List of supported number of element nodes.
-static const std::array<size_t,7> legalNENs = { 2, 3, 4, 6, 8, 9, 27 };
+
+namespace
+{
+  //! \brief List of supported number of element nodes.
+  const std::array<size_t,7> legalNENs = { 2, 3, 4, 6, 8, 9, 27 };
+}
 
 
 ElementBlock::ElementBlock (size_t nenod)
@@ -299,29 +303,32 @@ utl::Point ElementBlock::getCenter (size_t i) const
 }
 
 
-void ElementBlock::removeElement (size_t i)
+void ElementBlock::removeElement (int iel)
 {
-  if (i < 1 || i > MINEX.size())
-    return;
+  for (size_t i = 0; i < MINEX.size();)
+    if (MINEX[i] == iel)
+    {
+      std::vector<int>::iterator it1 = MMNPC.end(), it2 = MMNPC.end();
+      if (nen > 0)
+      {
+        it1 = MMNPC.begin()+nen*i;
+        it2 = it1 + nen;
+      }
+      else
+      {
+        size_t elm = 0;
+        for (size_t ip = 0; ip < MMNPC.size() && it2 == MMNPC.end(); ip++)
+          if (MMNPC[ip] < 0 && ++elm == i+1)
+            it2 = MMNPC.begin() + ip+1;
+          else if (elm == i && it1 == MMNPC.end())
+            it1 = MMNPC.begin() + ip;
+      }
 
-  std::vector<int>::iterator it1 = MMNPC.end(), it2 = MMNPC.end();
-  if (nen > 0)
-  {
-    it2 = MMNPC.begin()+nen*i;
-    it1 = it2 - nen;
-  }
-  else
-  {
-    size_t elm = 0;
-    for (size_t ip = 0; ip < MMNPC.size() && it2 == MMNPC.end(); ip++)
-      if (MMNPC[ip] < 0 && ++elm == i)
-        it2 = MMNPC.begin() + ip+1;
-      else if (elm == i-1 && it1 == MMNPC.end())
-        it1 = MMNPC.begin() + ip;
-  }
-
-  MMNPC.erase(it1,it2);
-  MINEX.erase(MINEX.begin()+i-1);
+      MMNPC.erase(it1,it2);
+      MINEX.erase(MINEX.begin()+i);
+    }
+    else
+      ++i;
 }
 
 
