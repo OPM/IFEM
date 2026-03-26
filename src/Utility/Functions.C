@@ -868,6 +868,7 @@ IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
   // of nv/nw elements, which then are activated one by one.
   class Parametric : public IntFunc
   {
+    int n0; // Always ignore the first n0 elements
     int nu; // Number of elements in first parameter direction
     int nv; // Number of elements to activate in v-w plane before advancing in u
     int nw; // Number of element divisions per layer in w-direction
@@ -876,13 +877,15 @@ IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
 
   public:
     explicit Parametric(int u, int v, int w, Real scale)
-      : nu(u), nv(v), nw(w), s(scale), t(Real(0)) {}
-    explicit Parametric(int u, Real offset, Real scale)
-      : nu(u), nv(1), nw(1), s(scale), t(offset) {}
+      : n0(0), nu(u), nv(v), nw(w), s(scale), t(Real(0)) {}
+    explicit Parametric(int ignore_init, int u, Real offset, Real scale)
+      : n0(ignore_init), nu(u), nv(1), nw(1), s(scale), t(offset) {}
 
   protected:
     Real evaluate(const int& x) const override
     {
+      if (x <= n0) return Real(1.0e99); // always ignore this element
+
       int ix = (x-1)%nu;
       int nx = (x-1)/nu;
       if (ix < 1 && nx < nv) return t;
@@ -911,8 +914,9 @@ IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
     int ne1 = atoi(strtok(prms," "));
     Real ts = (s = strtok(nullptr," ")) ? atof(s) : Real(0);
     Real sf = (s = strtok(nullptr," ")) ? atof(s) : Real(1);
+    int ne0 = (s = strtok(nullptr," ")) ? atoi(s) : 0;
     free(prms);
-    return new Parametric(ne1,ts,sf);
+    return new Parametric(ne0,ne1,ts,sf);
   }
 
   Real scaling(1);
