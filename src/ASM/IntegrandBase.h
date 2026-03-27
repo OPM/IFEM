@@ -42,7 +42,7 @@ class IntegrandBase : public Integrand
 {
 protected:
   //! \brief The constructor is protected to allow sub-classes only.
-  explicit IntegrandBase(unsigned short int n) : nsd(n), npv(1),
+  explicit IntegrandBase(unsigned short int n) : nsd(n), npv(1), myTime(0.0),
                                                  m_mode(SIM::INIT) {}
 
 public:
@@ -83,9 +83,12 @@ public:
   //! \brief Initializes the integrand for a new result point loop.
   //! \details This method is invoked once before starting the evaluation of
   //! the secondary solution at all result sampling points, after the converged
-  //! primary solution has been found. It is reimplemented for integrands
-  //! containing internal result buffers that need to be (re-)initialized.
-  virtual void initResultPoints(double, bool = false) {}
+  //! primary solution has been found. The default implementation only sets the
+  //! evaluation time for the secondary solutions, which may be used when some
+  //! secondary solution fields have direct dependency to the current time.
+  //! The method is overridden by integrands containing internal result buffers
+  //! that need to be (re-)initialized.
+  virtual void initResultPoints(double time, char = 0) { myTime = time; }
   //! \brief Initializes the global node number mapping for current patch.
   virtual void initNodeMap(const std::vector<int>&) {}
   //! \brief Assigns a secondary integral to be computed (for reaction forces).
@@ -342,12 +345,16 @@ public:
   //! \brief Returns nodal DOF flags for monolithic coupled integrands.
   virtual void getNodalDofTypes(std::vector<char>&) const {}
 
+  //! \brief Returns current time/load parameter for 2ndary solution evaluation.
+  double getTimeLevel() const { return myTime; }
+
 private:
   std::map<std::string,Vector*> myFields; //!< Named fields of this integrand
 
 protected:
   unsigned short int nsd;     //!< Number of spatial dimensions (1, 2 or 3)
   unsigned short int npv;     //!< Number of primary solution variables per node
+  double             myTime;  //!< Evaluation time for the secondary solution
   SIM::SolutionMode  m_mode;  //!< Current solution mode
   std::vector<int>   elmGrp;  //!< List of currently active elements
   Vectors            primsol; //!< Primary solution vectors for current patch

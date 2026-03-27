@@ -2243,10 +2243,10 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   }
 
   // Initialize result point buffers within the integrand (if any).
-  // The large negative time argument is here used to flag that we are going to
+  // The negative second argument is used to flag that we are going to
   // do numerical integration, possibly using integration point buffers instead
   // of the result evaluation buffers.
-  myProblem->initResultPoints(-9999.0);
+  myProblem->initResultPoints(time.t,-1);
 
   size_t i, ofs = 0;
   for (i = 0; i < myModel.size(); i++)
