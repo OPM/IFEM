@@ -341,6 +341,8 @@ public:
   bool isElementActive(int iel, double time = -1.0) const;
   //! \brief Returns \e true if none of the elements in the patch are active.
   bool inActive(double time) const;
+  //! \brief Returns the age of the element with 0-based index \a iel.
+  double getAge(int iel, double time) const;
   //! \brief Returns \e true if element is in process partition.
   //! \param[in] iel 0-based element index local to current patch
   bool isElementInPartition(int iel) const;

@@ -1822,20 +1822,7 @@ void ASMbase::getBoundaryElms (int lIndex, IntVec& elms,
 
 bool ASMbase::isElementActive (int iel, double time) const
 {
-  if (iel < 0 || iel >= static_cast<int>(MLGE.size()))
-    return false;
-
-  if (MLGE[iel] < 1)
-    return false; // element with zero extension
-
-  if (myElActive && time+1.0e-12 < (*myElActive)(1+iel))
-    return false; // element not activated yet
-
-  if (!myActiveEls)
-    return true; // all elements are active
-
-  return std::find(myActiveEls->begin(),
-                   myActiveEls->end(),MLGE[iel]) != myActiveEls->end();
+  return this->getAge(iel,time) >= 0.0;
 }
 
 
@@ -1845,11 +1832,34 @@ bool ASMbase::inActive (double time) const
   {
     for (size_t iel = 0; iel < nel; iel++)
       if (MLGE[iel] > 0 && time+1.0e-12 > (*myElActive)(iel))
-        return false;
-    return true;
+        return false; // we have at least one active element
+    return true; // no elements activated at this time
   }
 
   return myActiveEls ? myActiveEls->empty() : false;
+}
+
+
+double ASMbase::getAge (int iel, double time) const
+{
+  if (iel < 0 || iel >= static_cast<int>(MLGE.size()))
+    return -1001.0; // element index out of range
+
+  if (MLGE[iel] < 1)
+    return -1002.0; // element with zero extension
+
+  if (myActiveEls && utl::findIndex(*myActiveEls,MLGE[iel]) < 0)
+    return -1003.0; // deactivated element
+
+  // Negative time may occur in snap-through analysis using the
+  // path-following simulation driver, where time is the current load parameter
+  if (time < 0.0) time = 0.0; // reset to zero to avoid element deactivation
+
+  if (!myElActive)
+    return time; // no activation time, age equals current time
+
+  time -= (*myElActive)(1+iel);
+  return time < -1.0e-12 || time > 0.0 ? time : 0.0;
 }
 
 
