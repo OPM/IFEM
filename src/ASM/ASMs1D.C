@@ -1042,7 +1042,7 @@ double ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
   XC.reserve(elmCS.empty() ? 2 : 3);
   const double* pt = &XYZ.front();
   for (int j = 0; j < 2; j++, pt += dim)
-    XC.push_back(Vec3(pt,nsd));
+    XC.emplace_back(pt,nsd);
 
   // Calculate the characteristic element size
   double h = getElementSize(XC);
@@ -1170,7 +1170,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     if (dbgElm < 0 && ielm != -dbgElm)
       continue; // Skipping all elements, except for -dbgElm
 #endif
-    if (!this->isElementActive(iel,time.t))
+    if ((fe.age = this->getAge(iel,time.t)) < 0.0)
       continue; // zero-length or inactive element
 
     fe.idx = firstEl + iel;
@@ -1355,7 +1355,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   if (dbgElm < 0 && ielm != -dbgElm)
     return true; // Skipping all elements, except for -dbgElm
 #endif
-  if (!this->isElementActive(iel,time.t))
+  if ((fe.age = this->getAge(iel,time.t)) < 0.0)
     return true; // zero-length or inactive element
 
   fe.idx = firstEl + iel;
@@ -1412,7 +1412,9 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 #endif
 
   // Cartesian coordinates of current integration point
-  Vec4 X(fe.Xn*fe.N,time.t);
+  double param[3] = { fe.u, 0.0, 0.0 };
+  Vec4 X(param,time.t);
+  X.assign(fe.Xn*fe.N);
 
   // Evaluate the integrand and accumulate element contributions
   if (ok && !integrand.evalBou(*A,fe,time,X,normal))
@@ -1755,6 +1757,8 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix   dNdu, Jac, Xtmp;
   Matrix3D d2Ndu2, Hess;
   Matrix4D d3Ndu3;
+  double   param[3] = { 0.0, 0.0, 0.0 };
+  Vec4     X(param,integrand.getTimeLevel());
 
   if (nsd > 1 && (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES))
     fe.G.resize(nsd,2); // For storing d{X}/du and d2{X}/du2
@@ -1764,7 +1768,13 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = upar.size();
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
-    fe.u = upar[i];
+    fe.u = param[0] = upar[i];
+    int iel = this->findElementContaining(param) - 1;
+    if ((fe.age = this->getAge(iel,X.t) < 0.0))
+      continue; // skip inactive elements
+
+    fe.idx = firstEl + iel;
+    fe.iel = MLGE[iel];
 
     // Fetch basis function derivatives at current integration point
     if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
@@ -1812,7 +1822,8 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 #endif
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))
+    X.assign(Xtmp * fe.N);
+    if (!integrand.evalSol(solPt,fe,X,ip))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

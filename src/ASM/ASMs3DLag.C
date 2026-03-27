@@ -377,7 +377,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
           ok = false;
           break;
         }
-        if (!this->isElementActive(iel,time.t))
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
           continue; // zero-volume or inactive element
 
         fe.idx = firstEl + iel;
@@ -640,7 +640,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
           ok = false;
           break;
         }
-        if (!this->isElementActive(iel,time.t))
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
           continue; // zero-volume or inactive element
 
         fe.idx = firstEl + doXelms+iel;
@@ -798,8 +798,6 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
       {
         if (!this->isElementInPartition(iel))
           continue; // this element is in the partition of another process
-        if (!this->isElementActive(iel,time.t))
-          continue; // zero-volume or inactive element
 
         // Skip elements that are not on current boundary edge
         bool skipMe = false;
@@ -819,6 +817,9 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
           case 12: if (i1 < nelx-1 || i2 < nely-1) skipMe = true; break;
         }
         if (skipMe) continue;
+
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+          continue; // zero-volume or inactive element
 
         if (lEdge < 5)
           ip = i1*ng;
@@ -1080,13 +1081,16 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector        solPt;
   Vectors       globSolPt(nPoints);
   Matrix        dNdu, Jac;
+  Vec4          X(nullptr,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each point
   for (size_t iel = 0; iel < nel; iel++)
   {
+    if ((fe.age = this->getAge(iel,X.t)) < 0.0)
+      continue; // zero-volume or inactive element
+
     fe.idx = firstEl + iel;
     fe.iel = MLGE[iel];
-    if (fe.iel < 1) continue; // zero-volume element
 
     const IntVec& mnpc = MNPC[iel];
     this->getElementCoordinates(fe.Xn,1+iel);
@@ -1111,8 +1115,8 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
           }
 
           // Now evaluate the solution field
-          utl::Point X4(fe.Xn*fe.N,{fe.u,fe.v,fe.w});
-          if (!integrand.evalSol(solPt,fe,X4,mnpc))
+          X.assign(fe.Xn * fe.N);
+          if (!integrand.evalSol(solPt,fe,X,mnpc))
             return false;
           else if (sField.empty())
             sField.resize(solPt.size(),nPoints,true);
@@ -1161,9 +1165,11 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         return false;
     }
 
+    if ((fe.age = this->getAge(iel-1,integrand.getTimeLevel())) < 0.0)
+      continue; // zero-volume or inactive element
+
     fe.idx = firstEl + iel-1;
     fe.iel = MLGE[iel-1];
-    if (fe.iel < 1) continue; // zero-volume element
 
     this->getElementCoordinates(fe.Xn,iel);
 

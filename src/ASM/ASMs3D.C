@@ -1025,7 +1025,7 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.push_back(DirichletFace(this->getBoundary(dir,basis),dof,code));
+    dirich.emplace_back(this->getBoundary(dir,basis),dof,code);
   else if (code < 0)
     bcode = -code;
 
@@ -1046,7 +1046,7 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 	    // the set of nodes to receive prescribed value from the projection
 	    // **unless this node already has a homogeneous constraint**
 	    if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	      dirich.back().nodes.push_back(std::make_pair(n2*(i3-1)+i2,node));
+	      dirich.back().nodes.emplace_back(n2*(i3-1)+i2,node);
 	  }
       break;
 
@@ -1065,7 +1065,7 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 	    // the set of nodes to receive prescribed value from the projection
 	    // **unless this node already has a homogeneous constraint**
 	    if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	      dirich.back().nodes.push_back(std::make_pair(n1*(i3-1)+i1,node));
+	      dirich.back().nodes.emplace_back(n1*(i3-1)+i1,node);
 	  }
       break;
 
@@ -1084,7 +1084,7 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 	    // the set of nodes to receive prescribed value from the projection
 	    // **unless this node already has a homogeneous constraint**
 	    if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	      dirich.back().nodes.push_back(std::make_pair(n1*(i2-1)+i1,node));
+	      dirich.back().nodes.emplace_back(n1*(i2-1)+i1,node);
 	  }
       break;
     }
@@ -1205,7 +1205,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.push_back(DirichletFace(this->getBoundary(dir),dof,code));
+    dirich.emplace_back(this->getBoundary(dir),dof,code);
   else if (code < 0)
     bcode = -code;
 
@@ -1259,7 +1259,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
       {
         this->prescribe(1+iMnod,dof,-code);
         if (code > 0)
-          dirich.back().nodes.push_back(std::make_pair(1+k,1+iMnod));
+          dirich.back().nodes.emplace_back(1+k,1+iMnod);
       }
 
       // Local-to-global transformation matrix at this point, created by
@@ -2018,7 +2018,7 @@ double ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC,
     for (int j = 0; j < 2; j++)
       for (int i = 0; i < 2; i++, pt += dim)
       {
-        XC.push_back(Vec3(pt,nsd));
+        XC.emplace_back(pt,nsd);
         if (uC)
         {
           uC->push_back(u[i]);
@@ -2040,7 +2040,7 @@ void ASMs3D::getCornerPoints (int i1, int i2, int i3, PointVec& XC) const
   XC.clear();
   XC.reserve(8);
   for (int i = 0; i < 4; i++)
-    XC.push_back(utl::Point(XYZ[i], { uC[3*i], uC[3*i+1], uC[3*i+2] }));
+    XC.emplace_back(XYZ[i], RealArray{ uC[3*i], uC[3*i+1], uC[3*i+2] });
 }
 
 
@@ -2108,7 +2108,7 @@ bool ASMs3D::integrate (Integrand& integrand,
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
-        if (!this->isElementActive(iel,time.t))
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
           continue; // zero-volume or inactive element
 
         fe.idx = firstEl + iel;
@@ -2383,7 +2383,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 #endif
         if (itgPts[iel].empty())
           continue; // no integration points in this element
-        if (!this->isElementActive(iel,time.t))
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
           continue; // zero-volume or inactive element
 
         fe.idx = firstEl + iel;
@@ -2643,7 +2643,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
-        if (!this->isElementActive(iel,time.t))
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
           continue; // zero-volume or inactive element
 
         fe.idx = firstEl + doXelms+iel;
@@ -2876,8 +2876,6 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
       {
         if (!this->isElementInPartition(iel))
           continue; // this element is in the partition of another process
-        if (!this->isElementActive(iel,time.t))
-          continue; // zero-volume or inactive element
 
 	// Skip elements that are not on current boundary edge
 	bool skipMe = false;
@@ -2897,6 +2895,9 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	  case 12: if (i1 < n1 || i2 < n2) skipMe = true; break;
 	  }
 	if (skipMe) continue;
+
+	if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+	  continue; // zero-volume or inactive element
 
 	// Get element edge length in the parameter space
 	double dS = 0.0;
@@ -3388,6 +3389,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector        solPt;
   Matrix        dNdu, Jac;
   Matrix3D      d2Ndu2, Hess;
+  double        param[3];
+  Vec4          X(param,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
@@ -3397,17 +3400,24 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (use2ndDer)
     {
       scatterInd(n1,n2,n3,p1,p2,p3,spline2[i].left_idx,ip);
-      fe.u = spline2[i].param[0];
-      fe.v = spline2[i].param[1];
-      fe.w = spline2[i].param[2];
+      fe.u = param[0] = spline2[i].param[0];
+      fe.v = param[1] = spline2[i].param[1];
+      fe.w = param[2] = spline2[i].param[2];
     }
     else
     {
       scatterInd(n1,n2,n3,p1,p2,p3,spline1[i].left_idx,ip);
-      fe.u = spline1[i].param[0];
-      fe.v = spline1[i].param[1];
-      fe.w = spline1[i].param[2];
+      fe.u = param[0] = spline1[i].param[0];
+      fe.v = param[1] = spline1[i].param[1];
+      fe.w = param[2] = spline1[i].param[2];
     }
+
+    int iel = this->findElementContaining(param) - 1;
+    if ((fe.age = this->getAge(iel,X.t)) < 0.0)
+      continue; // zero-volume or inactive element
+
+    fe.idx = firstEl + iel;
+    fe.iel = MLGE[iel];
 
     // Fetch associated control point coordinates
     utl::gather(ip,3,Xnod,Xtmp);
@@ -3432,8 +3442,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 #endif
 
     // Now evaluate the solution field
-    utl::Point X4(Xtmp*fe.N,{fe.u,fe.v,fe.w});
-    if (!integrand.evalSol(solPt,fe,X4,ip))
+    X.assign(Xtmp * fe.N);
+    if (!integrand.evalSol(solPt,fe,X,ip))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

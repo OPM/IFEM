@@ -235,7 +235,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   bool ok = true;
   for (size_t iel = 0; iel < nel && ok; iel++)
   {
-    if (!this->isElementActive(iel,time.t))
+    if ((fe.age = this->getAge(iel,time.t)) < 0.0)
       continue; // zero-length or inactive element
 
     fe.idx = firstEl + iel;
@@ -366,7 +366,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  if (!this->isElementActive(iel,time.t))
+  if ((fe.age = this->getAge(iel,time.t)) < 0.0)
     return true; // zero-length or inactive element
 
   fe.idx = firstEl + iel;
@@ -512,13 +512,16 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector        solPt;
   Vectors       globSolPt(nPoints);
   Matrix        dNdu, Jac;
+  Vec4          X(nullptr,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each element node or center
   for (size_t iel = 0; iel < nel; iel++)
   {
+    if ((fe.age = this->getAge(iel,X.t)) < 0.0)
+      continue; // zero-length or inactive element
+
     fe.idx = firstEl + iel;
     fe.iel = MLGE[iel];
-    if (fe.iel < 1) continue; // zero-length element
 
     this->getElementCoordinates(fe.Xn,1+iel);
     const IntVec& mnpc = MNPC[iel];
@@ -541,8 +544,8 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       }
 
       // Now evaluate the solution field
-      utl::Point X4(fe.Xn*fe.N,{fe.u});
-      if (!integrand.evalSol(solPt,fe,X4,mnpc))
+      X.assign(fe.Xn * fe.N);
+      if (!integrand.evalSol(solPt,fe,X,mnpc))
         return false;
       else if (sField.empty())
         sField.resize(solPt.size(),nPoints,true);

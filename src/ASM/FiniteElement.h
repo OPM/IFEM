@@ -30,7 +30,7 @@ class FiniteElement : public ItgPoint
 public:
   //! \brief Default constructor.
   explicit FiniteElement(size_t n = 0, size_t i = 0) : ItgPoint(i), N(n), Te(3)
-  { p = q = r = 0; h = 0.0; detJxW = 1.0; }
+  { p = q = r = 0; age = h = 0.0; detJxW = 1.0; }
 
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return 1; }
@@ -73,20 +73,20 @@ public:
   Matrix     H;    //!< Hessian
 
   //! \brief Matrix holding Piola-mapped basis function values.
-  //! \details The column index \a i is cummulative, e.g., if
+  //! \details The column index \a i is cumulative, e.g., if
   //! N1 is the number of functions in basis 1 and
   //! N2 is the number of functions in basis 2, then
   //! 1 &le; \a i &le; N1 for the first basis and
-  //! N1+1 &le; \a i &le; N1+N2 or the second basis.
+  //! N1+1 &le; \a i &le; N1+N2 for the second basis.
   //! This matrix is therefore of dimension 2&times;(N1+N2).
   Matrix P;
 
   //! \brief Matrix holding Piola-mapped basis derivatives.
-  //! \details The column index \a i is cummulative, e.g., if
+  //! \details The column index \a i is cumulative, e.g., if
   //! N1 is the number of functions in basis 1 and
   //! N2 is the number of functions in basis 2, then
   //! 1 &le; \a i &le; N1 for the first basis and
-  //! N1+1 &le; \a i &le; N1+N2 or the second basis.
+  //! N1+1 &le; \a i &le; N1+N2 for the second basis.
   //! This matrix is therefore of dimension 4&times;(N1+N2),
   //! where the two first rows are the X-derivatives
   //! and the two last rows are the Y-derivatives.
@@ -96,6 +96,7 @@ public:
   short int           p;    //!< Polynomial order of the basis in u-direction
   short int           q;    //!< Polynomial order of the basis in v-direction
   short int           r;    //!< Polynomial order of the basis in r-direction
+  double              age;  //!< Time since birth of this element
   double              h;    //!< Characteristic element size/diameter
   Vec3Vec             XC;   //!< Array with element corner coordinate vectors
   Vector              Navg; //!< Volume-averaged basis function values

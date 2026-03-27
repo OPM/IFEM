@@ -842,7 +842,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.push_back(DirichletEdge(this->getBoundary(dir,basis),dof,code));
+    dirich.emplace_back(this->getBoundary(dir,basis),dof,code);
   else if (code < 0)
     bcode = -code;
 
@@ -860,7 +860,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 	// the set of nodes to receive prescribed value from the projection
 	// **unless this node already has a homogeneous constraint**
 	if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	  dirich.back().nodes.push_back(std::make_pair(i2,node));
+	  dirich.back().nodes.emplace_back(i2,node);
       }
       if (!open)
 	this->prescribe(node,dof,bcode);
@@ -878,7 +878,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 	// the set of nodes to receive prescribed value from the projection
 	// **unless this node already has a homogeneous constraint**
 	if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	  dirich.back().nodes.push_back(std::make_pair(i1,node));
+	  dirich.back().nodes.emplace_back(i1,node);
       }
       if (!open)
 	this->prescribe(node,dof,bcode);
@@ -1018,7 +1018,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.push_back(DirichletEdge(edge,dof,code));
+    dirich.emplace_back(edge,dof,code);
   else if (code < 0)
     bcode = -code;
 
@@ -1070,7 +1070,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     {
       this->prescribe(1+iMnod,dof,-code);
       if (code > 0)
-        dirich.back().nodes.push_back(std::make_pair(1+i,1+iMnod));
+        dirich.back().nodes.emplace_back(1+i,1+iMnod);
     }
 
     // Find the local axis directions of the edge at this point
@@ -1655,7 +1655,7 @@ double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC,
   for (int j = 0; j < 2; j++)
     for (int i = 0; i < 2; i++, pt += dim)
     {
-      XC.push_back(Vec3(pt,nsd));
+      XC.emplace_back(pt,nsd);
       if (uC)
       {
         uC->push_back(u[i]);
@@ -1676,7 +1676,7 @@ void ASMs2D::getCornerPoints (int i1, int i2, PointVec& XC) const
   XC.clear();
   XC.reserve(4);
   for (int i = 0; i < 4; i++)
-    XC.push_back(utl::Point(XYZ[i], { uC[2*i], uC[2*i+1] }));
+    XC.emplace_back(XYZ[i], RealArray{ uC[2*i], uC[2*i+1] });
 }
 
 
@@ -1758,7 +1758,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         if (dbgElm < 0 && 1+iel != -dbgElm)
           continue; // Skipping all elements, except for -dbgElm
 #endif
-        if (!this->isElementActive(iel,time.t))
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
           continue; // zero-area or inactive element
 
         fe.idx = firstEl + iel;
@@ -2044,7 +2044,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 #endif
         if (itgPts[iel].empty())
           continue; // no integration points in this element
-        if (!this->isElementActive(iel,time.t))
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
           continue; // zero-area or inactive element
 
         fe.idx = firstEl + iel;
@@ -2214,7 +2214,7 @@ bool ASMs2D::integrate (Integrand& integrand,
   for (int i2 = p2; i2 <= n2 && jel < nels; i2++)
     for (int i1 = p1; i1 <= n1 && jel < nels; i1++, iel++)
     {
-      if (!this->isElementActive(iel,time.t))
+      if ((fe.age = this->getAge(iel,time.t)) < 0.0)
         continue; // zero-area or inactive element
 
       if (!hasInterfaceElms) jel = iel;
@@ -2430,8 +2430,6 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 #endif
       if (!this->isElementInPartition(iel))
         continue; // this element is in the partition of another process
-      if (!this->isElementActive(iel,time.t))
-        continue; // zero-area or inactive element
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
@@ -2443,6 +2441,9 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 	case  2: if (i2 < n2) skipMe = true; break;
 	}
       if (skipMe) continue;
+
+      if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+        continue; // zero-area element or inactive element
 
       fe.idx = firstEl + doXelms+iel;
       fe.iel = abs(MLGE[doXelms+iel]);
@@ -2557,7 +2558,7 @@ int ASMs2D::findElementContaining (const double* param) const
   if (!surf) return -2;
 
   int p1   = surf->order_u() - 1;
-  int p2   = surf->order_u() - 1;
+  int p2   = surf->order_v() - 1;
   int nel1 = surf->numCoefs_u() - p1;
   int uEl  = surf->basis_u().knotInterval(param[0]) - p1;
   int vEl  = surf->basis_v().knotInterval(param[1]) - p2;
@@ -2940,6 +2941,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix   dNdu;
   Matrix3D d2Ndu2, Hess;
   Matrix4D d3Ndu3;
+  double   param[3] = { 0.0, 0.0, 0.0 };
+  Vec4     X(param,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
@@ -2949,21 +2952,25 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (use3rdDer)
     {
       scatterInd(n1,n2,p1,p2,spline3[i].left_idx,ip);
-      fe.u = spline3[i].param[0];
-      fe.v = spline3[i].param[1];
+      fe.u = param[0] = spline3[i].param[0];
+      fe.v = param[1] = spline3[i].param[1];
     }
     else if (use2ndDer)
     {
       scatterInd(n1,n2,p1,p2,spline2[i].left_idx,ip);
-      fe.u = spline2[i].param[0];
-      fe.v = spline2[i].param[1];
+      fe.u = param[0] = spline2[i].param[0];
+      fe.v = param[1] = spline2[i].param[1];
     }
     else
     {
       scatterInd(n1,n2,p1,p2,spline1[i].left_idx,ip);
-      fe.u = spline1[i].param[0];
-      fe.v = spline1[i].param[1];
+      fe.u = param[0] = spline1[i].param[0];
+      fe.v = param[1] = spline1[i].param[1];
     }
+
+    int iel = this->findElementContaining(param) - 1;
+    if ((fe.age = this->getAge(iel,X.t)) < 0.0)
+      continue; // zero-area or inactive element
 
     // Fetch associated control point coordinates
     utl::gather(ip,nsd,Xnod,Xtmp);
@@ -2998,8 +3005,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 #endif
 
     // Now evaluate the solution field
-    utl::Point X4(Xtmp*fe.N,{fe.u,fe.v});
-    if (!integrand.evalSol(solPt,fe,X4,ip))
+    X.assign(Xtmp * fe.N);
+    if (!integrand.evalSol(solPt,fe,X,ip))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
