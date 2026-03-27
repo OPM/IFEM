@@ -392,10 +392,6 @@ protected:
   //! \param[out] prm Parameter values for all points
   bool getGrevilleParameters(RealArray& prm) const;
 
-  //! \brief Returns the length in the parameter space for an element.
-  //! \param[in] iel 1-based element index local to current patch
-  double getParametricLength(int iel) const;
-
   //! \brief Returns the parametric length on the \a i'th knot-span.
   double getKnotSpan(int i) const;
 

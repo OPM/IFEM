@@ -657,35 +657,6 @@ Tensor ASMs1D::getLocal2Global (double u) const
 }
 
 
-#define DERR -999.99
-
-double ASMs1D::getParametricLength (int iel) const
-{
-#ifdef INDEX_CHECK
-  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
-  {
-    std::cerr <<" *** ASMs1D::getParametricLength: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
-    return DERR;
-  }
-#endif
-  if (MNPC[iel-1].empty())
-    return 0.0;
-
-  int inod1 = MNPC[iel-1][curv->order()-1];
-#ifdef INDEX_CHECK
-  if (inod1 < 0 || static_cast<size_t>(inod1) >= MLGN.size())
-  {
-    std::cerr <<" *** ASMs1D::getParametricLength: Node index "<< inod1
-	      <<" out of range [0,"<< MLGN.size() <<">."<< std::endl;
-    return DERR;
-  }
-#endif
-
-  return this->getKnotSpan(inod1);
-}
-
-
 double ASMs1D::getKnotSpan (int i) const
 {
   if (i < 0 || i >= curv->numCoefs() + curv->order() - 1)
@@ -1183,7 +1154,7 @@ bool ASMs1D::integrate (Integrand& integrand,
   Matrix3D d2Ndu2, Hess;
   Matrix4D d3Ndu3;
   double   param[3] = { 0.0, 0.0, 0.0 };
-  Vec4     X(param);
+  Vec4     X(param,time.t);
 
   if (nsd > 1 && (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES))
     fe.G.resize(nsd,2); // For storing d{X}/du and d2{X}/du2
@@ -1208,12 +1179,11 @@ bool ASMs1D::integrate (Integrand& integrand,
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
     if (!A) continue; // no integrand contributions for this element
 
-    // Check that the current element has nonzero length
-    double dL = 0.5*this->getParametricLength(1+iel);
-    if (dL < 0.0) ok = false; // topology error (probably logic error)
+    // Get element length in the parameter space
+    double dL = 0.5*this->getKnotSpan(MNPC[iel][p1-1]);
 
     // Set up control point coordinates for current element
-    ok &= this->getElementCoordinates(fe.Xn,1+iel);
+    ok = this->getElementCoordinates(fe.Xn,1+iel);
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
       fe.h = this->getElementEnds(p1+iel,fe.XC);
@@ -1242,8 +1212,8 @@ bool ASMs1D::integrate (Integrand& integrand,
 
       for (int i = 0; i < nRed && ok; i++)
       {
-	// Local element coordinates of current integration point
-	fe.xi = xr[i];
+        // Local element coordinates of current integration point
+        fe.xi = xr[i];
 
         // Parameter values of current integration point
         fe.u = param[0] = redpar[i+nRed*iel];
@@ -1259,12 +1229,11 @@ bool ASMs1D::integrate (Integrand& integrand,
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wr[i];
         }
 
-	// Cartesian coordinates of current integration point
+        // Cartesian coordinates of current integration point
         X.assign(fe.Xn * fe.N);
-	X.t = time.t;
 
-	// Compute the reduced integration terms of the integrand
-	ok = integrand.reducedInt(*A,fe,X);
+        // Compute the reduced integration terms of the integrand
+        ok = integrand.reducedInt(*A,fe,X);
       }
     }
 
@@ -1328,7 +1297,6 @@ bool ASMs1D::integrate (Integrand& integrand,
 
       // Cartesian coordinates of current integration point
       X.assign(fe.Xn * fe.N);
-      X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
       if (ok && !integrand.evalInt(*A,fe,time,X))
