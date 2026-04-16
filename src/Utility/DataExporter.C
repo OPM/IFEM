@@ -116,9 +116,10 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geoUpd, bool doLog)
   PROFILE1("DataExporter::dumpTimeLevel");
 
   ++m_level;
+  double time = tp ? tp->time.t : 0.0;
   if (tp && doLog)
     IFEM::cout <<"  Dumping results for step="<< tp->step <<" time="
-               << tp->time.t <<" (time level "<< m_level <<")"<< std::endl;
+               << time <<" (time level "<< m_level <<")"<< std::endl;
 
   for (DataWriter* writer : m_writers) {
     writer->openFile(m_level);
@@ -131,7 +132,7 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geoUpd, bool doLog)
           writer->writeVector(m_level,it);
           break;
         case SIM:
-          writer->writeSIM(m_level,it,geoUpd,it.second.prefix);
+          writer->writeSIM(m_level,time,it,geoUpd,it.second.prefix);
           break;
         case NODALFORCES:
           writer->writeNodalForces(m_level,it);
@@ -149,7 +150,7 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geoUpd, bool doLog)
       }
     }
     if (tp && tp->multiSteps())
-      writer->writeTimeInfo(m_level,m_ndump,*tp);
+      writer->writeTimeInfo(m_level,time);
 
     writer->closeFile(m_level);
   }

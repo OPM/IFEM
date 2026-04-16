@@ -57,7 +57,8 @@ public:
     ONCE         = 32, //!< Only write field once
     GRID         = 128, //!< Always store an updated grid
     REDUNDANT    = 256, //!< Field is redundantly calculated on all processes
-    L2G_NODE     = 512 //!< Store local-to-global node mapping
+    L2G_NODE     = 512, //!< Storage of local-to-global node mapping
+    ELEMENT_MASK = 1024 //!< Storage of element activation flags
   };
 
   //! \brief A structure holding information about registered fields
@@ -144,8 +145,8 @@ protected:
   int  m_last_step; //!< Last time step we dumped for
 };
 
-//! \brief Convenience type
-typedef std::pair<std::string,DataExporter::FileEntry> DataEntry;
+//! \brief Convenience type alias
+using DataEntry = std::pair<std::string,DataExporter::FileEntry>;
 
 
 /*!
@@ -184,10 +185,11 @@ public:
 
   //! \brief Writes data from a SIM object to file.
   //! \param[in] level The time level to write the data at
+  //! \param[in] time Current time
   //! \param[in] entry The DataEntry describing the vector
   //! \param[in] geometryUpdated Whether or not geometries should be written
   //! \param[in] prefix Field name prefix
-  virtual void writeSIM(int level, const DataEntry& entry,
+  virtual void writeSIM(int level, double time, const DataEntry& entry,
                         bool geometryUpdated, const std::string& prefix) = 0;
 
   //! \brief Writes nodal forces to file.
@@ -211,10 +213,8 @@ public:
 
   //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
-  //! \param[in] interval The number of time steps between each data dump
-  //! \param[in] tp The current time stepping info
-  virtual bool writeTimeInfo(int level, int interval,
-                             const TimeStep& tp) = 0;
+  //! \param[in] time Current time
+  virtual bool writeTimeInfo(int level, double time) = 0;
 
   //! \brief Write a log to output file.
   //! \param data Text to write

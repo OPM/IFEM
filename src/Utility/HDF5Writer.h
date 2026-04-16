@@ -57,6 +57,7 @@ public:
 
   //! \brief Writes data from a SIM to file.
   //! \param[in] level The time level to write the data at
+  //! \param[in] time Current time
   //! \param[in] entry The DataEntry describing the data to write
   //! \param[in] geometryUpdated Whether or not geometries should be written
   //! \param[in] prefix Field name prefix
@@ -64,7 +65,7 @@ public:
   //! \details If prefix is non-empty and we are asked to dump secondary
   //! solutions, we assume they come from different projections
   //! \sa SIMbase::project
-  virtual void writeSIM(int level, const DataEntry& entry,
+  virtual void writeSIM(int level, double time, const DataEntry& entry,
                         bool geometryUpdated, const std::string& prefix);
 
   //! \brief Writes nodal forces to file.
@@ -88,9 +89,8 @@ public:
 
   //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
-  //! \param[in] interval The number of time steps between each data dump
-  //! \param[in] tp The current time stepping info
-  virtual bool writeTimeInfo(int level, int interval, const TimeStep& tp);
+  //! \param[in] time Current time
+  virtual bool writeTimeInfo(int level, double time);
 
   //! \brief Write a log to output file.
   //! \param data Text to write
