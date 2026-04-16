@@ -663,13 +663,13 @@ bool NewmarkSIM::saveStep (int iStep, TimeStep& param)
 
   int nCmp = 10 + model.getNoFields();
   if (tolower(saveVelAc) != 'a')
-    if (!model.writeGlvS1(this->realSolution(1),iStep,nBlock,param.time.t,
-                          "velocity",40,nCmp,islower(saveVelAc)))
+    if (model.writeGlvS1(this->realSolution(1),iStep,nBlock,param.time.t,
+                         "velocity",40,nCmp,islower(saveVelAc)) < 0)
       return false;
 
   if (tolower(saveVelAc) != 'v')
-    if (!model.writeGlvS1(this->realSolution(2),iStep,nBlock,param.time.t,
-                          "acceleration",50,nCmp,islower(saveVelAc)))
+    if (model.writeGlvS1(this->realSolution(2),iStep,nBlock,param.time.t,
+                         "acceleration",50,nCmp,islower(saveVelAc)) < 0)
       return false;
 
   return true;

@@ -249,7 +249,8 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
     return false;
 
   if (solution.size() > 1)
-    if (!model.writeGlvS1(solution[1],iStep,nBlock,0.0,"Dual solution",90,-1))
+    if (model.writeGlvS1(solution[1],iStep,nBlock,0.0,
+                         "Dual solution",90,-1) < 0)
       return false;
 
   // Write projected solution fields
