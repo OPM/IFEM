@@ -1831,7 +1831,7 @@ bool ASMbase::inActive (double time) const
   if (myElActive)
   {
     for (size_t iel = 0; iel < nel; iel++)
-      if (MLGE[iel] > 0 && time+1.0e-12 > (*myElActive)(iel))
+      if (MLGE[iel] > 0 && time+1.0e-12 > (*myElActive)(1+iel))
         return false; // we have at least one active element
     return true; // no elements activated at this time
   }
