@@ -849,15 +849,18 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
 
 IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
 {
-  class Identity : public IntFunc
+  class Linear : public IntFunc
   {
-    Real s; // Scaling factor
+    Real s, o; // Scaling factor and offset
 
   public:
-    Identity(Real sf) : s(sf) {}
+    Linear(Real sf, Real ofs) : s(sf), o(ofs) {}
 
   protected:
-    Real evaluate(const int& x) const override { return s*Real(x > 1 ? x : 0); }
+    Real evaluate(const int& x) const override
+    {
+      return s*Real(x > 1 || o > Real(0) ? x : 0) + o;
+    }
   };
 
   // This class can be used as an element activation function, where a bunch of
@@ -919,17 +922,21 @@ IntFunc* utl::parseIntFunc (const std::string& func, const std::string& type)
     return new Parametric(ne0,ne1,ts,sf);
   }
 
-  Real scaling(1);
+  Real scaling(1), offset(0);
   if (func.empty())
     IFEM::cout <<"  ** utl::parseIntFunc: \""<< type
                <<"\" not implemented - returning identity"<< std::endl;
   else
   {
+    // This will take simple expressions on the form <a>*t+/-<b>
+    // where <a> and <b> are numerical values, and not much else
     char* prms = strdup(func.c_str());
-    scaling = atof(strtok(prms," "));
+    scaling = atof(strtok(prms," *t"));
+    if (char* s = strtok(nullptr," *t"); s)
+      offset = atof(s);
     free(prms);
   }
-  return new Identity(scaling);
+  return new Linear(scaling,offset);
 }
 
 
