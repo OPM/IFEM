@@ -1523,35 +1523,34 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
   if (outPrec > 0)
     adm.cout << std::setprecision(outPrec);
 
-  if (compName)
+  if (compName && printSol > 0)
     adm.cout <<"\n >>> Solution summary <<<\n\nL2-norm            : ";
   else if (nf > 1)
     adm.cout <<"  Primary solution summary: L2-norm         : ";
   else
-    adm.cout <<"  Primary solution summary: L2-norm      : ";
+    adm.cout <<"  L2-norm            : ";
   adm.cout << utl::trunc(dNorm);
 
+  std::string solName(compName ? compName : "value");
+  if (solName.size() < 15)
+    solName.append(15-solName.size(),' ');
+
   if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
-  {
-    if (compName)
-      adm.cout <<"\nMax "<< compName <<"   : ";
-    else
-      adm.cout <<"\n                            Max value    : ";
-    adm.cout << dMax[0] <<" node "<< iMax[0];
-  }
+    adm.cout << (compName && printSol > 0 ? "\nMax ": "\n  Max ") << solName
+             <<": "<< dMax[0] <<" node "<< iMax[0];
   else if (nf > 1)
-  {
-    char D = 'X';
-    for (size_t d = 0; d < nf; d++, D=='Z' ? D='x' : D++)
+    for (size_t d = 0; d < nf; d++)
       if (utl::trunc(dMax[d]) != 0.0)
       {
+        char D = (d < 3 ? 'X' : 'u') + d;
         if (compName)
-          adm.cout <<"\nMax "<< D <<'-'<< compName <<" : ";
+          adm.cout << (printSol > 0 ? "\nMax ": "\n  Max ")
+                   << D <<'-'<< solName.substr(0,13) <<": ";
         else
           adm.cout <<"\n                            Max "<< D <<"-component : ";
         adm.cout << dMax[d] <<" node "<< iMax[d];
       }
-  }
+
   adm.cout << std::endl;
   adm.cout << std::setprecision(oldPrec);
 
