@@ -23,6 +23,20 @@
 const char* NewmarkSIM::inputContext = "newmarksolver";
 
 
+namespace
+{
+  //! \brief Helper function printing out the max values of a solution vector.
+  void printMax (size_t n, const size_t* iMax, const double* vMax,
+                 const char* label, utl::LogStream& os)
+  {
+    for (size_t d = 0; d < n; d++)
+      if (utl::trunc(vMax[d]) != 0.0)
+        os <<"\n               Max "<< char((d < 3 ? 'X' : 'u') + d)
+           <<"-"<< label <<" : "<< vMax[d] <<" node "<< iMax[d];
+  }
+}
+
+
 NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
 {
   // Default Newmark parameters
@@ -224,22 +238,18 @@ bool NewmarkSIM::initAcc (double zero_tolerance, std::streamsize outPrec)
   else if (msgLevel < 1)
     return true;
 
-  size_t d, nf = model.getNoFields(1);
-  std::vector<size_t> kMax(nf);
-  std::vector<double> aMax(nf);
-  double accL2 = model.solutionNorms(accVec, aMax.data(), kMax.data(), nf);
+  const size_t nf = model.getNoFields(1);
+  size_t kMax[6];
+  double aMax[6];
+  double accL2 = model.solutionNorms(accVec, aMax, kMax, nf);
 
   utl::LogStream& cout = model.getProcessAdm().cout;
   std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;
   double old_tol = utl::zero_print_tol;
   utl::zero_print_tol = zero_tolerance;
-  char D;
 
   cout <<"\n  Initial acceleration L2-norm    : "<< utl::trunc(accL2);
-  for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
-    if (utl::trunc(aMax[d]) != 0.0)
-      cout <<"\n               Max "<< D
-           <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
+  printMax(nf,kMax,aMax,"acceleration",cout);
 
   cout << std::endl;
   utl::zero_print_tol = old_tol;
@@ -608,7 +618,7 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
   if (msgLevel < 0 || newSol.empty())
     return true;
 
-  size_t d, nf = model.getNoFields(1);
+  const size_t nf = model.getNoFields(1);
   size_t iMax[6], jMax[6], kMax[6];
   double dMax[6], vMax[6], aMax[6];
   double velL2 = -1.0, accL2 = -1.0;
@@ -620,30 +630,20 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
   std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;
   double old_tol = utl::zero_print_tol;
   utl::zero_print_tol = zero_tolerance;
-  char D;
 
   cout <<"  Displacement L2-norm            : "<< utl::trunc(disL2);
-  for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
-    if (utl::trunc(dMax[d]) != 0.0)
-      cout <<"\n               Max "<< D
-           <<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
+  printMax(nf,iMax,dMax,"displacement",cout);
 
   if (velL2 >= 0.0)
   {
     cout <<"\n  Velocity L2-norm                : "<< utl::trunc(velL2);
-    for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
-      if (utl::trunc(vMax[d]) != 0.0)
-        cout <<"\n               Max "<< D
-             <<"-velocity     : "<< vMax[d] <<" node "<< jMax[d];
+    printMax(nf,jMax,vMax,"velocity    ",cout);
   }
 
   if (accL2 >= 0.0)
   {
     cout <<"\n  Acceleration L2-norm            : "<< utl::trunc(accL2);
-    for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
-      if (utl::trunc(aMax[d]) != 0.0)
-        cout <<"\n               Max "<< D
-             <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
+    printMax(nf,kMax,aMax,"acceleration",cout);
   }
 
   cout << std::endl;
