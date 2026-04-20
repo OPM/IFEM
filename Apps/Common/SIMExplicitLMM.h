@@ -51,6 +51,8 @@ public:
       order = 1;
 
     loads.resize(order, nullptr);
+
+    Solver::msgLevel = 1; // prints primary solution summary only
   }
 
   //! \brief Destructor frees up the load vectors.
@@ -60,8 +62,7 @@ public:
       delete v;
   }
 
-  //! \brief Returns the parallel process administrator.
-  //! \copydoc ISolver::getProcessAdm
+  //! \copydoc ISolver::getProcessAdm()
   const ProcessAdm& getProcessAdm() const { return solver.getProcessAdm(); }
 
   //! \copydoc ISolver::solveStep(TimeStep&)
@@ -85,8 +86,8 @@ public:
        {-9.0/24.0, 37.0/24, -59.0/24.0, 55.0/24.0},
        {251.0/720.0, -1274.0/720.0, 2616.0/720.0, -2774.0/720.0, 1901.0/720.0}};
 
-    int c_order = hasICs? order-1 : std::min(order-1, tp.step-1);
-    const auto& AB_coef = AB_coefs[c_order];
+    const int c_order = hasICs ? order-1 : std::min(order-1, tp.step-1);
+    const std::vector<double>& AB_coef = AB_coefs[c_order];
     solver.getRHSvector(0, false)->mult(AB_coef.back() * tp.time.dt);
     for (size_t j = 0; j < AB_coef.size()-1; ++j)
       solver.addToRHSvector(0, *loads[c_order-j], AB_coef[j]*tp.time.dt);

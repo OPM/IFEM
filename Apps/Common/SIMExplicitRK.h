@@ -13,7 +13,6 @@
 #ifndef SIM_EXPLICIT_RK_H_
 #define SIM_EXPLICIT_RK_H_
 
-#include "SIMadmin.h"
 #include "SIMenums.h"
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
@@ -82,27 +81,21 @@ public:
     }
     else
       RK.order = 0;
+
+    Solver::msgLevel = 1; // prints primary solution summary only
   }
 
-  //! \brief Returns the parallel process administrator.
-  //! \copydoc ISolver::getProcessAdm
+  //! \copydoc ISolver::getProcessAdm()
   const ProcessAdm& getProcessAdm() const { return solver.getProcessAdm(); }
 
   //! \copydoc ISolver::solveStep(TimeStep&)
   virtual bool solveStep(TimeStep& tp)
   {
-    int msgLevel = 0;
     if (alone)
       solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
-    else
-      std::swap(SIMadmin::msgLevel, msgLevel);
 
     Vectors stages;
-    bool result = this->solveRK(stages, tp);
-    if (!alone)
-      std::swap(SIMadmin::msgLevel, msgLevel);
-
-    return result;
+    return this->solveRK(stages, tp);
   }
 
   //! \brief Applies the Runge-Kutta scheme.
