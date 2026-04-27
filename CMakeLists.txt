@@ -54,6 +54,11 @@ include(IFEMPortability)
 include(IFEMSetupDependencies)
 include(IFEMSetupVariables)
 
+# Dune istl 2.11+ requires c++-20, use target existence as detection
+if(IFEM_USE_ISTL AND TARGET Dune::ISTL)
+  target_compile_features(IFEM PUBLIC cxx_std_20)
+endif()
+
 target_sources(
   IFEM
   PRIVATE
