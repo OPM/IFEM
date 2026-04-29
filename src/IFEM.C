@@ -79,9 +79,7 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title, bool silent)
     IFEM::cout << std::endl;
   }
 
-  IFEM::cout <<"\n ===== IFEM v"<< IFEM_VERSION_MAJOR <<"."
-                                << IFEM_VERSION_MINOR <<"."
-                                << IFEM_VERSION_PATCH <<" initialized =====";
+  IFEM::cout <<"\n ===== IFEM v"<< IFEM_VERSION_STRING << " initialized =====";
 
   IFEM::cout <<"\n       HDF5 support: ";
 #ifdef HAS_HDF5
