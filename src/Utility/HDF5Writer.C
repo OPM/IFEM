@@ -395,7 +395,23 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
                            idx, ndof1, data, H5T_NATIVE_DOUBLE);
       }
 
-      if ((results & DataExporter::SECONDARY) && !sol->empty()) {
+      // We skip outputting secondary solutions using greville if another projection
+      // has been performed.
+      if (proj) {
+        hid_t gid = sim->fieldProjections() ? group.back() : group.front();
+        for (size_t p = 0; p < proj->size(); p++)
+          if (!proj->at(p).empty())
+          {
+            Matrix field;
+            extractProjection(pch, proj->at(p), field, p+1 == proj->size());
+            for (size_t j = 0; j < field.rows(); j++)
+              if (!prob->suppressOutput(j,ASM::PROJECTED))
+                this->writeArray(gid, prob->getField2Name(j,projPfx[p]),
+                                 idx, field.cols(), field.getRow(j+1).ptr(),
+                                 H5T_NATIVE_DOUBLE);
+          }
+      }
+      else if ((results & DataExporter::SECONDARY) && !sol->empty()) {
         Matrix field;
         ASM::ResultClass rClass;
         hid_t gid = group.front();
@@ -419,21 +435,6 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
             this->writeArray(gid, prefix+prob->getField2Name(j),
                              idx, field.cols(), field.getRow(j+1).ptr(),
                              H5T_NATIVE_DOUBLE);
-      }
-
-      if (proj) {
-        hid_t gid = sim->fieldProjections() ? group.back() : group.front();
-        for (size_t p = 0; p < proj->size(); p++)
-          if (!proj->at(p).empty())
-          {
-            Matrix field;
-            extractProjection(pch, proj->at(p), field, p+1 == proj->size());
-            for (size_t j = 0; j < field.rows(); j++)
-              if (!prob->suppressOutput(j,ASM::PROJECTED))
-                this->writeArray(gid, prob->getField2Name(j,projPfx[p]),
-                                 idx, field.cols(), field.getRow(j+1).ptr(),
-                                 H5T_NATIVE_DOUBLE);
-          }
       }
 
       if (norm) {
