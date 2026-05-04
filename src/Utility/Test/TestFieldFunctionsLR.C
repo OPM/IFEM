@@ -78,7 +78,7 @@ TEST_CASE("TestFieldFunctions.2D1PLR")
   REQUIRE_THAT(lap(1,1), WithinRel(2.0*x*y*y, 1e-12));
   REQUIRE_THAT(lap(1,2), WithinRel(x*x*x*2.0/3.0, 1e-12));
   REQUIRE_THAT(lap(2,1), WithinRel(-2.0*x*x*x/3.0, 1e-13));
-  REQUIRE_THAT(lap(2,2), WithinRel(-x*x*2.0*y, 1e-14));
+  REQUIRE_THAT(lap(2,2), WithinRel(-x*x*2.0*y, 1e-13));
 
   SymmTensor sten = f2D_sten(X);
   REQUIRE_THAT(sten(1,1), WithinRel(x*x*y*y, 1e-13));

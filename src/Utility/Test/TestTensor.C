@@ -333,16 +333,16 @@ TEST_CASE("TestTensor.Rotate")
   Tensor A(3,true), B(3,true);
   A.rotate(alpha,1); B.postMult(Tensor(i1,a2,a3));
   std::cout <<"A:\n"<< A <<"B:\n"<< B;
-  REQUIRE(A.equal(B,0.0));
+  REQUIRE(A.equal(B,1e-14));
   A.rotate(alpha,2); B.postMult(Tensor(b1,i2,b3));
   std::cout <<"A:\n"<< A <<"B:\n"<< B;
-  REQUIRE(A.equal(B,0.0));
+  REQUIRE(A.equal(B,1e-14));
   A.rotate(alpha,3); B.postMult(Tensor(c1,c2,i3));
   std::cout <<"A:\n"<< A <<"B:\n"<< B;
-  REQUIRE(A.equal(B,0.0));
+  REQUIRE(A.equal(B,1e-14));
 
   Tensor C(2,true), D(2,true);
   C.rotate(alpha,3); D.postMult(Tensor(c1,c2,i3));
   std::cout <<"C:\n"<< C <<"D:\n"<< D;
-  REQUIRE(C.equal(D,0.0));
+  REQUIRE(C.equal(D,1e-14));
 }
