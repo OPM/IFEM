@@ -9,11 +9,7 @@ MODULE_EXTRA_DIR[IFEM-FiniteDeformation]=IFEM-Elasticity/
 
 declare -A MODULE_APP_DIR
 MODULE_APP_DIR[IFEM-BeamEx]=BeamSim
-MODULE_APP_DIR[IFEM-Elasticity]=Linear
 MODULE_APP_DIR[IFEM-FiniteDeformation]=Nonlinear
-
-declare -A MODULE_EXTRA_APP_DIR
-MODULE_EXTRA_APP_DIR[IFEM-Elasticity]=Shell
 
 # Parse revisions from trigger comment and setup arrays
 function parseRevisions {
@@ -187,14 +183,6 @@ function clone_and_build_module {
 
   build_module "$2" $test_build $WORKSPACE/deps/${MODULE_EXTRA_DIR[$1]}$1/${MODULE_APP_DIR[$1]}
   test $? -eq 0 || exit 1
-  if test -n "${MODULE_EXTRA_APP_DIR[$1]}"
-  then
-    mkdir -p build-${MODULE_EXTRA_APP_DIR[$1]}
-    pushd build-${MODULE_EXTRA_APP_DIR[$1]}
-    build_module "$2" $test_build $WORKSPACE/deps/${MODULE_EXTRA_DIR[$1]}$1/${MODULE_EXTRA_APP_DIR[$1]}
-    test $? -eq 0 || exit 1
-    popd
-  fi
   popd
 }
 
@@ -302,17 +290,6 @@ function build_module_and_upstreams {
     test $? -eq 0 || exit 1
     cmake --build . --target install
     popd
-
-    if test -n "${MODULE_EXTRA_APP_DIR[$1]}"
-    then
-      mkdir -p ${BTYPES_ARRAY[$BTYPE]}/build-${MODULE_EXTRA_APP_DIR[$1]}
-      pushd ${BTYPES_ARRAY[$BTYPE]}/build-${MODULE_EXTRA_APP_DIR[$1]}
-      build_module "-DCMAKE_INSTALL_PREFIX=$WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/install -DCMAKE_PREFIX_PATH=$WORKSPACE/${BTYPES_ARRAY[$BTYPE]}/install -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" 1 $WORKSPACE/deps/${MODULE_EXTRA_DIR[$1]}$1/${MODULE_EXTRA_APP_DIR[$1]}
-      test $? -eq 0 || exit 1
-      cmake --build . --target install
-      test $? -eq 0 || exit 1
-      popd
-    fi
 
     # Add testsuite names
     sed -e "s/classname=\"TestSuite\"/classname=\"${BTYPES_ARRAY[$BTYPE]}\"/g" ${WORKSPACE}/${BTYPES_ARRAY[$BTYPE]}/build-$1/testoutput.xml > ${WORKSPACE}/${BTYPES_ARRAY[$BTYPE]}/testoutput.xml
