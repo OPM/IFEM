@@ -5,11 +5,9 @@ declare -A MODULE_EXTRA_DIR
 MODULE_EXTRA_DIR[IFEM-BeamEx]=IFEM-Elasticity/
 MODULE_EXTRA_DIR[IFEM-ShellEx]=IFEM-Elasticity/
 MODULE_EXTRA_DIR[IFEM-BeamGeometry]=IFEM-Elasticity/
-MODULE_EXTRA_DIR[IFEM-FiniteDeformation]=IFEM-Elasticity/
 
 declare -A MODULE_APP_DIR
 MODULE_APP_DIR[IFEM-BeamEx]=BeamSim
-MODULE_APP_DIR[IFEM-FiniteDeformation]=Nonlinear
 
 # Parse revisions from trigger comment and setup arrays
 function parseRevisions {
@@ -137,7 +135,6 @@ function clone_module {
   GH_USER[IFEM-Boussinesq]=SintefMath
   GH_USER[IFEM-Darcy]=OPM
   GH_USER[IFEM-Elasticity]=OPM
-  GH_USER[IFEM-FiniteDeformation]=SintefMath
   GH_USER[IFEM-NavierStokes]=SintefMath
   GH_USER[IFEM-OpenFrac]=OPM
   GH_USER[IFEM-PoroElasticity]=OPM
