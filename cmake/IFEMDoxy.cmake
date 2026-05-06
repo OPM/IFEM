@@ -3,6 +3,7 @@
 # Single-valued parameters:
 #   DOX        - Name of .dox file for application
 #   TARGET     - Name of application
+#   DEPENDENCIES - List of doxy targets that this target depends on
 # Multi-valued parameters:
 #   EXTRA_DIRS - Extra directories to add to doxy
 #     Used for external directories and optional dependencies
@@ -13,7 +14,7 @@ function(ifem_add_doc_target)
   endif()
 
   set(oneValueArgs TARGET DOX)
-  set(multiValueArgs EXTRA_DIRS)
+  set(multiValueArgs EXTRA_DIRS DEPENDENCIES)
   cmake_parse_arguments(PARAM "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   if(NOT PARAM_DOX)
@@ -26,6 +27,17 @@ function(ifem_add_doc_target)
     string(APPEND EXTRA_DOXY_PATHS "${DIR} \\\n")
   endforeach()
 
+  set(DOXYGEN_TAG_FILE ${CMAKE_BINARY_DIR}/doc/${PARAM_TARGET}.tag)
+
+  if(IFEM_AS_SUBMODULE)
+    set(DOXYGEN_TAG_FILES ${CMAKE_BINARY_DIR}/doc/IFEM.tag=../../../html)
+    if(IFEM_COMMON_APP_BUILD)
+      foreach(dep ${PARAM_DEPENDENCIES})
+        string(APPEND DOXYGEN_TAG_FILES " \\\n ${CMAKE_BINARY_DIR}/doc/${dep}.tag=../../${dep}/html")
+      endforeach()
+    endif()
+  endif()
+
   configure_file(${PROJECT_SOURCE_DIR}/doc/Doxyfile.in Doxyfile.${PARAM_TARGET})
   configure_file(${PROJECT_SOURCE_DIR}/doc/${PARAM_DOX}.dox.in ${PARAM_DOX}.dox)
 
@@ -33,15 +45,18 @@ function(ifem_add_doc_target)
     if(NOT CMAKE_INSTALL_DOCDIR)
       set(CMAKE_INSTALL_DOCDIR share/doc)
     endif()
-    install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")")
+    install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_BINARY_DIR}\")")
     if(PARAM_TARGET STREQUAL "IFEM")
+      set(src_path ${CMAKE_BINARY_DIR}/doc/html)
       set(dest_path ${CMAKE_INSTALL_DOCDIR}/IFEM)
     else()
+      set(src_path ${CMAKE_BINARY_DIR}/doc/Apps/${PARAM_TARGET}/html)
       set(dest_path ${CMAKE_INSTALL_DOCDIR}/IFEM/Apps/${PARAM_TARGET})
+      file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/doc/Apps/${PARAM_TARGET})
     endif()
     install(
       DIRECTORY
-        ${PROJECT_BINARY_DIR}/doc/html
+        ${src_path}
       DESTINATION
         ${dest_path}
       PATTERN
@@ -58,19 +73,23 @@ function(ifem_add_doc_target)
       ${PARAM_TARGET}_doc
       COMMAND
         Doxygen::doxygen ${PROJECT_BINARY_DIR}/Doxyfile.${PARAM_TARGET}
-      WORKING_DIRECTORY
-        ${PROJECT_SOURCE_DIR}
       COMMENT
         "Generating API documentation" VERBATIM
     )
+    add_dependencies(${PARAM_TARGET}_doc IFEM_doc)
     add_dependencies(doc ${PARAM_TARGET}_doc)
+    if(PARAM_DEPENDENCIES)
+      foreach(dep ${PARAM_DEPENDENCIES})
+        if(TARGET ${dep}_doc)
+          add_dependencies(${PARAM_TARGET}_doc ${dep}_doc)
+        endif()
+      endforeach()
+    endif()
   else()
     add_custom_target(
       doc
       COMMAND
-        Doxygen::doxygen ${PROJECT_BINARY_DIR}/Doxyfile
-      WORKING_DIRECTORY
-        ${PROJECT_SOURCE_DIR}
+        Doxygen::doxygen ${PROJECT_BINARY_DIR}/Doxyfile.${PARAM_TARGET}
       COMMENT
         "Generating API documentation" VERBATIM
     )
