@@ -24,6 +24,7 @@
 
 using IntVec = std::vector<int>;    //!< General integer vector
 using IntMat = std::vector<IntVec>; //!< General 2D integer matrix
+using Ipair  = std::pair<int,int>;  //!< A pair of integers
 
 using MPCMap  = std::map<MPC*,int,MPCLess>; //!< MPC-to-function code mapping
 using MPCSet  = std::set<MPC*,MPCLess>; //!< Sorted set of MPC-equations
@@ -938,9 +939,9 @@ protected:
   //! \param[in] end iterator of array of control point coordinates
   //! \param[in] X Coordinates of point to search for
   //! \param[in] dimension Number of spatial dimensions of the splines object
-  //! \param[in] tol Zero tolerance
+  //! \param[in] xtol Coordinate tolerance
   int searchCtrlPt(RealArray::const_iterator cit, RealArray::const_iterator end,
-                   const Vec3& X, int dimension, double tol = 0.001) const;
+                   const Vec3& X, int dimension, double xtol = 0.001) const;
 
   //! \brief Finds the patch-local element numbers on a patch boundary.
   //! \param[out] elms Array of element numbers
@@ -997,6 +998,10 @@ public:
   //! \param[in] dof Local indices of the DOFs to check
   //! \param[in] all Returns \e true only if all DOFs are fixed
   bool isFixed(int node, int dof, bool all = false) const;
+  //! \brief Connects a list of node pairs to each other.
+  //! \param[in] nodes List of node number pairs that should share common DOFs.
+  //! \param[in] xtol Coordinate tolerance for matching nodes
+  bool selfInterconnect(const std::vector<Ipair>& nodes, double xtol = 1.0e-8);
 
 protected:
   //! \brief Returns \e true if \a dirs constains all local DOFs in the patch.

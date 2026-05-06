@@ -770,6 +770,33 @@ void ASMbase::makePeriodic (size_t master, size_t slave, int dirs)
 }
 
 
+/*!
+  If \a xtol is negative, the check for matching nodes is skipped.
+*/
+
+bool ASMbase::selfInterconnect (const std::vector<Ipair>& nodes, double xtol)
+{
+  size_t nonMatching = 0;
+  for (const Ipair& np : nodes)
+    if (xtol < 0.0 ||
+        this->getCoord(np.first).equal(this->getCoord(np.second),xtol))
+      ASMbase::collapseNodes(*this,np.first,*this,np.second);
+    else if (++nonMatching <= 20)
+      std::cerr <<" *** ASMbase::selfInterconnect: Non-matching nodes "
+                << np.first <<": "<< this->getCoord(np.first)
+                <<"\n                                               and "
+                << np.second <<": "<< this->getCoord(np.second) << std::endl;
+    else if (nonMatching == 21)
+      std::cerr <<"     ..."<< std::endl;
+
+  if (nonMatching > 20)
+    std::cerr <<" *** ASMbase::selfInterconnect: A total of "<< nonMatching
+              <<" nodes were detected."<< std::endl;
+
+  return nonMatching == 0;
+}
+
+
 void ASMbase::constrainPatch (int dof, int code)
 {
   if (code > 0)
@@ -1690,7 +1717,7 @@ bool ASMbase::deformedConfig (const Matrix& Xnod, Vectors& eVec, bool force2nd)
 
 int ASMbase::searchCtrlPt (RealArray::const_iterator cit,
                            RealArray::const_iterator end,
-                           const Vec3& X, int dimension, double tol) const
+                           const Vec3& X, int dimension, double xtol) const
 {
   Vec3 Xnod;
   double distance = 0.0;
@@ -1702,7 +1729,7 @@ int ASMbase::searchCtrlPt (RealArray::const_iterator cit,
     {
       i = -1;
       inod++;
-      if (X.equal(Xnod,tol))
+      if (X.equal(Xnod,xtol))
         if (iclose == 0 || (X-Xnod).length() < distance)
         {
           // In case of a very fine grid where several control points might
