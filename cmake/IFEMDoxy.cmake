@@ -26,19 +26,15 @@ function(ifem_add_doc_target)
     string(APPEND EXTRA_DOXY_PATHS "${DIR} \\\n")
   endforeach()
 
-  if(IFEM_AS_SUBMODULE)
-    configure_file(${IFEM_PATH}/doc/Doxyfile.in Doxyfile)
-  else()
-    configure_file(doc/Doxyfile.in Doxyfile)
-  endif()
-  configure_file(doc/${PARAM_DOX}.dox.in ${PARAM_DOX}.dox)
+  configure_file(${PROJECT_SOURCE_DIR}/doc/Doxyfile.in Doxyfile.${PARAM_TARGET})
+  configure_file(${PROJECT_SOURCE_DIR}/doc/${PARAM_DOX}.dox.in ${PARAM_DOX}.dox)
 
   if(IFEM_INSTALL_DOXY)
     if(NOT CMAKE_INSTALL_DOCDIR)
       set(CMAKE_INSTALL_DOCDIR share/doc)
     endif()
     install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")")
-    if(appname STREQUAL "ifem")
+    if(PARAM_TARGET STREQUAL "IFEM")
       set(dest_path ${CMAKE_INSTALL_DOCDIR}/IFEM)
     else()
       set(dest_path ${CMAKE_INSTALL_DOCDIR}/IFEM/Apps/${PARAM_TARGET})
@@ -61,7 +57,7 @@ function(ifem_add_doc_target)
     add_custom_target(
       ${PARAM_TARGET}_doc
       COMMAND
-        Doxygen::doxygen ${PROJECT_BINARY_DIR}/Doxyfile
+        Doxygen::doxygen ${PROJECT_BINARY_DIR}/Doxyfile.${PARAM_TARGET}
       WORKING_DIRECTORY
         ${PROJECT_SOURCE_DIR}
       COMMENT
