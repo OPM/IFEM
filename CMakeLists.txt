@@ -535,7 +535,7 @@ target_compile_definitions(IFEM PUBLIC
 )
 
 include(IFEMDoxy)
-ifem_add_doc_target(APP ifem DOX IFEM)
+ifem_add_doc_target(TARGET IFEM DOX IFEM)
 
 enable_testing()
 include(IFEMTesting)
