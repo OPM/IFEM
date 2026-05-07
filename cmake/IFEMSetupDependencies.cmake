@@ -5,7 +5,7 @@ include(IFEMFindDependencies)
 target_link_libraries(IFEM PUBLIC
   CBLAS::CBLAS
   LAPACK::LAPACK
-  GoTools::GoTools
+  GoTools::GoToolsCore
   GoTools::GoTrivariate
   ARPACK::ARPACK
   tinyxml2::tinyxml2
@@ -27,6 +27,7 @@ endif()
 if(IFEM_USE_LRSPLINES)
   if(TARGET LRSpline::LRSpline)
     target_link_libraries(IFEM PUBLIC LRSpline::LRSpline)
+    target_compile_definitions(IFEM PUBLIC HAS_LRSPLINE=1)
   endif()
 endif()
 

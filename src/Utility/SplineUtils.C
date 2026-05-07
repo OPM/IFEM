@@ -137,7 +137,7 @@ void SplineUtils::extractBasis (const Go::BasisDerivsSf3& spline,
 }
 
 
-void SplineUtils::extractBasis (const Go::BasisDerivs& spline,
+void SplineUtils::extractBasis (const GoBasisDerivsVol& spline,
                                 Vector& N, Matrix& dNdu)
 {
    N  .resize(spline.basisValues.size());
@@ -154,7 +154,7 @@ void SplineUtils::extractBasis (const Go::BasisDerivs& spline,
 }
 
 
-void SplineUtils::extractBasis (const Go::BasisDerivs2& spline,
+void SplineUtils::extractBasis (const GoBasisDerivsVol2& spline,
                                 Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2)
 {
     N   .resize(spline.basisValues.size());

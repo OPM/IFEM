@@ -143,8 +143,8 @@ bool ASMu3D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
       double dV = 0.0;
       Vector phi;
       Matrix dNdu, Xnod, Jac;
-      Go::BasisPts    spl1;
-      Go::BasisDerivs spl2;
+      GoBasisPtsVol    spl1;
+      GoBasisDerivsVol spl2;
       const LR::Element* elm = proj->getElement(ielp);
       int iel = lrspline->getElementContaining(elm->midpoint()) + 1;
       int ielG = geo->getElementContaining(elm->midpoint()) + 1;
@@ -438,7 +438,7 @@ LR::LRSplineVolume* ASMu3D::regularInterpolation (const RealArray& upar,
   A.resize(nBasis, nBasis);
   Matrix B2(points,true); // transpose to get one vector per field
   StdVector B(B2);
-  Go::BasisPts splineValues;
+  GoBasisPtsVol splineValues;
 
   // Evaluate all basis functions at all points, stored in the A-matrix
   // (same row = same evaluation point)
@@ -579,7 +579,7 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
         if (face.lr != geo)
         {
           // different lrspline instances enumerate elements differently
-          Go::BasisDerivs spline;
+          GoBasisDerivsVol spline;
           face.lr->computeBasis(u, v, w, spline,
                                 face.lr->getElementContaining(u,v,w));
           SplineUtils::extractBasis(spline,N,dNdu);
