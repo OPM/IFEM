@@ -26,7 +26,7 @@
 
 AlgEqSystem::AlgEqSystem (const SAM& s, const ProcessAdm* a) : sam(s), adm(a)
 {
-  d = &c;
+  d = nullptr;
 }
 
 
@@ -110,11 +110,7 @@ AlgEqSystem& AlgEqSystem::copy (const AlgEqSystem& that)
   b.resize(that.b.size(),nullptr);
   c = that.c;
   R = that.R;
-#ifdef USE_OPENMP
   d = nullptr;
-#else
-  d = &c;
-#endif
 
   size_t i;
   for (i = 0; i < A.size(); i++)
@@ -201,9 +197,12 @@ void AlgEqSystem::initialize (char initLHS)
   std::fill(c.begin(),c.end(),0.0);
   std::fill(R.begin(),R.end(),0.0);
 
+  if (c.empty())
+    return;
+
+  d = &c;
 #ifdef USE_OPENMP
-  int nthread = omp_get_max_threads();
-  if (nthread > 1 && !c.empty())
+  if (int nthread = omp_get_max_threads(); nthread > 1)
   {
     d = new std::vector<double>[nthread];
     for (int i = 0; i < nthread; i++)
