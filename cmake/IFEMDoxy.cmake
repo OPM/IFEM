@@ -76,7 +76,9 @@ function(ifem_add_doc_target)
       COMMENT
         "Generating API documentation" VERBATIM
     )
-    add_dependencies(${PARAM_TARGET}_doc IFEM_doc)
+    if(IFEM_AS_SUBMODULE)
+      add_dependencies(${PARAM_TARGET}_doc IFEM_doc)
+    endif()
     add_dependencies(doc ${PARAM_TARGET}_doc)
     if(PARAM_DEPENDENCIES)
       foreach(dep ${PARAM_DEPENDENCIES})
