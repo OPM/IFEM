@@ -2,7 +2,8 @@
 #   Adds a static library, setting up sources and file sets
 # Single-valued parameters:
 #   NAME      - Name of library
-#     The target added will be ${NAME}
+#   ALIAS     - Alias for the library
+#     The target added will be ${NAME}, aliased as ${ALIAS}
 # Multi-valued parameters:
 #   CONDITIONS - Conditions for building the library
 #   BASE_DIRS - Base directories for the headers file set
@@ -10,7 +11,7 @@
 #   LIBRARIES - Targets to link the library to
 #   SOURCES   - Source files for the library
 function(ifem_add_library)
-  set(oneValueArgs NAME)
+  set(oneValueArgs NAME ALIAS)
   set(multiValueArgs CONDITIONS BASE_DIRS HEADERS LIBRARIES SOURCES)
   cmake_parse_arguments(PARAM "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
   if(PARAM_CONDITIONS)
@@ -21,6 +22,9 @@ function(ifem_add_library)
     endforeach()
   endif()
   add_library(${PARAM_NAME} STATIC)
+  if(PARAM_ALIAS)
+    add_library(${PARAM_ALIAS} ALIAS ${PARAM_NAME})
+  endif()
   target_sources(${PARAM_NAME} PRIVATE ${PARAM_SOURCES})
   if(PARAM_HEADERS)
     if(CMAKE_VERSION GREATER_EQUAL 3.23)
