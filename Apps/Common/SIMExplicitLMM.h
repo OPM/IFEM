@@ -18,15 +18,17 @@
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
 
+#include <sstream>
+
 class DataExporter;
 
 
 namespace TimeIntegration {
 
-  //! \brief Explicit linear multistep time stepping for SIM classes.
-  //! \details Template can be instanced over any SIM implementing ISolver,
-  //            and which derive from SIMbase.
-  template<class Solver>
+//! \brief Explicit linear multistep time stepping for SIM classes.
+//! \details Template can be instanced over any SIM implementing ISolver,
+//!          and which derive from SIMbase.
+template<class Solver>
 class SIMExplicitLMM
 {
 public:
@@ -79,12 +81,13 @@ public:
 
     loads[0] = solver.getRHSvector(0, true);
 
-    const std::vector<std::vector<double>> AB_coefs = 
-      {{1.0},
+    const std::vector<std::vector<double>> AB_coefs = {
+       {1.0},
        {-0.5, 1.5},
        {5.0/12.0, -16.0/12.0, 23.0/12.0},
        {-9.0/24.0, 37.0/24, -59.0/24.0, 55.0/24.0},
-       {251.0/720.0, -1274.0/720.0, 2616.0/720.0, -2774.0/720.0, 1901.0/720.0}};
+       {251.0/720.0, -1274.0/720.0, 2616.0/720.0, -2774.0/720.0, 1901.0/720.0}
+    };
 
     const int c_order = hasICs ? order-1 : std::min(order-1, tp.step-1);
     const std::vector<double>& AB_coef = AB_coefs[c_order];

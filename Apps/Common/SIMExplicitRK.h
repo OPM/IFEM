@@ -13,6 +13,7 @@
 #ifndef SIM_EXPLICIT_RK_H_
 #define SIM_EXPLICIT_RK_H_
 
+#include "ProcessAdm.h"
 #include "SIMenums.h"
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
@@ -38,27 +39,21 @@ public:
   {
     if (type == EULER) {
       RK.order = 1;
-      RK.b.push_back(1.0);
-      RK.c.push_back(0.0);
+      RK.b = {1.0};
+      RK.c = {0.0};
       RK.A.resize(1,1);
     }
     else if (type == HEUN) {
       RK.order = 2;
-      RK.b.push_back(0.5);
-      RK.b.push_back(0.5);
-      RK.c.push_back(0.0);
-      RK.c.push_back(1.0);
+      RK.b = {0.5, 0.5};
+      RK.c = {0.0, 1.0};
       RK.A.resize(2,2);
       RK.A(2,1) = 1.0;
     }
     else if (type == RK3) {
       RK.order = 3;
-      RK.b.push_back(1.0/6.0);
-      RK.b.push_back(2.0/3.0);
-      RK.b.push_back(1.0/6.0);
-      RK.c.push_back(0.0);
-      RK.c.push_back(0.5);
-      RK.c.push_back(1.0);
+      RK.b = {1.0/6.0, 2.0/3.0, 1.0/6.0};
+      RK.c = {0.0, 0.5, 1.0};
       RK.A.resize(3,3);
       RK.A(2,1) =  0.5;
       RK.A(3,1) = -1.0;
@@ -66,14 +61,8 @@ public:
     }
     else if (type == RK4) {
       RK.order = 4;
-      RK.b.push_back(1.0/6.0);
-      RK.b.push_back(1.0/3.0);
-      RK.b.push_back(1.0/3.0);
-      RK.b.push_back(1.0/6.0);
-      RK.c.push_back(0.0);
-      RK.c.push_back(0.5);
-      RK.c.push_back(0.5);
-      RK.c.push_back(1.0);
+      RK.b = {1.0/6.0, 1.0/3.0, 1.0/3.0, 1.0/6.0};
+      RK.c = {0.0, 0.5, 0.5, 1.0};
       RK.A.resize(4,4);
       RK.A(2,1) = 0.5;
       RK.A(3,2) = 0.5;
