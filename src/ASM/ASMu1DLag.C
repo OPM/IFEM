@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASMu1DLag.h"
+#include "ASMutils.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include "IFEM.h"

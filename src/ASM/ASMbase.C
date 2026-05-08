@@ -73,7 +73,8 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
 
 ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   : MLGE(patch.MLGE), MLGN(patch.MLGN), MNPC(patch.MNPC), shareFE('F'),
-    firstBp(patch.firstBp), myLMTypes(patch.myLMTypes), myLMs(patch.myLMs),
+    nodeSets(patch.nodeSets), firstBp(patch.firstBp),
+    myLMTypes(patch.myLMTypes), myLMs(patch.myLMs),
     myActiveEls(nullptr), myRmaster(patch.myRmaster)
 {
   nf = n_f > 0 ? n_f : patch.nf;
@@ -963,7 +964,7 @@ bool ASMbase::allDofs (int dirs) const
 }
 
 
-void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
+void ASMbase::mergeAndGetAllMPCs (const ASM::PatchVec& model, MPCSet& allMPCs)
 {
   // Build the set of constraint equations over all patches in the model
   if (model.size() == 1)
@@ -1050,7 +1051,7 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
 */
 
 void ASMbase::resolveMPCchains (const MPCSet& allMPCs,
-                                const ASMVec& model, bool setPtrOnly)
+                                const ASM::PatchVec& model, bool setPtrOnly)
 {
 #if SP_DEBUG > 1
   int count = 0;
@@ -1275,7 +1276,7 @@ bool ASMbase::mergeNodes (size_t inod, int globalNum, bool verbose)
     IFEM::cout <<"  ** Merging duplicated nodes "<< globalNum <<" and "<< oldNum
                <<" at X="<< this->getCoord(inod) << std::endl;
 
-  std::map<int,int> old2New;
+  IntMap old2New;
   myMLGN[inod-1] = old2New[oldNum] = globalNum;
   for (ASMbase* pch : neighbors)
     pch->renumberNodes(old2New,{},1);
@@ -1284,7 +1285,7 @@ bool ASMbase::mergeNodes (size_t inod, int globalNum, bool verbose)
 }
 
 
-int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
+int ASMbase::renumberNodes (const ASM::PatchVec& model, IntMap& old2new)
 {
   for (const ASMbase* pch : model)
     if (!pch->shareFE)
@@ -1308,7 +1309,7 @@ int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
 }
 
 
-int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
+int ASMbase::renumberNodes (IntMap& old2new, int& nNod)
 {
   int renum = 0;
   if (!shareFE)
@@ -1337,9 +1338,8 @@ int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
   such that that only the first instance of a duplicated node is referred.
 */
 
-bool ASMbase::renumberNodes (const std::map<int,int>& old2new,
-                             const std::vector<int>& new2old, int renumGN,
-                             std::map<int,int>* degenElm)
+bool ASMbase::renumberNodes (const IntMap& old2new, const IntVec& new2old,
+                             int renumGN, IntMap* degenElm)
 {
   bool renumAll = old2new.size() > 1 && renumGN < 2;
 #ifdef SP_DEBUG
@@ -1891,4 +1891,109 @@ double ASMbase::getAge (int iel, double time) const
 bool ASMbase::isElementInPartition (int iel) const
 {
   return myElms.empty() || utl::findIndex(myElms,iel) >= 0;
+}
+
+
+int ASMbase::getNodeSetIdx (const std::string& setName) const
+{
+  int idx = 1;
+  for (const ASM::NodeSet& ns : nodeSets)
+    if (ns.first == setName)
+      return idx;
+    else
+      ++idx;
+
+  return 0;
+}
+
+
+const IntVec& ASMbase::getNodeSet (int idx) const
+{
+  int count = 0;
+  for (const ASM::NodeSet& ns : nodeSets)
+    if (++count == idx)
+      return ns.second;
+
+  return Empty;
+}
+
+
+IntVec& ASMbase::getNodeSet (const std::string& setName, int& idx)
+{
+  idx = 1;
+  for (ASM::NodeSet& ns : nodeSets)
+    if (ns.first == setName)
+      return ns.second;
+    else
+      ++idx;
+
+  nodeSets.emplace_back(setName,IntVec());
+  return nodeSets.back().second;
+}
+
+
+/*!
+  If \a inod is negative, the absolute value is taken as the external node ID.
+  Otherwise, it is taken as the 1-based internal node index within the patch.
+*/
+
+bool ASMbase::isInNodeSet (int iset, int inod) const
+{
+  if (iset < 1 || iset > static_cast<int>(nodeSets.size()))
+    return false;
+
+  if (inod < 0)
+    inod = this->getNodeIndex(-inod);
+
+  return utl::findIndex(nodeSets[iset-1].second,inod) >= 0;
+}
+
+
+int ASMbase::parseNodeSet (const std::string& setName, const char* cset,
+                           bool assumeZeroBased)
+{
+  int iset = this->getNodeSetIdx(setName)-1;
+  if (iset < 0)
+  {
+    iset = nodeSets.size();
+    nodeSets.emplace_back(setName,IntVec());
+  }
+
+  utl::parseIntegers(nodeSets[iset].second,cset);
+  if (assumeZeroBased)
+    for (int& n : nodeSets[iset].second)
+      ++n;
+
+  return 1+iset;
+}
+
+
+void ASMbase::convertNodeSets ()
+{
+  if (nodeSets.empty())
+    return;
+
+  IFEM::cout <<"Node sets in patch P"<< idx+1 <<": "<< nodeSets.size();
+  for (ASM::NodeSet& ns : nodeSets)
+  {
+    size_t nidx = 0;
+    for (int nodeNo : ns.second)
+      if (nodeNo > 0)
+      {
+        if (int inod = this->getNodeIndex(nodeNo); inod > 0)
+          ns.second[nidx++] = inod;
+        else
+          IFEM::cout <<"\n  ** Warning: Non-existing node number "<< nodeNo
+                     <<" in set \""<< ns.first <<"\" (ignored).";
+      }
+
+    if (nidx < ns.second.size())
+      ns.second.resize(nidx);
+    IFEM::cout <<"\n\t\""<< ns.first <<"\": "<< ns.second.size();
+    if (!ns.second.empty())
+      IFEM::cout <<" ["
+                 << *std::min_element(ns.second.begin(),ns.second.end()) <<","
+                 << *std::max_element(ns.second.begin(),ns.second.end()) <<"]";
+  }
+  IFEM::cout << std::endl;
 }

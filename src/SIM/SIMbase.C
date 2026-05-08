@@ -168,7 +168,7 @@ ASMbase* SIMbase::getPatch (int idx, bool glbIndex) const
 
 #if SP_DEBUG > 2
 namespace {
-void printNodalConnectivity (const ASMVec& model, std::ostream& os)
+void printNodalConnectivity (const ASM::PatchVec& model, std::ostream& os)
 {
   typedef std::pair<int,int> Ipair;
   typedef std::vector<Ipair> Ipairs;
@@ -226,6 +226,11 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
     ASMbase* pch = this->getPatch(idx);
     if (pch) pch->clear();
   }
+
+  // Convert node sets to internal node indices
+  for (ASMbase* pch : myModel)
+    if (!pch->empty())
+      pch->convertNodeSets();
 
   // If material properties are specified for at least one patch, assign the
   // property code 999999 to all patches with no material property code yet

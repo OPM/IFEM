@@ -46,8 +46,7 @@ ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
 
 
 ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
-  : ASMstruct(patch,n_f),
-    elmCS(patch.myCS), nodalT(patch.myT), nodeSets(patch.nodeSets)
+  : ASMstruct(patch,n_f), elmCS(patch.myCS), nodalT(patch.myT)
 {
   curv = patch.curv;
   proj = patch.proj;
@@ -436,76 +435,6 @@ void ASMs1D::applyTwist (const RealFunc& twist)
       myCS[i].print(std::cout,15);
 #endif
     }
-}
-
-
-int ASMs1D::getNodeSetIdx (const std::string& setName) const
-{
-  int iset = 1;
-  for (const ASM::NodeSet& ns : nodeSets)
-    if (ns.first == setName)
-      return iset;
-    else
-      ++iset;
-
-  return 0;
-}
-
-
-const IntVec& ASMs1D::getNodeSet (int iset) const
-{
-  if (iset > 0 && iset <= static_cast<int>(nodeSets.size()))
-    return nodeSets[iset-1].second;
-
-  return this->ASMbase::getNodeSet(iset);
-}
-
-
-/*!
-  If \a inod is negative, the absolute value is taken as the external node ID.
-  Otherwise, it is taken as the 1-based internal node index within the patch.
-*/
-
-bool ASMs1D::isInNodeSet (int iset, int inod) const
-{
-  if (iset < 1 || iset > static_cast<int>(nodeSets.size()))
-    return false;
-
-  if (inod < 0)
-    inod = this->getNodeIndex(-inod);
-
-  return utl::findIndex(nodeSets[iset-1].second,inod) >= 0;
-}
-
-
-int ASMs1D::parseNodeSet (const std::string& setName, const char* cset)
-{
-  int iset = this->getNodeSetIdx(setName)-1;
-  if (iset < 0)
-  {
-    iset = nodeSets.size();
-    nodeSets.emplace_back(setName,IntVec());
-  }
-
-  IntVec& mySet = nodeSets[iset].second;
-  size_t ifirst = mySet.size();
-  utl::parseIntegers(mySet,cset);
-
-  // Transform to internal node indices
-  for (size_t i = ifirst; i < mySet.size(); i++)
-    if (mySet[i] > 0)
-    {
-      if (int inod = this->getNodeIndex(mySet[i]); inod > 0)
-        mySet[ifirst++] = inod;
-      else
-        IFEM::cout <<"  ** Warning: Non-existing node "<< mySet[i]
-                   <<" in the set \""<< setName <<"\" (ignored)."<< std::endl;
-    }
-
-  if (ifirst < mySet.size())
-    mySet.resize(ifirst);
-
-  return 1+iset;
 }
 
 

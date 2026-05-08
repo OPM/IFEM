@@ -48,10 +48,15 @@ class Vec3;
 class Tensor;
 class SAM;
 
-namespace ASM { class InterfaceChecker; }
-namespace utl { template<class Arg, class Result> class Function; }
+namespace ASM {
+  class InterfaceChecker;
+  using NodeSet  = std::pair<std::string,IntVec>; //!< Named set container type
+  using PatchVec = std::vector<ASMbase*>; //!< Spline patch container type
+}
 
-using ASMVec  = std::vector<ASMbase*>;     //!< Spline patch container type
+namespace utl {
+  template<class Arg,class Result> class Function;
+}
 using IntFunc = utl::Function<int,double>; //!< Real-valued integer function
 
 
@@ -287,15 +292,21 @@ public:
                        int orient = -1, bool local = false) const;
 
   //! \brief Returns (1-based) index of a predefined node set in the patch.
-  virtual int getNodeSetIdx(const std::string&) const { return 0; }
+  int getNodeSetIdx(const std::string& setName) const;
   //! \brief Returns an indexed predefined node set.
-  virtual const IntVec& getNodeSet(int) const { return Empty; }
-  //! \brief Checks if a node is within a predefined node set.
-  virtual bool isInNodeSet(int, int) const { return false; }
+  const IntVec& getNodeSet(int iset) const;
+  //! \brief Returns a named node set for update.
+  IntVec& getNodeSet(const std::string& setName, int& idx);
+
+  //! \brief Checks if node \a inod is within predefined node set \a iset.
+  bool isInNodeSet(int iset, int inod) const;
   //! \brief Defines a node set by parsing a list of node numbers.
-  virtual int parseNodeSet(const std::string&, const char*) { return 0; }
+  int parseNodeSet(const std::string& setName, const char* cset,
+                   bool assumeZeroBased = false);
   //! \brief Defines a node set by parsing a 3D bounding box.
   virtual int parseNodeBox(const std::string&, const char*) { return 0; }
+  //! \brief Converts node number sets to internal (1-based) node indices.
+  void convertNodeSets();
 
   //! \brief Returns (1-based) index of a predefined element set in the patch.
   virtual int getElementSetIdx(const std::string&) const { return 0; }
@@ -442,7 +453,8 @@ public:
   //! The new node numbers computed by this method preserve the relative
   //! ordering of the nodes. That is not the case when the non-static version
   //! is used.
-  static int renumberNodes(const ASMVec& model, std::map<int,int>& old2new);
+  static int renumberNodes(const ASM::PatchVec& model,
+                           std::map<int,int>& old2new);
 
   //! \brief Renumbers the global node numbers in this patch.
   //! \param old2new Old-to-new node number mapping
@@ -471,14 +483,15 @@ public:
   //! interface nodes between patches (to enforce higher order regularity) may
   //! be defined on both neighboring patches. This method will also merge such
   //! multiply defined equations into a single equation.
-  static void mergeAndGetAllMPCs(const ASMVec& model, MPCSet& allMPCs);
+  static void mergeAndGetAllMPCs(const ASM::PatchVec& model, MPCSet& allMPCs);
 
   //! \brief Resolves (possibly multi-level) chaining in MPC-equations.
   //! \param[in] allMPCs All multi-point constraint equations in the model
   //! \param[in] model All spline patches in the model
   //! \param[in] setPtrOnly If \e true, only set pointer to next MPC in chain
   static void resolveMPCchains(const MPCSet& allMPCs,
-                               const ASMVec& model, bool setPtrOnly = false);
+                               const ASM::PatchVec& model,
+                               bool setPtrOnly = false);
 
   //! \brief Initializes the multi-point constraint coefficients.
   virtual bool initConstraints() { return true; }
@@ -1053,6 +1066,8 @@ protected:
   MPCMap dCode; //!< Inhomogeneous Dirichlet condition codes for the MPCs
   MPCSet mpcs;  //!< All multi-point constraints with the slave in this patch
 
+  std::vector<ASM::NodeSet> nodeSets; //!< Node sets for explicit Dirichlet BCs
+
   IntVec myMLGE; //!< The actual Matrix of Local to Global Element numbers
   IntVec myMLGN; //!< The actual Matrix of Local to Global Node numbers
   IntMat myMNPC; //!< The actual Matrix of Nodal Point Correspondance
@@ -1074,7 +1089,7 @@ protected:
   //! Global indices to first integration point for the Neumann boundaries
   std::map<char,size_t> firstBp;
 
-  ASMVec neighbors; //!< Patches having nodes in common with this one
+  ASM::PatchVec neighbors; //!< Patches having nodes in common with this one
 
   //! Auxilliary node number map used when establishing Dirichlet constraints
   static std::map<int,int> xNode;

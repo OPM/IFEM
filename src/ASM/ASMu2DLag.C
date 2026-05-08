@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASMu2DLag.h"
+#include "ASMutils.h"
 #include "ElementBlock.h"
 #include "GlobalIntegral.h"
 #include "Integrand.h"
@@ -36,16 +37,14 @@ ASMu2DLag::ASMu2DLag (unsigned char n_s,
 }
 
 
-ASMu2DLag::ASMu2DLag (const ASMu2DLag& p, unsigned char n_f) :
-  ASMs2DLag(p,n_f), nodeSets(p.nodeSets)
+ASMu2DLag::ASMu2DLag (const ASMu2DLag& p, unsigned char n_f) : ASMs2DLag(p,n_f)
 {
   fileType = 0;
   swapNode34 = p.swapNode34;
 }
 
 
-ASMu2DLag::ASMu2DLag (const ASMu2DLag& p) :
-  ASMs2DLag(p), nodeSets(p.nodeSets)
+ASMu2DLag::ASMu2DLag (const ASMu2DLag& p) : ASMs2DLag(p)
 {
   fileType = 0;
   swapNode34 = p.swapNode34;
@@ -110,28 +109,6 @@ bool ASMu2DLag::generateFEMTopology ()
 }
 
 
-int ASMu2DLag::getNodeSetIdx (const std::string& setName) const
-{
-  int iset = 1;
-  for (const ASM::NodeSet& ns : nodeSets)
-    if (ns.first == setName)
-      return iset;
-    else
-      ++iset;
-
-  return 0;
-}
-
-
-const IntVec& ASMu2DLag::getNodeSet (int iset) const
-{
-  if (iset > 0 && iset <= static_cast<int>(nodeSets.size()))
-    return nodeSets[iset-1].second;
-
-  return this->ASMbase::getNodeSet(iset);
-}
-
-
 bool ASMu2DLag::getNodeSet (int iset, std::string& name) const
 {
   if (iset < 0 || iset > static_cast<int>(nodeSets.size()))
@@ -141,54 +118,6 @@ bool ASMu2DLag::getNodeSet (int iset, std::string& name) const
 
   name = nodeSets[iset-1].first;
   return true;
-}
-
-
-/*!
-  If \a inod is negative, the absolute value is taken as the external node ID.
-  Otherwise, it is taken as the 1-based internal node index within the patch.
-*/
-
-bool ASMu2DLag::isInNodeSet (int iset, int inod) const
-{
-  if (iset < 1 || iset > static_cast<int>(nodeSets.size()))
-    return false;
-
-  if (inod < 0)
-    inod = this->getNodeIndex(-inod);
-
-  return utl::findIndex(nodeSets[iset-1].second,inod) >= 0;
-}
-
-
-int ASMu2DLag::parseNodeSet (const std::string& setName, const char* cset)
-{
-  int iset = this->getNodeSetIdx(setName)-1;
-  if (iset < 0)
-  {
-    iset = nodeSets.size();
-    nodeSets.emplace_back(setName,IntVec());
-  }
-
-  IntVec& mySet = nodeSets[iset].second;
-  size_t ifirst = mySet.size();
-  utl::parseIntegers(mySet,cset);
-
-  // Transform to internal node indices
-  for (size_t i = ifirst; i < mySet.size(); i++)
-    if (mySet[i] > 0)
-    {
-      if (int inod = this->getNodeIndex(mySet[i]); inod > 0)
-        mySet[ifirst++] = inod;
-      else
-        IFEM::cout <<"  ** Warning: Non-existing node "<< mySet[i]
-                   <<" in the set \""<< setName <<"\" (ignored)."<< std::endl;
-    }
-
-  if (ifirst < mySet.size())
-    mySet.resize(ifirst);
-
-  return 1+iset;
 }
 
 
@@ -432,7 +361,7 @@ int ASMu2DLag::addToElemSet (const std::string& setName, int iel, bool extId)
 void ASMu2DLag::getBoundaryNodes (int lIndex, IntVec& nodes,
                                   int, int, int, bool local) const
 {
-  nodes = this->getNodeSet(lIndex);
+  nodes = this->ASMs2DLag::getNodeSet(lIndex);
   if (!local)
     for (int& node : nodes)
       node = this->getNodeID(node);
