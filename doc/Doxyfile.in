@@ -569,7 +569,7 @@ INPUT                  = @IFEM_PATH@/src @IFEM_H_PATH@ \
                          @IFEM_PATH@/src/ASM/LR \
                          @IFEM_PATH@/src/Eig @IFEM_PATH@/src/LinAlg \
                          @IFEM_PATH@/src/Utility \
-                         @IFEM_PATH@/Apps/Common \
+                         @IFEM_PATH@/Apps/Utils \
                          @EXTRA_DOXY_PATHS@
 
 # This tag can be used to specify the character encoding of the source files 
