@@ -14,6 +14,7 @@
 #define SIM_IMPLICIT_LMM_H_
 
 #include "NonLinSIM.h"
+#include "SIMoutput.h"
 #include "SystemMatrix.h"
 #include "SIMenums.h"
 #include "TimeIntUtils.h"
@@ -24,10 +25,10 @@ class DataExporter;
 
 namespace TimeIntegration {
 
-  //! \brief Implicit multi-step time integration for %SIM classes.
-  //! \details Template can be instanced over any simulator implementing ISolver
-  //! and which derives from SIMbase.
-  template<class Solver>
+//! \brief Implicit multi-step time integration for %SIM classes.
+//! \details Template can be instanced over any simulator implementing ISolver
+//! and which derives from SIMbase.
+template<class Solver>
 class SIMImplicitLMM
 {
 public:

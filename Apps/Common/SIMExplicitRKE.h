@@ -20,8 +20,8 @@ namespace TimeIntegration {
 
   //! \brief Explicit embedded Runge-Kutta based time stepping for SIM classes.
   //! \details Template can be instanced over any SIM implementing ISolver,
-  //            and which derive from SIMbase.
-  template<class Solver>
+  //!           and which derive from SIMbase.
+template<class Solver>
 class SIMExplicitRKE : public SIMExplicitRK<Solver>
 {
 public:
@@ -34,29 +34,17 @@ public:
   {
     if (type == HEUNEULER) {
       this->RK.order = 1;
-      this->RK.b.push_back(1.0);
-      this->RK.b.push_back(0.0);
-      bs.push_back(0.5);
-      bs.push_back(0.5);
-      this->RK.c.push_back(0.0);
-      this->RK.c.push_back(1.0);
+      this->RK.b = {1.0, 0.0};
+      bs = {0.5, 0.5};
+      this->RK.c = {0.0, 1.0};
       this->RK.A.resize(2,2);
       this->RK.A(2,1) = 1.0;
     }
     else if (type == BOGACKISHAMPINE) {
       this->RK.order = 2;
-      this->RK.b.push_back(7.0/24.0);
-      this->RK.b.push_back(1.0/4.0);
-      this->RK.b.push_back(1.0/3.0);
-      this->RK.b.push_back(1.0/8.0);
-      bs.push_back(2.0/9.0);
-      bs.push_back(1.0/3.0);
-      bs.push_back(4.0/9.0);
-      bs.push_back(0.0);
-      this->RK.c.push_back(0.0);
-      this->RK.c.push_back(0.5);
-      this->RK.c.push_back(0.75);
-      this->RK.c.push_back(1.0);
+      this->RK.b = {7.0/24.0, 1.0/4.0, 1.0/3.0, 1.0/8.0};
+      bs = {2.0/9.0, 1.0/3.0, 4.0/9.0, 0.0};
+      this->RK.c = {0.0, 0.5, 0.75, 1.0};
       this->RK.A.resize(4,4);
       this->RK.A(2,1) = 0.5;
       this->RK.A(3,2) = 0.75;
@@ -66,24 +54,9 @@ public:
     }
     else if (type == FEHLBERG) {
       this->RK.order = 4;
-      this->RK.b.push_back(25.0/216.0);
-      this->RK.b.push_back(0.0);
-      this->RK.b.push_back(1408.0/2565.0);
-      this->RK.b.push_back(2197.0/4104.0);
-      this->RK.b.push_back(-1.0/5.0);
-      this->RK.b.push_back(0.0);
-      bs.push_back(16.0/135);
-      bs.push_back(0.0);
-      bs.push_back(6656.0/12825.0);
-      bs.push_back(28561.0/56430.0);
-      bs.push_back(-9.0/50.0);
-      bs.push_back(2.0/55.0);
-      this->RK.c.push_back(0.0);
-      this->RK.c.push_back(1.0/4.0);
-      this->RK.c.push_back(3.0/8.0);
-      this->RK.c.push_back(12.0/13.0);
-      this->RK.c.push_back(1.0);
-      this->RK.c.push_back(1.0/2.0);
+      this->RK.b = {25.0/216.0, 0.0, 1408.0/2565.0, 2197.0/4104.0, -1.0/5.0, 0.0};
+      bs = {16.0/135.0, 0.0, 6656.0/12825.0, 28561.0/56430.0, -9.0/50.0, 2.0/55.0};
+      this->RK.c = {0.0, 1.0/4.0, 3.0/8.0, 12.0/13.0, 1.0, 1.0/2.0};
       this->RK.A.resize(6,6);
       this->RK.A(2,1) = 0.25;
       this->RK.A(3,1) = 3.0/32.0;
@@ -104,7 +77,7 @@ public:
   }
 
   //! \copydoc ISolver::solveStep(TimeStep&)
-  virtual bool solveStep(TimeStep& tp)
+  bool solveStep(TimeStep& tp) override
   {
     this->solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
