@@ -719,7 +719,7 @@ if(TARGET IFEM-MPI-test)
   endif()
 endif()
 
-add_subdirectory(Apps/Common)
+add_subdirectory(Apps/Utils)
 
 if(IFEM_AS_SUBMODULE OR IFEM_COMMON_APP_BUILD)
   set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
@@ -727,12 +727,19 @@ else()
   ifem_add_check_target()
 endif()
 
-export(TARGETS IFEM IFEMAppCommon FILE IFEMTargets.cmake)
+export(
+  TARGETS
+    IFEM
+    IFEMAppUtils
+  FILE
+    IFEMTargets.cmake
+)
 
 include(GNUInstallDirs)
 
-target_include_directories(IFEM INTERFACE
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/IFEM>
+target_include_directories(IFEM
+  INTERFACE
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/IFEM>
 )
 
 include(CMakePackageConfigHelpers)

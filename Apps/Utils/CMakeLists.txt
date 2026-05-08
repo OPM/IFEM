@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(IFEMAppCommon LANGUAGES C CXX)
+project(IFEMAppUtils LANGUAGES C CXX)
 
 # Todo: Remove list when we can drop support for cmake 3.22
-set(APPCOMMON_PUBLIC_HEADERS
+set(APPUTILS_PUBLIC_HEADERS
   CompatibleOperators.h
   EqualOrderOperators.h
   ISolver.h
@@ -29,7 +29,9 @@ set(APPCOMMON_PUBLIC_HEADERS
 
 ifem_add_library(
   NAME
-    IFEMAppCommon
+    IFEMAppUtils
+  ALIAS
+    IFEM::AppUtils
   SOURCES
     CompatibleOperators.C
     EqualOrderOperators.C
@@ -42,15 +44,20 @@ ifem_add_library(
     StabilizationUtils.C
     TimeIntUtils.C
   HEADERS
-    ${APPCOMMON_PUBLIC_HEADERS}
+    ${APPUTILS_PUBLIC_HEADERS}
   LIBRARIES
     IFEM
+)
+set_target_properties(IFEMAppUtils
+   PROPERTIES
+     EXPORT_NAME
+       IFEM::AppUtils
 )
 
 # Unit tests
 ifem_add_test_app(
   NAME
-    AppCommon
+    IFEMAppUtils
   SOURCES
     Test/TestCompatibleOperators.C
     Test/TestEqualOrderOperators.C
@@ -63,14 +70,14 @@ ifem_add_test_app(
   WORKDIR
     ${PROJECT_SOURCE_DIR}/Test
   LIBRARIES
-    IFEMAppCommon
+    IFEM::AppUtils
 )
 
-if(LRSpline_FOUND AND TARGET AppCommon-test)
-  target_sources(
-    AppCommon-test PRIVATE
-    Test/LR/TestMultiPatchLRRefine.C
-    Test/LR/TestSIMNodalConstraint.C
+if(LRSpline_FOUND AND TARGET IFEMAppUtils-test)
+  target_sources(IFEMAppUtils-test
+    PRIVATE
+      Test/LR/TestMultiPatchLRRefine.C
+      Test/LR/TestSIMNodalConstraint.C
   )
 endif()
 
@@ -79,20 +86,33 @@ set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 # Installation
 include(GNUInstallDirs)
 
-target_include_directories(IFEMAppCommon INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/IFEM>)
+target_include_directories(IFEMAppUtils INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/IFEM>)
 
 if(CMAKE_VERSION GREATER_EQUAL 3.23)
-  install(TARGETS IFEMAppCommon
-          EXPORT IFEM
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/IFEM)
+  install(
+    TARGETS
+      IFEMAppUtils
+    EXPORT
+      IFEM
+    DESTINATION
+      ${CMAKE_INSTALL_LIBDIR}
+    FILE_SET
+      HEADERS
+        DESTINATION
+          ${CMAKE_INSTALL_INCLUDEDIR}/IFEM
+  )
 else()
-  install(TARGETS IFEMAppCommon
-          EXPORT IFEM
-          DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  install(
+    TARGETS
+      IFEMAppUtils
+    EXPORT
+      IFEM
+    DESTINATION
+      ${CMAKE_INSTALL_LIBDIR}
+  )
   install(
     FILES
-      ${APPCOMMON_PUBLIC_HEADERS}
+      ${APPUTILS_PUBLIC_HEADERS}
     DESTINATION
       ${CMAKE_INSTALL_INCLUDEDIR}/IFEM
   )
