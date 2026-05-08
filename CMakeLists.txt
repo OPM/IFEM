@@ -38,6 +38,10 @@ set_target_properties(
       ${IFEM_VERSION}
     SOVERSION
       ${IFEM_ABI_VERSION}
+    ARCHIVE_OUTPUT_DIRECTORY
+      ${CMAKE_BINARY_DIR}/lib
+    LIBRARY_OUTPUT_DIRECTORY
+      ${CMAKE_BINARY_DIR}/lib
 )
 ifem_lto(TARGET IFEM)
 
