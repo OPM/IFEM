@@ -25,16 +25,32 @@ bool utl::parseIntegers (std::vector<int>& values, const char* argv)
 
   size_t old = values.size();
   char* endp = const_cast<char*>(argv);
-  while (endp && strlen(endp) > 0)
+  while (strlen(endp) > 0)
   {
+    char* oldp = endp;
     values.push_back(strtol(endp,&endp,10));
-    if (endp && *endp == ':')
+    if (!endp)
+      break;
+    else if (*endp == ',')
+      ++endp;
+    else if (*endp == ':')
     {
       int endVal = strtol(endp+1,&endp,10);
       while (values.back() < endVal)
         values.push_back(values.back()+1);
     }
+    else if (endp == oldp)
+    {
+      std::cerr <<" *** utl::parsIntegers(): Malformed integer values: "<< argv
+                <<"\n"<< std::string(26,' ') << std::string(26+endp-argv,'-')
+                << '^' << std::endl;
+      return false;
+    }
   }
+
+  // A trailing comma should imply 0 as the last value
+  if (strlen(argv) > 0 && *(endp-1) == ',')
+    values.push_back(0);
 
   return values.size() > old;
 }

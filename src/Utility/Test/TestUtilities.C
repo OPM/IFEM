@@ -20,14 +20,18 @@
 
 TEST_CASE("TestUtilities.ParseIntegers")
 {
-  std::vector<int> values1, values2, values3;
+  std::vector<int> values1, values2, values3, values4, values5;
   REQUIRE(utl::parseIntegers(values1,"1"));
   REQUIRE(utl::parseIntegers(values2,"1:5"));
   REQUIRE(utl::parseIntegers(values3,"1 3 5:8 10"));
+  REQUIRE(utl::parseIntegers(values4,"1, 2, 3, 4"));
+  REQUIRE(utl::parseIntegers(values5,",1,,3,"));
 
   REQUIRE(values1.size() == 1);
   REQUIRE(values2.size() == 5);
   REQUIRE(values3.size() == 7);
+  REQUIRE(values4.size() == 4);
+  REQUIRE(values5.size() == 5);
   REQUIRE(values1.front() == 1);
   for (size_t i = 0; i < values2.size(); i++)
     REQUIRE(values2[i] == 1+static_cast<int>(i));
@@ -36,6 +40,12 @@ TEST_CASE("TestUtilities.ParseIntegers")
   for (int i = 2; i < 6; i++)
     REQUIRE(values3[i] == 3+i);
   REQUIRE(values3.back() == 10);
+  for (size_t i = 0; i < values4.size(); i++)
+    REQUIRE(values4[i] == static_cast<int>(1+i));
+  for (size_t i = 0; i < values5.size(); i++)
+    REQUIRE(values5[i] == static_cast<int>(i%2 == 0 ? 0 : i));
+
+  REQUIRE(!utl::parseIntegers(values1,"5 2.4 1.3"));
 }
 
 
