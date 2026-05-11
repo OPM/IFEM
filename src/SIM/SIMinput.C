@@ -68,9 +68,7 @@ bool SIMinput::readPatches (std::istream& isp, const char* whiteSpace)
 {
   unsigned short int maxSpaceDim = 0;
   for (int pchInd = myModel.size(); isp.good(); pchInd++)
-  {
-    ASMbase* pch = this->readPatch(isp,pchInd,CharVec(),whiteSpace);
-    if (pch)
+    if (ASMbase* pch = this->readPatch(isp,pchInd,CharVec(),whiteSpace); pch)
     {
       myModel.push_back(pch);
       if (pch->getNoSpaceDim() > maxSpaceDim)
@@ -78,7 +76,6 @@ bool SIMinput::readPatches (std::istream& isp, const char* whiteSpace)
     }
     else if (this->getLocalPatchIndex(pchInd+1) > 0)
       return false;
-  }
 
   // Reset number of space dimensions if all patches have less than nsd
   if (maxSpaceDim > 0 && maxSpaceDim < nsd)
@@ -148,18 +145,14 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
     else if (strstr(file,".hdf5"))
     {
       IFEM::cout <<"\tReading global node numbers from "<< file << std::endl;
-      ProcessAdm adm;
-      HDF5Reader hdf5(file,adm);
-      const char* field = elem->Attribute("field");
+      ProcessAdm dummyAdm;
+      HDF5Reader hdf5(file,dummyAdm);
+      const char* fld = elem->Attribute("field");
+      std::string grp = "/0/" + std::string(fld ? fld : "node numbers") + "/";
       for (int i = 1; i <= nGlPatches; i++)
-      {
-        IntVec nodes;
-        ASMbase* pch = this->getPatch(i,true);
-        std::stringstream str;
-        str << "/0/" << (field ? field : "node numbers") << "/" << i;
-        if (pch && hdf5.readVector(str.str(),nodes))
-          pch->setNodeNumbers(nodes);
-      }
+        if (ASMbase* pch = this->getPatch(i,true); pch)
+          if (IntVec nodes; hdf5.readVector(grp + std::to_string(i),nodes))
+            pch->setNodeNumbers(nodes);
     }
   }
 
@@ -242,6 +235,7 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
       {
         int idim = 3;
         utl::getAttribute(set,"type",type,true);
+        bool nodes0 = type == "nodes0";
         if (type == "volume")
           idim = 3;
         else if (type == "face" || type == "surface")
@@ -250,7 +244,7 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
           idim = 1;
         else if (type == "vertex" || type == "point")
           idim = 0;
-        else if (type == "nodes")
+        else if (type == "nodes" || nodes0)
           idim = 4;
         else if (type == "elements")
           idim = 5;
@@ -267,11 +261,10 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
         {
           const tinyxml2::XMLNode* child = item->FirstChild();
 
-          int pid = 0;
           IntVec patches;
           this->parsePatchList(item,patches);
           for (int patch : patches)
-            if ((pid = this->getLocalPatchIndex(patch)) > 0)
+            if (int pid = this->getLocalPatchIndex(patch); pid > 0)
             {
               int setIndex = 0;
               ASMbase* pch = myModel[pid-1];
@@ -282,7 +275,7 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
                 if (!child)
                   setIndex = pch->getNodeSetIdx(name);
                 else
-                  setIndex = pch->parseNodeSet(name,child->Value());
+                  setIndex = pch->parseNodeSet(name,child->Value(),nodes0);
                 if (setIndex > 0)
                   top.emplace(pid,setIndex,idim);
               }
@@ -361,8 +354,7 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
                 << patch <<"."<< std::endl;
       return false;
     }
-    ASMbase* pch = this->getPatch(patch,true);
-    if (pch)
+    if (ASMbase* pch = this->getPatch(patch,true); pch)
     {
       const char* funcdef = elem->FirstChild()->Value();
       IFEM::cout <<"\tActivation function for P"<< patch
@@ -397,8 +389,7 @@ bool SIMinput::parsePeriodic (const tinyxml2::XMLElement* elem)
     return false;
   }
 
-  ASMbase* pch = this->getPatch(patch,true);
-  if (pch)
+  if (ASMbase* pch = this->getPatch(patch,true); pch)
   {
     IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
                << std::endl;
@@ -498,12 +489,10 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
       IFEM::cout <<" order "<< order;
       // Flag Neumann order by increasing the topology index by 10
       for (; i < myProps.size(); i++)
-      {
         // But not for edge boundaries in 3D
-        ASMbase* pch = this->getPatch(myProps[i].patch);
-        if (pch && myProps[i].ldim+1 == pch->getNoParamDim())
-          myProps[i].lindx += 10*(order-1);
-      }
+        if (ASMbase* pch = this->getPatch(myProps[i].patch); pch)
+          if (myProps[i].ldim+1 == pch->getNoParamDim())
+            myProps[i].lindx += 10*(order-1);
     }
 
     if (type == "anasol")
@@ -1093,8 +1082,7 @@ bool SIMinput::parse (char* keyWord, std::istream& is)
         if (is.good())
         {
           IFEM::cout <<"\nReading patch file "<< cline << std::endl;
-          ASMbase* pch = this->readPatch(is,i);
-          if (pch)
+          if (ASMbase* pch = this->readPatch(is,i); pch)
             myModel.push_back(pch);
         }
         else
@@ -1341,8 +1329,7 @@ bool SIMinput::createFEMmodel (char resetNumb)
       // This patch shares its FE data with another patch, but has been assigned
       // additional nodes due to constraints in local coordinate systems,
       // Lagrange multipliers, etc. Need therefore to unshare the FE data.
-      ASMbase* newPatch = myModel[i]->cloneUnShared();
-      if (newPatch)
+      if (ASMbase* newPatch = myModel[i]->cloneUnShared(); newPatch)
       {
         IFEM::cout <<"\tNote: Unsharing FE data of P"<< 1+i << std::endl;
         newPatch->setGlobalNodeNums(myModel[i]->getMyNodeNums());
@@ -1391,9 +1378,8 @@ bool SIMinput::createPropertySet (const std::string& setName, int pc)
     return false;
   }
 
-  auto pit = std::find_if(myProps.begin(),myProps.end(),
-                         [pc](const Property& p){ return abs(p.pindx) == pc; });
-  if (pit != myProps.end())
+  if (std::find_if(myProps.begin(), myProps.end(), [pc](const Property& p)
+                   { return abs(p.pindx) == pc; }) != myProps.end())
   {
     std::cerr <<" *** SIMinput::createPropertySet: Duplicated property code "
               << pc <<"."<< std::endl;
@@ -1447,8 +1433,8 @@ size_t SIMinput::setPropertyType (int code, Property::Type ptype,
         }
         else if (ptype >= Property::DIRICHLET && pindex <= LOCAL_AXES)
         {
-          ASMbase* pch = this->getPatch(p->patch);
-          if (pch && abs(p->ldim)+1 == pch->getNoParamDim())
+          if (ASMbase* pch = this->getPatch(p->patch); pch &&
+              abs(p->ldim)+1 == pch->getNoParamDim())
           {
             p->lindx *= -1; // flag the use of local axis directions
             if (abs(p->ldim) == 2 && pindex < -10)
@@ -1525,10 +1511,8 @@ IntVec SIMinput::getFunctionsForElements (const IntVec& elements)
   IntSet functions;
 #ifdef HAS_LRSPLINE
   for (ASMbase* pch : myModel)
-  {
-    ASMLRSpline* lrPch = dynamic_cast<ASMLRSpline*>(pch);
-    if (lrPch) lrPch->getFunctionsForElements(functions,elements);
-  }
+    if (ASMLRSpline* lrPch = dynamic_cast<ASMLRSpline*>(pch); lrPch)
+      lrPch->getFunctionsForElements(functions,elements);
 #ifdef SP_DEBUG
   size_t j = 0, k = 0;
   std::cout <<"SIMinput::getFunctionsForElements: nel="<< elements.size();
@@ -1550,9 +1534,8 @@ IntVec SIMinput::getFunctionsForElements (const IntVec& elements)
 int SIMinput::refine (const RealFunc& refC, double refTol)
 {
   IntVec elements;
-  ASMunstruct* uspch = nullptr;
   for (ASMbase* pch : myModel)
-    if ((uspch = dynamic_cast<ASMunstruct*>(pch)))
+    if (ASMunstruct* uspch = dynamic_cast<ASMunstruct*>(pch); uspch)
       for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
         if (refC(uspch->getElementCenter(iel)) < refTol)
           elements.push_back(pch->getElmID(iel)-1);
@@ -1639,18 +1622,16 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
     for (size_t i = 0; i < myModel.size(); i++)
     {
       // Extract local indices from the vector of global indices
-      int locId;
       for (int k : prm.elements)
-        if (!prm.MLGN.empty()) {
-          const auto it = std::find(prm.MLGN[i].begin(), prm.MLGN[i].end(), k);
-          if (it != prm.MLGN[i].end())
-            if (refineIndices[i].insert(std::distance(prm.MLGN[i].begin(), it)).second)
-              changed = true;
-        } else {
-          if ((locId = myModel[i]->getNodeIndex(k+1)) > 0)
-            if (refineIndices[i].insert(locId-1).second)
-              changed = true;
-        }
+      {
+        int locId;
+        if (prm.MLGN.empty())
+          locId = myModel[i]->getNodeIndex(k+1)-1;
+        else
+          locId = utl::findIndex(prm.MLGN[i],k);
+        if (locId >= 0 && refineIndices[i].insert(locId).second)
+          changed = true;
+      }
 
       // Fetch boundary nodes covered (may need to pass this to other patches)
       IntVec bndry_nodes = pch[i]->getBoundaryCovered(refineIndices[i]);
@@ -1677,19 +1658,17 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
         else
           globId = prm.MLGN[i][k];
         for (size_t j = 0; j < myModel.size(); j++)
-          if (j != i) {
-            if (prm.MLGN.empty()) {
-              if ((locId = myModel[j]->getNodeIndex(globId)) > 0) {
-                conformingIndices[j].insert(locId-1);
-                conformingIndices[i].insert(k);
-              }
-            } else {
-              const auto it = std::find(prm.MLGN[j].begin(),
-                                        prm.MLGN[j].end(), globId);
-              if (it != prm.MLGN[j].end()) {
-                conformingIndices[j].insert(std::distance(prm.MLGN[j].begin(), it));
-                conformingIndices[i].insert(k);
-              }
+          if (j != i)
+          {
+            int locId;
+            if (prm.MLGN.empty())
+              locId = myModel[j]->getNodeIndex(globId)-1;
+            else
+              locId = utl::findIndex(prm.MLGN[j],globId);
+            if (locId >= 0)
+            {
+              conformingIndices[j].insert(locId);
+              conformingIndices[i].insert(k);
             }
           }
       }
@@ -1779,7 +1758,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
   }
 
   // Clean up basis patches
-  for (const auto& itb : basisMap)
+  for (const std::pair<const std::string,PatchVec>& itb : basisMap)
     for (ASMbase* pch : itb.second)
       delete pch;
 
@@ -1793,7 +1772,7 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
     fieldHolder = this;
 
   bool result = true;
-  for (const auto& it : myICs)
+  for (const std::pair<const std::string,InitialCondVec>& it : myICs)
     if (it.first != "nofile")
       result &= this->setInitialCondition(fieldHolder,it.first,it.second);
     else for (const ICInfo& ic : it.second)
@@ -1818,7 +1797,7 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
 
 bool SIMinput::hasIC (const std::string& name) const
 {
-  for (const auto& it : myICs)
+  for (const std::pair<const std::string,InitialCondVec>& it : myICs)
     for (const ICInfo& ic : it.second)
       if (ic.sim_field.compare(0,name.size(),name) == 0)
         return true;
@@ -1980,8 +1959,7 @@ SIMinput::IdxVec3* SIMinput::getDiscretePoint (int idx)
 
 bool SIMinput::getTopItemNodes (const TopItem& titem, IntVec& glbNodes) const
 {
-  ASMbase* pch = this->getPatch(titem.patch);
-  if (pch)
+  if (ASMbase* pch = this->getPatch(titem.patch); pch)
     pch->getBoundaryNodes(titem.item,glbNodes);
   else if (!titem.patch && titem.item >= 0 && titem.item < (int)myTopPts.size())
     glbNodes.push_back(myTopPts[titem.item].first);
