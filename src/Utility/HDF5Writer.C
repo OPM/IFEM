@@ -313,7 +313,7 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
   // Lambda function for extracting projected solution for a patch.
   size_t projOfs = 0;
   auto&& extractProjection=[sim,&projOfs](ASMbase* pch, const Vector& glbVec,
-                                          Matrix& field, bool isLastProj = false)
+                                          Matrix& field, bool lastProj = false)
   {
     size_t ncmp = sim->getProblem()->getNoFields(2);
     if (ncmp == 0)
@@ -325,7 +325,7 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
       pchVec.resize(ncmp * pch->getNoProjectionNodes());
       size_t projEnd = projOfs + pchVec.size();
       std::copy(glbVec.begin()+projOfs, glbVec.begin()+projEnd, pchVec.begin());
-      if (isLastProj) projOfs = projEnd;
+      if (lastProj) projOfs = projEnd;
     }
     else
       sim->extractPatchSolution(glbVec,pchVec,pch,ncmp,1);
@@ -356,18 +356,17 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
 
       if ((results & DataExporter::PRIMARY) && !sol->empty()) {
         Vector psol;
-        size_t ndof1 = sim->extractPatchSolution(*sol,psol,pch,entry.second.ncmps,
+        size_t ndof1 = sim->extractPatchSolution(*sol, psol, pch,
+                                                 entry.second.ncmps,
                                                  usedescription ? 1 : 0);
         if (dynamic_cast<ASMsupel*>(pch))
-        {
           // Hack for superelement patches: Expand to include the center node
-          Matrix sField;
-          if (pch->evalSolution(sField,psol,nullptr,0))
+          if (Matrix sField; pch->evalSolution(sField,psol,nullptr,0))
           {
             psol = sField;
             ndof1 = psol.size();
           }
-        }
+
         if (entry.second.ncmps == 6)
         {
           // This is a model with rotational degrees of freedom.
@@ -395,8 +394,8 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
                            idx, ndof1, data, H5T_NATIVE_DOUBLE);
       }
 
-      // We skip outputting secondary solutions using greville if another projection
-      // has been performed.
+      // We skip secondary solution output based on Greville projection
+      // if another projection already has been performed
       if (proj) {
         hid_t gid = sim->fieldProjections() ? group.back() : group.front();
         for (size_t p = 0; p < proj->size(); p++)
@@ -413,8 +412,8 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
       }
       else if ((results & DataExporter::SECONDARY) && !sol->empty()) {
         Matrix field;
-        ASM::ResultClass rClass;
         hid_t gid = group.front();
+        ASM::ResultClass rClass = ASM::SECONDARY;
         if (entry.second.description == "projected") {
           rClass = ASM::PROJECTED;
           // The projected solution has been registered as a separate field
@@ -423,9 +422,11 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
             gid = group.back();
         }
         else {
-          rClass = ASM::SECONDARY;
+          // No projection has been performed yet, so use Greville to obtain
+          // control point values of the secondary solution fields
           SIM::SolutionMode mode = prob->getMode();
           const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
+          const_cast<IntegrandBase*>(prob)->initResultPoints(time);
           sim->extractPatchSolution({*sol},loc-1);
           sim->evalSecondarySolution(field,loc-1);
           const_cast<SIMbase*>(sim)->setMode(mode);
@@ -455,7 +456,8 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
           mask[i] = pch->isElementActive(i,time) ? 1 : 0;
         size_t count = std::count(mask.begin(),mask.end(),1);
         if (count > old_count[idx-1])
-          this->writeArray(egroup.front(), "mask", idx, mask.size(), mask.data(), H5T_NATIVE_CHAR);
+          this->writeArray(egroup.front(), "mask", idx, mask.size(),
+                           mask.data(), H5T_NATIVE_CHAR);
         old_count[idx-1] = count;
       }
 
