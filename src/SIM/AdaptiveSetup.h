@@ -16,6 +16,8 @@
 
 #include "MatVec.h"
 
+#include <utility>
+
 class ScalarFunc;
 class SIMoutput;
 namespace tinyxml2 { class XMLElement; }
@@ -95,6 +97,32 @@ protected:
   size_t eRow;    //!< Row-index in \a eNorm of the norm to use for adaptation
   double rCond;   //!< Actual reciprocal condition number of the last mesh
 
+  //! \brief Element error and associated index.
+  //! \note The error value must be first and the index second, such that the
+  //! internally defined greater-than operator can be used when sorting the
+  //! error+index pairs in decreasing error order.
+  using DblIdx = std::pair<double,int>;
+
+  //! \brief Struct holding info about errors.
+  struct ErrorInfo
+  {
+    double limit = 0.0; //!< Limit for errors
+    double sumErr = 0.0; //!< Sum of errors, beta-scaled target for DORFEL
+    double curErr = 0.0; //!< Current error
+  };
+
+  //! \brief Enum defining the refinement threshold flag values.
+  enum Threshold { NONE=0, MAXIMUM, AVERAGE, MINIMUM, TRUE_BETA,
+                   DORFEL, SYMMETRIZED };
+
+  //! \brief Calculate error limits for a vector of errors.
+  //! \param errors The vector with the errors
+  //! \param beta Percentage of elements to mark for refinement
+  //! \param threshold Type of error thresholding to use
+  static ErrorInfo errorLimits(const std::vector<DblIdx>& errors,
+                               const double beta,
+                               const Threshold threshold);
+
 private:
   bool   alone;      //!< If \e false, this class is wrapped by SIMSolver
   bool   linIndep;   //!< Test mesh for linear independence after refinement
@@ -109,10 +137,6 @@ private:
   double maxAspect;  //!< Maximum element aspect ratio
   bool   closeGaps;  //!< Split elements with a hanging node on each side
   double symmEps;    //!< Epsilon used for symmetrized selection method
-
-  //! \brief Enum defining the refinement threshold flag values.
-  enum Threshold { NONE=0, MAXIMUM, AVERAGE, MINIMUM, TRUE_BETA,
-                   DORFEL, SYMMETRIZED };
 
   //! \brief Enum defining available refinement scheme options.
   enum RefScheme { FULLSPAN=0, MINSPAN=1,

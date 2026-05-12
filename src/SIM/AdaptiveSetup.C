@@ -244,13 +244,6 @@ bool AdaptiveSetup::initPrm (size_t normGroup)
 }
 
 
-//! \brief Element error and associated index.
-//! \note The error value must be first and the index second, such that the
-//! internally defined greater-than operator can be used when sorting the
-//! error+index pairs in decreasing error order.
-typedef std::pair<double,int> DblIdx;
-
-
 int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
                                    const Vectors& gNorm,
                                    const Vector& refIn, int currDofs) const
@@ -393,39 +386,12 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
   // The variable prm.elements will contain one of the following:
   // - list of elements to be refined (if fullspan or minspan)
   // - list of basis functions to be refined (if structured mesh)
-  double limit, sumErr = 0.0, curErr = 0.0;
-  switch (threshold) {
-  case MAXIMUM: // beta percent of max error (less than 100%)
-    limit = error.front().first * prm.options[0]*0.01;
-    break;
-  case AVERAGE: // beta percent of avg error (typical 100%)
-    for (const DblIdx& e : error) sumErr += e.first;
-    limit = (sumErr/error.size()) * prm.options[0]*0.01;
-    break;
-  case MINIMUM: // beta percent of min error (more than 100%)
-    limit = error.back().first * prm.options[0]*0.01;
-    break;
-  case DORFEL:
-    limit = error.back().first;
-    for (const DblIdx& e : error) sumErr += e.first;
-    sumErr *= prm.options[0]*0.01;
-    for (const DblIdx& e : error)
-      if (curErr < sumErr)
-        curErr += e.first;
-      else
-      {
-        limit = e.first;
-        break;
-      }
-    break;
-  default:
-    limit = 0.0;
-  }
+  const ErrorInfo info = errorLimits(error, prm.options[0], threshold);
 
   if (threshold == NONE || threshold == SYMMETRIZED)
     refineSize = ceil(error.size()*prm.options[0]/100.0);
   else
-    refineSize = std::upper_bound(error.begin(), error.end(), DblIdx(limit,0),
+    refineSize = std::upper_bound(error.begin(), error.end(), DblIdx(info.limit,0),
                                   std::greater_equal<DblIdx>()) - error.begin();
 
   if (threshold == SYMMETRIZED)
@@ -466,16 +432,16 @@ int AdaptiveSetup::calcRefinement (LR::RefineData& prm, int iStep,
     IFEM::cout << 100.0*refineSize/error.size() <<"% of all "<< str;
     break;
   case MAXIMUM:
-    IFEM::cout << prm.options[0] <<"% of max error ("<< limit <<")";
+    IFEM::cout << prm.options[0] <<"% of max error ("<< info.limit <<")";
     break;
   case AVERAGE:
-    IFEM::cout << prm.options[0] <<"% of average error ("<< limit <<")";
+    IFEM::cout << prm.options[0] <<"% of average error ("<< info.limit <<")";
     break;
   case MINIMUM:
-    IFEM::cout << prm.options[0] <<"% of min error ("<< limit <<")";
+    IFEM::cout << prm.options[0] <<"% of min error ("<< info.limit <<")";
     break;
   case DORFEL:
-    IFEM::cout << prm.options[0] <<"% of total error ("<< limit <<")";
+    IFEM::cout << prm.options[0] <<"% of total error ("<< info.limit <<")";
     break;
   default:
     break;
@@ -582,4 +548,44 @@ bool AdaptiveSetup::writeMesh (int iStep) const
     }
 
   return true;
+}
+
+
+AdaptiveSetup::ErrorInfo
+AdaptiveSetup::errorLimits(const std::vector<DblIdx>& error,
+                           const double beta,
+                           const Threshold threshold)
+{
+  ErrorInfo result;
+  switch (threshold) {
+  case MAXIMUM: // beta percent of max error (less than 100%)
+    result.limit = error.front().first * beta*0.01;
+    break;
+  case AVERAGE: // beta percent of avg error (typical 100%)
+    for (const DblIdx& e : error)
+      result.sumErr += e.first;
+    result.limit = (result.sumErr/error.size()) * beta*0.01;
+    break;
+  case MINIMUM: // beta percent of min error (more than 100%)
+    result.limit = error.back().first * beta*0.01;
+    break;
+  case DORFEL:
+    result.limit = error.back().first;
+    for (const DblIdx& e : error)
+      result.sumErr += e.first;
+    result.sumErr *= beta*0.01;
+    for (const DblIdx& e : error)
+      if (result.curErr < result.sumErr)
+        result.curErr += e.first;
+      else
+      {
+        result.limit = e.first;
+        break;
+      }
+    break;
+  default:
+    result.limit = 0.0;
+  }
+
+  return result;
 }
