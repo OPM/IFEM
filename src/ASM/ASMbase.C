@@ -556,12 +556,13 @@ bool ASMbase::add2PC (int slave, int dir, int master, int code)
 
   MPC* cons = new MPC(slave,dir);
   bool stat = this->addMPC(cons,code);
-  if (!cons) return stat;
-
-  cons->addMaster(master,dir);
+  if (cons)
+  {
+    cons->addMaster(master,dir);
 #if SP_DEBUG > 1
-  std::cout <<"Added constraint: "<< *cons;
+    std::cout <<"Added constraint: "<< *cons;
 #endif
+  }
   return stat;
 }
 
@@ -575,13 +576,14 @@ bool ASMbase::add3PC (int slave, int dir, int master1, int master2, int code)
 
   MPC* cons = new MPC(slave,dir);
   bool stat = this->addMPC(cons,code);
-  if (!cons) return stat;
-
-  if (master1 != slave) cons->addMaster(master1,dir);
-  if (master2 != slave) cons->addMaster(master2,dir);
+  if (cons)
+  {
+    if (master1 != slave) cons->addMaster(master1,dir);
+    if (master2 != slave) cons->addMaster(master2,dir);
 #if SP_DEBUG > 1
-  std::cout <<"Added constraint: "<< *cons;
+    std::cout <<"Added constraint: "<< *cons;
 #endif
+  }
   return stat;
 }
 
@@ -647,9 +649,7 @@ bool ASMbase::createRgdMasterNode (int& gMaster, const Vec3& Xpt)
 void ASMbase::addRigidMPC (int gSlave, int gMaster, const Vec3& dX)
 {
   for (unsigned short int dof = 1; dof <= nf; dof++)
-  {
-    MPC* cons = new MPC(gSlave,dof);
-    if (this->addMPC(cons) && cons)
+    if (MPC* cons = new MPC(gSlave,dof); this->addMPC(cons) && cons)
     {
       // Add one-to-one translation coupling
       cons->addMaster(gMaster,dof,1.0);
@@ -672,7 +672,6 @@ void ASMbase::addRigidMPC (int gSlave, int gMaster, const Vec3& dX)
       std::cout <<"Added constraint: "<< *cons;
 #endif
     }
-  }
 }
 
 
@@ -707,17 +706,15 @@ void ASMbase::addRigidCouplings (int gMaster, const Vec3& Xmaster,
     else if (nsd == 2 && nf > 1)
     {
       // Special for 2D problems with (at least) 2 nodal DOFs
-      MPC* cons = new MPC(MLGN[node-1],1);
-      if (this->addMPC(cons) && cons)
+      if (MPC* cons = new MPC(MLGN[node-1],1); this->addMPC(cons) && cons)
       {
         cons->addMaster(gMaster,1, 1.0);
         cons->addMaster(gMaster,3,-dX.y);
-      }
 #if SP_DEBUG > 1
-      std::cout <<"Added constraint: "<< *cons;
+        std::cout <<"Added constraint: "<< *cons;
 #endif
-      cons = new MPC(MLGN[node-1],2);
-      if (this->addMPC(cons) && cons)
+      }
+      if (MPC* cons = new MPC(MLGN[node-1],2); this->addMPC(cons) && cons)
       {
         cons->addMaster(gMaster,2, 1.0);
         cons->addMaster(gMaster,3, dX.x);
@@ -727,6 +724,21 @@ void ASMbase::addRigidCouplings (int gMaster, const Vec3& Xmaster,
       }
     }
   }
+}
+
+
+void ASMbase::addNodalCouplings (int slave, const IntVec& masters,
+                                 const RealArray& weights)
+{
+  for (unsigned short int dof = 1; dof <= nf; dof++)
+    if (MPC* cons = new MPC(MLGN[slave-1],dof); this->addMPC(cons) && cons)
+    {
+      for (size_t i = 0; i < masters.size() && i < weights.size(); i++)
+        cons->addMaster(MLGN[masters[i]-1],dof,weights[i]);
+#if SP_DEBUG > 1
+      std::cout <<"Added constraint: "<< *cons;
+#endif
+    }
 }
 
 

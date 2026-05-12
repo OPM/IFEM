@@ -897,6 +897,13 @@ public:
   void addRigidCouplings(int gMaster, const Vec3& Xmaster,
                          const IntVec& slaveNodes);
 
+  //! \brief Adds MPC-equations for general nodal couplings in this patch.
+  //! \param[in] slave Local node number of the slave node
+  //! \param[in] masters Local node numbers of the master nodes
+  //! \param[in] weights Weight factors for each master node
+  void addNodalCouplings(int slave, const IntVec& masters,
+                         const RealArray& weights);
+
 protected:
 
   // Internal methods for preprocessing of boundary conditions
