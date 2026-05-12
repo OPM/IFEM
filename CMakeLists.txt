@@ -572,6 +572,7 @@ IFEM_add_test_app(
       src/LinAlg/Test/TestMatVec.C
       src/LinAlg/Test/TestSAM.C
       src/LinAlg/Test/TestSparseMatrix.C
+      src/SIM/Test/TestAdaptiveSetup.C
       src/SIM/Test/TestInitialConditions.C
       src/SIM/Test/TestModelGenerator.C
       src/SIM/Test/TestNewmark.C
