@@ -559,7 +559,7 @@ bool SPRMatrix::load (const char* fileName, bool binary)
         is >> values[i];
   }
 
-  return is.good() && this->flagNonZeroEqs();
+  return is.good() && this->flagNonZeroEq();
 }
 
 
@@ -610,7 +610,7 @@ bool SPRMatrix::assemble (int e, const Matrix& eM, const SAM& sam, Real* B)
           msica, mtrees, msifa, mvarnc, values, B ? B : rWork.data(),
           IWORK.data(), e, eM.rows(), 6, B ? 1 : 0, ierr);
   if (ierr == 0)
-    return this->flagNonZeroEqs({IWORK.begin(),IWORK.begin()+eM.rows()});
+    return this->flagNonZeroEqs(sam,{IWORK.begin(),IWORK.begin()+eM.rows()});
 
   std::cerr <<"SAM::SPRADM: Failure "<< ierr << std::endl;
 #endif
@@ -646,10 +646,8 @@ bool SPRMatrix::add (Real sigma, int ieq)
   sprdad_(mpar, mtrees, msifa, values, sigma, 6, ierr);
   if (ierr < 0)
     std::cerr <<"SAM::SPRDAD: Failure "<< ierr << std::endl;
-  else if (ieq > 0)
-    return this->flagNonZeroEqs({ieq});
   else
-    return this->flagNonZeroEqs();
+    return this->flagNonZeroEq(ieq);
 #endif
 
   return false;

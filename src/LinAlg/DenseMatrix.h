@@ -110,8 +110,6 @@ public:
   //! \param[in] eM  The element matrix
   //! \param[in] meq Matrix of element equation numbers (0 based)
   //! \return \e true on successful assembly, otherwise \e false
-  //!
-  //! \details To be used when there is no underlying SAM
   virtual bool assemble(const Matrix& eM, const IntVec& meq);
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.

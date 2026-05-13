@@ -22,6 +22,7 @@
 #ifdef HAS_ISTL
 #include "ISTLMatrix.h"
 #endif
+#include "SAM.h"
 #include "LinSolParams.h"
 #include <fstream>
 
@@ -180,15 +181,38 @@ void SystemMatrix::initNonZeroEqs ()
 }
 
 
-bool SystemMatrix::flagNonZeroEqs (const IntVec& meq)
+bool SystemMatrix::flagNonZeroEq (int ieq)
 {
-  if (meq.empty() || nonZeroEqs.size() == 1)
+  if (nonZeroEqs.size() == 1)
+    nonZeroEqs.front() = true;
+  else if (ieq == 0)
     std::fill(nonZeroEqs.begin(),nonZeroEqs.end(),true);
+  else if (ieq < 0 || ieq > static_cast<int>(nonZeroEqs.size()))
+    return false;
+  else
+    nonZeroEqs[ieq-1] = true;
+
+  return true;
+}
+
+
+bool SystemMatrix::flagNonZeroEqs (const SAM& sam, const IntVec& meq)
+{
+  if (nonZeroEqs.size() == 1)
+    nonZeroEqs.front() = true;
   else
   {
     for (int ieq : meq)
-      if (ieq < 0 || ieq > static_cast<int>(nonZeroEqs.size()))
-        return false; //TODO: for ieq < 0, find the actual master dofs
+      if (ieq > static_cast<int>(nonZeroEqs.size()))
+        return false;
+      else if (ieq < 0)
+      {
+        // This is a dependent DOF, flag the associated independent DOFs instead
+        int iceq = -ieq;
+        for (int ip = sam.mpmceq[iceq-1]; ip < sam.mpmceq[iceq]-1; ip++)
+          if (int jdof = sam.mmceq[ip]; jdof > 0)
+            nonZeroEqs[sam.meqn[jdof-1]-1] = true;
+      }
       else if (ieq > 0)
         nonZeroEqs[ieq-1] = true;
   }

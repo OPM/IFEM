@@ -270,8 +270,10 @@ public:
 
   //! \brief Initializes the \ref nonZeroEqs flags.
   void initNonZeroEqs();
+  //! \brief Flags equation \a ieq as pivot element with non-zero contributions.
+  bool flagNonZeroEq(int ieq = 0);
   //! \brief Flags the equations \a meq as pivots with non-zero contributions.
-  bool flagNonZeroEqs(const IntVec& meq = {});
+  bool flagNonZeroEqs(const SAM& sam, const IntVec& meq);
   //! \brief Flags the non-zero equations from \a B as non-zero pivots in this.
   bool flagNonZeroEqs(const SystemMatrix& B);
 
@@ -312,7 +314,7 @@ public:
   //! \param[in] meq Matrix of element equation numbers (0 based)
   //! \return \e true on successful assembly, otherwise \e false
   //!
-  //! \details To be used when there is no underlying SAM
+  //! \details To be used when there is no associated SAM object.
   virtual bool assemble(const Matrix& eM, const IntVec& meq) = 0;
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.

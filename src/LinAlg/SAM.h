@@ -357,6 +357,7 @@ protected:
   friend class SparseMatrix;
   friend class DiagMatrix;
   friend class PETScMatrix;
+  friend class SystemMatrix;
 };
 
 #endif

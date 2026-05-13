@@ -223,7 +223,7 @@ bool DenseMatrix::load (const char* fileName, bool binary)
   else
     ipiv = nullptr;
 
-  return is.good() && this->flagNonZeroEqs();
+  return is.good() && this->flagNonZeroEq();
 }
 
 
@@ -321,7 +321,7 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
   addem2 (eM.ptr(), sam.ttcc, sam.mpar,
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
 	  e, eM.rows(), sam.neq, 6, 0, myMat.ptr(), &dummyRHS, work, ierr);
-  if (ierr == 0 && !this->flagNonZeroEqs({work,work+eM.rows()}))
+  if (ierr == 0 && !this->flagNonZeroEqs(sam,{work,work+eM.rows()}))
     ierr = 2;
   delete[] work;
 #else
@@ -330,7 +330,7 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
   if (sam.getElmEqns(meen,e,eM.rows()))
   {
     assemDense(eM,myMat,dummyB,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-    if (!this->flagNonZeroEqs(meen)) ierr = 2;
+    if (!this->flagNonZeroEqs(sam,meen)) ierr = 2;
   }
   else
     ierr = 1;
@@ -351,7 +351,7 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
   addem2 (eM.ptr(), sam.ttcc, sam.mpar,
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
 	  e, eM.rows(), sam.neq, 6, 1, myMat.ptr(), B.getPtr(), work, ierr);
-  if (ierr == 0 && !this->flagNonZeroEqs({work,work+eM.rows()}))
+  if (ierr == 0 && !this->flagNonZeroEqs(sam,{work,work+eM.rows()}))
     ierr = 2;
   delete[] work;
 #else
@@ -360,7 +360,7 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
   if (Bptr && sam.getElmEqns(meen,e,eM.rows()))
   {
     assemDense(eM,myMat,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-    if (!this->flagNonZeroEqs(meen)) ierr = 2;
+    if (!this->flagNonZeroEqs(sam,meen)) ierr = 2;
   }
   else
     ierr = 1;
@@ -383,15 +383,19 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
 
   assemDense(eM,myMat,*Bptr,meq,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
 
-  return this->flagNonZeroEqs(meq);
+  return this->flagNonZeroEqs(sam,meq);
 }
 
 
 bool DenseMatrix::assemble (const Matrix& eM, const IntVec& meq)
 {
+  for (int ieq : meq)
+    if (ieq < 0 || !this->flagNonZeroEq(ieq+1))
+      return false;
+
   for (size_t i = 0; i < meq.size(); ++i)
     for (size_t j = 0; j < meq.size(); ++j)
-      (*this)(meq[i]+1, meq[j]+1) += eM(i+1, j+1);
+      myMat(meq[i]+1, meq[j]+1) += eM(i+1, j+1);
 
   return true;
 }
@@ -493,10 +497,7 @@ bool DenseMatrix::add (Real sigma, int ieq)
   else
     cblas_daxpy(myMat.rows(),sigma,&sigma,0,myMat.ptr(),myMat.rows()+1);
 
-  if (ieq == 0)
-    return this->flagNonZeroEqs();
-  else
-    return this->flagNonZeroEqs({ieq});
+  return this->flagNonZeroEq(ieq);
 }
 
 

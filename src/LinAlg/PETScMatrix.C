@@ -631,7 +631,7 @@ bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 #pragma omp critical
   assemPETSc(eM,*this,nullptr,adm.dd,glb2Blk,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
 
-  return this->flagNonZeroEqs(meen);
+  return this->flagNonZeroEqs(sam,meen);
 }
 
 
@@ -648,7 +648,7 @@ bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam,
 #pragma omp critical
   assemPETSc(eM,*this,Bptr,adm.dd,glb2Blk,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
 
-  return this->flagNonZeroEqs(meen);
+  return this->flagNonZeroEqs(sam,meen);
 }
 
 
@@ -664,12 +664,16 @@ bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam,
 #pragma omp critical
   assemPETSc(eM,*this,Bptr,adm.dd,glb2Blk,meq,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
 
-  return this->flagNonZeroEqs(meq);
+  return this->flagNonZeroEqs(sam,meq);
 }
 
 
 bool PETScMatrix::assemble (const Matrix& eM, const IntVec& meq)
 {
+  for (int ieq : meq)
+    if (ieq < 0 || !this->flagNonZeroEq(ieq+1))
+      return false;
+
 #pragma omp critical
   for (size_t i = 0; i < meq.size(); ++i)
     for (size_t j = 0; j < meq.size(); ++j)
@@ -689,7 +693,7 @@ bool PETScMatrix::endAssembly ()
   MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
   assembled = true;
 
-  return true;
+  return this->SystemMatrix::endAssembly();
 }
 
 
@@ -1013,17 +1017,12 @@ bool PETScMatrix::setParameters (bool setup)
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
 
     // Preconditioner for blocks
-    char pchar = '1';
-    for (PetscInt m = 0; m < nsplit; ++m, ++pchar) {
-      std::string prefix;
-      if (nsplit == 2) {
-        if (m == 0)
-          prefix = "fieldsplit_u";
-        else
-          prefix = "fieldsplit_p";
-      } else
-        prefix = std::string("fieldsplit_b")+pchar;
-
+    for (PetscInt m = 0; m < nsplit; ++m) {
+      std::string prefix("fieldsplit_");
+      if (nsplit == 2)
+        prefix += (m == 0 ? 'u' : 'p');
+      else
+        prefix += "b" + std::to_string(1+m);
       KSPSetType(subksp[m],"preonly");
       KSPGetPC(subksp[m],&subpc[m]);
       if (solParams.getBlock(m).getStringValue("pc") == "schur")

@@ -100,7 +100,7 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam,
                 if (sam.mmceq[ip] > 0 && sam.meqn[sam.mmceq[ip]-1] == jeq)
                   myMat(jeq) += sam.ttcc[ip]*sam.ttcc[jp]*eM(i,j);
 
-  return this->flagNonZeroEqs(meq);
+  return this->flagNonZeroEqs(sam,meq);
 }
 
 
@@ -136,7 +136,7 @@ bool DiagMatrix::assembleStruct (int val, const SAM& sam, const IntVec& meq)
                 if (sam.mmceq[ip] > 0 && sam.meqn[sam.mmceq[ip]-1] == jeq)
                   addEq(jeq);
 
-  return this->flagNonZeroEqs(meq);
+  return this->flagNonZeroEqs(sam,meq);
 }
 
 
@@ -149,8 +149,12 @@ bool DiagMatrix::assemble (const Matrix& eM, const SAM& sam,
 
 bool DiagMatrix::assemble (const Matrix& eM, const IntVec& meq)
 {
+  for (int ieq : meq)
+    if (ieq < 0 || !this->flagNonZeroEq(ieq+1))
+      return false;
+
   for (size_t i = 0; i < meq.size(); ++i)
-    (*this)(meq[i]+1) += eM(i+1, i+1);
+    myMat[meq[i]] += eM(i+1, i+1);
 
   return true;
 }
@@ -177,10 +181,7 @@ bool DiagMatrix::add (Real sigma, int ieq)
   else for (Real& v : myMat)
     v += sigma;
 
-  if (ieq == 0)
-    return this->flagNonZeroEqs();
-  else
-    return this->flagNonZeroEqs({ieq});
+  return this->flagNonZeroEq(ieq);
 }
 
 
