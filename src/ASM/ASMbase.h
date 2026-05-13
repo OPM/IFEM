@@ -691,11 +691,11 @@ public:
   virtual bool evaluate(const Field* f, RealArray& vec, int basisNum = 1) const;
 
   //! \brief Evaluates and interpolates a scalar function over a given geometry.
-  //! \param[in] f The function to evaluate
+  //! \param[in] func The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum The basis to evaluate for (mixed)
   //! \param[in] time Current time
-  virtual bool evaluate(const FunctionBase* f, RealArray& vec,
+  virtual bool evaluate(const FunctionBase* func, RealArray& vec,
                         int basisNum = 1, double time = 0.0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
@@ -768,19 +768,19 @@ public:
 
   //! \brief Projects an explicit function using a continuous global L2-fit.
   //! \param[out] fVals Control point values of the function
-  //! \param[in] function The function to project
+  //! \param[in] func The function to project
   //! \param[in] t Current time
   //!
   //! \note The implementation of this method is placed in GlbL2projector.C
-  bool L2projection(Matrix& fVals, FunctionBase* function, double t = 0.0);
+  bool L2projection(Matrix& fVals, FunctionBase* func, double t = 0.0);
   //! \brief Projects explicit functions using a continuous global L2-fit.
   //! \param[out] fVals Control point values of the functions
-  //! \param[in] function The functions to project
+  //! \param[in] funcs The functions to project
   //! \param[in] t Current time
   //!
   //! \note The implementation of this method is placed in GlbL2projector.C
   bool L2projection(const std::vector<Matrix*>& fVals,
-                    const std::vector<FunctionBase*>& function, double t = 0.0);
+                    const std::vector<FunctionBase*>& funcs, double t = 0.0);
 
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const { return this->getNoNodes(1); }

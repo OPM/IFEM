@@ -45,6 +45,20 @@ bool SIMbase::preserveNOrder  = false;
 bool SIMbase::ignoreDirichlet = false;
 
 
+namespace
+{
+  //! \brief Helper struct ensuring GlbL2 pointers are nullified when leaving.
+  struct GlbL2guard
+  {
+    ~GlbL2guard()
+    {
+      GlbL2::SolverParams = nullptr;
+      GlbL2::Adm = nullptr;
+    }
+  };
+}
+
+
 SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
 {
   nsd = 3;
@@ -2278,8 +2292,16 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
       if (!pch->empty())
         ngNodes += pch->getNoProjectionNodes();
 
+  GlbL2guard guard;
   if (method == SIMoptions::DGL2 || method == SIMoptions::CGL2)
+  {
+    // Set integration scheme for recovery
+    // (usually higher than for the main problem)
     const_cast<SIMbase*>(this)->setQuadratureRule(opt.nGauss[1]);
+    // Set global solver parameters associated with this simulator
+    GlbL2::SolverParams = myGl2Params;
+    GlbL2::Adm = &adm;
+  }
   else if (method == SIMoptions::CGL2_INT)
   {
     // Reinitialize the integration point buffers within the integrands (if any)
@@ -2320,20 +2342,18 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     case SIMoptions::DGL2:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tDiscrete global L2-projection"<< std::endl;
-      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i],*myProblem,adm));
+      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i],*myProblem));
       break;
 
     case SIMoptions::CGL2:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
-      GlbL2::SolverParams = myGl2Params;
-      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i],*myProblem,adm),true);
+      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i],*myProblem),true);
       break;
 
     case SIMoptions::CGL2_INT:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
-      GlbL2::SolverParams = myGl2Params;
       ok = myModel[i]->L2projection(values,myProblem,time);
       break;
 
@@ -2415,6 +2435,14 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
                        int basis, int iField, int nFields,
                        SIMoptions::ProjectionMethod method, double time) const
 {
+  GlbL2guard guard;
+  if (method == SIMoptions::DGL2 || method == SIMoptions::CGL2)
+  {
+    // Set global solver parameters associated with this simulator
+    GlbL2::SolverParams = myGl2Params;
+    GlbL2::Adm = &adm;
+  }
+
   bool ok = true;
   for (size_t j = 0; j < myModel.size() && ok; j++)
   {
@@ -2439,7 +2467,7 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
           return false;
         }
         Matrix ftmp(loc_values);
-        ok = myModel[j]->globalL2projection(ftmp,L2FuncIntegrand(*myModel[j],*f,adm),true);
+        ok = myModel[j]->globalL2projection(ftmp,L2FuncIntegrand(*myModel[j],*f),true);
         values = loc_values;
         return ok;
       }
