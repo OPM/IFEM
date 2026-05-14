@@ -1779,10 +1779,16 @@ bool ASMs1D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                  const L2Integrand& integrand,
                                  bool continuous) const
 {
-  const size_t nnod = this->getNoProjectionNodes();
-  const int p1 = proj->order();
+  const bool checkAge = this->getElementActivator() != nullptr;
+  if (proj != curv && checkAge)
+  {
+    std::cerr <<" *** ASMs1D::assembleL2matrices: Separate projection basis "
+              <<" can not be used with element activation."<< std::endl;
+    return false;
+  }
 
   // Get Gaussian quadrature point coordinates (and weights if continuous)
+  const int     p1 = proj->order();
   const int     ng = continuous ? this->getNoGaussPt(p1,true) : p1 - 1;
   const double* xg = GaussQuadrature::getCoord(ng);
   const double* wg = continuous ? GaussQuadrature::getWeight(ng) : nullptr;
@@ -1807,6 +1813,7 @@ bool ASMs1D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
 
   const IntVec& mlge = projMLGE.empty() ? MLGE : projMLGE;
   const IntMat& mnpc = projMNPC.empty() ? MNPC : projMNPC;
+  const size_t npnod = this->getNoProjectionNodes();
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1815,6 +1822,8 @@ bool ASMs1D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
   for (size_t iel = 0; iel < mlge.size(); iel++)
   {
     if (mlge[iel] < 1) continue; // zero-length element
+    if (checkAge && !this->isElementActive(iel,integrand.getTimeLevel()))
+      continue; // inactive element
 
     if (continuous)
     {
@@ -1857,7 +1866,7 @@ bool ASMs1D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
         eB[r-1].add(phi,sField(r,ip+1)*dJw);
 
       A.assemble(eA, mnpc[iel]);
-      B.assemble(eB, mnpc[iel], nnod);
+      B.assemble(eB, mnpc[iel], npnod);
     }
   }
 

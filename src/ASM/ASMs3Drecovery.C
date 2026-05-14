@@ -158,12 +158,17 @@ bool ASMs3D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                  const L2Integrand& integrand,
                                  bool continuous) const
 {
-  const size_t nnod = this->getNoProjectionNodes();
-
-  const Go::SplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  const Go::SplineVolume* geo  = this->getBasis(ASM::GEOMETRY_BASIS);
   const Go::SplineVolume* proj = this->getBasis(ASM::PROJECTION_BASIS);
   const bool separateProjBasis = proj != geo;
   const bool singleBasis = !separateProjBasis && this->getNoBasis() == 1;
+  const bool checkAge = this->getElementActivator() != nullptr;
+  if (separateProjBasis && checkAge)
+  {
+    std::cerr <<" *** ASMs3D::assembleL2matrices: Separate projection basis "
+              <<" can not be used with element activation."<< std::endl;
+    return false;
+  }
 
   const int p1 = proj->order(0);
   const int p2 = proj->order(1);
@@ -212,10 +217,13 @@ bool ASMs3D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
     return false;
   }
 
+  const size_t npnod = this->getNoProjectionNodes();
   const IntMat gmnpc = this->getElmNodes(ASM::PROJECTION_BASIS);
   A.preAssemble(gmnpc, gmnpc.size());
 
+
   // === Assembly loop over all elements in the patch ==========================
+
   bool ok = true;
   for (size_t g = 0; g < projThreadGroups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
@@ -225,37 +233,45 @@ bool ASMs3D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
       Matrix dNdu, Xnod, J;
       for (int iel : projThreadGroups[g][t])
       {
-        int i1 = iel % nel1;
-        int i2 = (iel / nel1) % nel2;
-        int i3 = iel / (nel1*nel2);
+        if (checkAge && !this->isElementActive(iel,integrand.getTimeLevel()))
+          continue; // inactive element
 
-        int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
         const IntVec& mnpc = gmnpc[iel];
         if (mnpc.empty())
           continue;
 
+        int i1 = iel % nel1;
+        int i2 = (iel / nel1) % nel2;
+        int i3 = iel / (nel1*nel2);
+        int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
+
         if (continuous)
         {
           // Set up control point (nodal) coordinates for current element
-          if (singleBasis) {
-            if (!this->getElementCoordinates(Xnod,1+iel)) {
-              ok = false;
-              continue;
-            } else if ((dV = 0.125*this->getParametricVolume(1+iel)) < 0.0) {
-              ok = false;
-              continue; // topology error (probably logic error)
-            }
-          } else {
-            if (!this->getElementCoordinatesPrm(Xnod,gpar[0][i1*ng1],
-                                                gpar[1][i2*ng2],gpar[2][i3*ng3])) {
-              ok = false;
-              continue;
-            } else if ((dV = 0.125 * proj->knotSpan(0, mnpc.back() % n1)
-                                   * proj->knotSpan(1,(mnpc.back() / n1) % n2)
-                                   * proj->knotSpan(2, mnpc.back() / (n1*n2))) < 0.0) {
-              ok = false;
-              continue;
-            }
+          bool skip = false;
+          if (singleBasis)
+          {
+            if (!this->getElementCoordinates(Xnod,1+iel))
+              skip = true;
+            if ((dV = 0.125*this->getParametricVolume(1+iel)) < 0.0)
+              skip = true; // topology error (probably logic error)
+          }
+          else
+          {
+            if (!this->getElementCoordinatesPrm(Xnod,
+                                                gpar[0][i1*ng1],
+                                                gpar[1][i2*ng2],
+                                                gpar[2][i3*ng3]))
+              skip = true;
+            if ((dV = 0.125 * proj->knotSpan(0, mnpc.back() % n1)
+                            * proj->knotSpan(1,(mnpc.back() / n1) % n2)
+                            * proj->knotSpan(2, mnpc.back() / (n1*n2))) < 0.0)
+              skip = true;
+          }
+          if (skip)
+          {
+            ok = false;
+            continue;
           }
         }
 
@@ -290,7 +306,7 @@ bool ASMs3D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
             }
 
         A.assemble(eA, mnpc);
-        B.assemble(eB, mnpc, nnod);
+        B.assemble(eB, mnpc, npnod);
       }
     }
 

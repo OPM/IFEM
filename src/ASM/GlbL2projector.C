@@ -397,9 +397,12 @@ namespace
     //! \brief Pre-computes the sparsity pattern of the projection matrix \b A.
     //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
     //! \param[in] nel Number of elements
-    void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel)
+    //! \param[in] checkNZ If \e true, flag non-zero contributions in assembly
+    void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel, bool checkNZ)
     {
       A.preAssemble(MMNPC,nel);
+      if (checkNZ)
+        A.initNonZeroEqs();
     }
 
     //! \brief Solves the projection equation system and evaluates nodal values.
@@ -540,7 +543,7 @@ bool ASMbase::L2projection (Matrix& sField,
   GL2 gl2(integrand,this->getNoNodes(1));
   L2GlobalInt dummy(gl2);
 
-  gl2.preAssemble(MNPC,this->getNoElms(true));
+  gl2.preAssemble(MNPC,this->getNoElms(true),this->getElementActivator());
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
 }
 
@@ -557,7 +560,7 @@ bool ASMbase::L2projection (Matrix& fVals, FunctionBase* func, double t)
   GL2 gl2(func,this->getNoNodes(1));
   L2GlobalInt dummy(gl2);
 
-  gl2.preAssemble(MNPC,this->getNoElms(true));
+  gl2.preAssemble(MNPC,this->getNoElms(true),this->getElementActivator());
   return this->integrate(gl2,dummy,TimeDomain(t)) && gl2.solve(fVals);
 }
 
@@ -575,7 +578,7 @@ bool ASMbase::L2projection (const std::vector<Matrix*>& fVals,
   GL2 gl2(funcs,this->getNoNodes(1));
   L2GlobalInt dummy(gl2);
 
-  gl2.preAssemble(MNPC,this->getNoElms(true));
+  gl2.preAssemble(MNPC,this->getNoElms(true),this->getElementActivator());
   return this->integrate(gl2,dummy,TimeDomain(t)) && gl2.solve(fVals);
 }
 
@@ -593,13 +596,13 @@ bool ASMbase::globalL2projection (Matrix& sField,
 
   PROFILE2("ASMbase::globalL2");
 
+  const size_t npnod = this->getNoProjectionNodes();
+  const size_t ncomp = integrand.dim();
 #ifdef HAS_PETSC
   ProcessAdm singleAdm;
 #endif
 
   // Assemble the projection matrices
-  size_t i, npnod = this->getNoProjectionNodes();
-  size_t j, ncomp = integrand.dim();
   SystemMatrix* A;
   SystemVector* B;
   switch (GlbL2::MatrixType) {
@@ -607,35 +610,38 @@ bool ASMbase::globalL2projection (Matrix& sField,
     A = new SparseMatrix(npnod,npnod,SparseMatrix::UMFPACK);
     B = new StdVector(npnod*ncomp);
     break;
+
 #ifdef HAS_PETSC
   case LinAlg::PETSC:
     if (GlbL2::SolverParams && GlbL2::Adm)
     {
-      ProcessAdm& adm = GlbL2::Adm->dd.isPartitioned() ? *GlbL2::Adm : singleAdm;
-
-      PETScMatrix* Ap;
-      A = Ap = new PETScMatrix(adm, *GlbL2::SolverParams);
-
       const IntMat nodes = this->getElmNodes(ASM::PROJECTION_BASIS);
-      const bool useAdmPart = this->neighbors.empty() &&
-                              nodes.size() == nel;
+      const bool useAdm = neighbors.empty() && nodes.size() == nel;
+      const ProcessAdm& adm = GlbL2::Adm->dd.isPartitioned() ? *GlbL2::Adm : singleAdm;
 
       IntMat neighs;
-      if (adm.dd.isPartitioned() && !useAdmPart && adm.getProcId() == 0) {
+      if (adm.dd.isPartitioned() && !useAdm && adm.getProcId() == 0) {
         neighs.resize(nodes.size());
         this->getElmConnectivities(neighs, ASM::PROJECTION_BASIS);
       }
-      Ap->init(npnod, &nodes, &neighs, useAdmPart ? &adm.dd.getElms() : nullptr);
+
+      PETScMatrix* Ap;
+      A = Ap = new PETScMatrix(adm, *GlbL2::SolverParams);
+      Ap->init(npnod, &nodes, &neighs, useAdm ? &adm.dd.getElms() : nullptr);
       if (adm.dd.isPartitioned())
         const_cast<ASMbase*>(this)->generateProjThreadGroupsFromElms(Ap->getDD().getElms());
-      B = new PETScVectors(static_cast<PETScMatrix&>(*A), ncomp);
+      B = new PETScVectors(*Ap, ncomp);
       break;
     }
 #endif
+
   default:
     A = new SparseMatrix(npnod,npnod,SparseMatrix::SUPERLU);
     B = new StdVector(npnod*ncomp);
   }
+
+  if (this->getElementActivator())
+    A->initNonZeroEqs();
 
   if (!this->assembleL2matrices(*A,*B,integrand,continuous))
   {
@@ -654,35 +660,28 @@ bool ASMbase::globalL2projection (Matrix& sField,
             <<"-------------------"<< std::endl;
 #endif
 
-
+  // Solve the patch-global equation system
+  sField.resize(ncomp,npnod);
+  bool ok = false;
 #ifdef HAS_PETSC
-  if (GlbL2::MatrixType == LinAlg::PETSC) {
-    PETScVectors& Bp = static_cast<PETScVectors&>(*B);
-    sField.resize(ncomp, npnod);
-    if (!static_cast<PETScMatrix*>(A)->solveMultipleRhs(Bp, sField))
-    {
-      delete A;
-      delete B;
-      return false;
-    }
-  }
+  if (Ap)
+    ok = Ap->solveMultipleRhs(static_cast<PETScVectors&>(*B),sField);
   else
 #endif
-  {
-    // Solve the patch-global equation system
-    if (!A->solve(*B))
+    if ((ok = A->solve(*B)))
     {
-      delete A;
-      delete B;
-      return false;
+      // Store the control-point values of the projected field
+      const StdVector& stdB = dynamic_cast<const StdVector&>(*B);
+      for (size_t i = 1; i <= npnod; i++)
+        for (size_t j = 1; j <= ncomp; j++)
+          sField(j,i) = stdB(i+(j-1)*npnod);
     }
-
-    // Store the control-point values of the projected field
-    const StdVector& stdB = dynamic_cast<const StdVector&>(*B);
-    sField.resize(ncomp,npnod);
-    for (i = 1; i <= npnod; i++)
-      for (j = 1; j <= ncomp; j++)
-        sField(j,i) = stdB(i+(j-1)*npnod);
+  if (!ok)
+  {
+    delete A;
+    delete B;
+    sField.clear();
+    return false;
   }
 
 #if SP_DEBUG > 1
@@ -705,7 +704,7 @@ bool ASMbase::globalL2projection (Matrix& sField,
     return false;
 
   // Enforce the corner values in the projected field
-  for (i = 0; i < corners.size(); i++)
+  for (size_t i = 0; i < corners.size(); i++)
   {
 #if SP_DEBUG > 1
     std::cout <<"Replacing end/corner-point values of projected field at node "

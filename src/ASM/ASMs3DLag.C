@@ -1430,36 +1430,54 @@ bool ASMs3DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                     const L2Integrand& integrand,
                                     bool continuous) const
 {
-  BasisFunctionCache& cache = static_cast<BasisFunctionCache&>(*myCache.front());
+  const Go::SplineVolume* sv = this->getBasis(ASM::PROJECTION_BASIS);
+  const bool checkAge = this->getElementActivator() != nullptr;
+  if (sv != svol.get() && checkAge)
+  {
+    std::cerr <<" *** ASMs3DLag::assembleL2matrices: Separate projection basis "
+              <<" can not be used with element activation."<< std::endl;
+    return false;
+  }
+
+  ASMs3D::BasisFunctionCache& cache = *myCache.front();
   cache.init(1);
 
   const std::array<const double*,3>& wg = cache.weight();
   const std::array<int,3> nGP = cache.nGauss();
 
+  const int pp1 = sv->order(0);
+  const int pp2 = sv->order(1);
+  const int pp3 = sv->order(2);
+  const int nelx = (nx-1) / (pp1-1);
+  const int nely = (ny-1) / (pp2-1);
+  const int neln = pp1*pp2*pp3;
+
+  const size_t npnod = this->getNoProjectionNodes();
   const IntMat gmnpc = this->getElmNodes(ASM::PROJECTION_BASIS);
   A.preAssemble(gmnpc, gmnpc.size());
 
-  const size_t nnod = this->getNoProjectionNodes();
-
-  const int nel1 = (nx-1)/(p1-1);
-  const int nel2 = (ny-1)/(p2-1);
 
   // === Assembly loop over all elements in the patch ==========================
+
   bool ok = true;
   for (size_t g = 0; g < projThreadGroups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
     for (const IntVec& group : projThreadGroups[g])
     {
       Matrix dNdX, Xnod, J;
-      for (int iel : group) {
+      for (int iel : group)
+      {
+        if (checkAge && !this->isElementActive(iel,integrand.getTimeLevel()))
+          continue; // inactive element
+
         if (!this->getElementCoordinates(Xnod,1+iel)) {
           ok = false;
           continue;
         }
 
-        int i1 = nel1*nel2 > 0 ?  iel % nel1         : 0;
-        int i2 = nel1*nel2 > 0 ? (iel / nel1) % nel2 : 0;
-        int i3 = nel1*nel2 > 0 ?  iel / (nel1*nel2)  : 0;
+        const int i1 = nelx*nely > 0 ?  iel % nelx         : 0;
+        const int i2 = nelx*nely > 0 ? (iel / nelx) % nely : 0;
+        const int i3 = nelx*nely > 0 ?  iel / (nelx*nely)  : 0;
 
         std::array<RealArray,3> GP;
         GP[0].reserve(nGP[0]*nGP[1]*nGP[2]);
@@ -1478,16 +1496,18 @@ bool ASMs3DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        Matrix eA(p1*p2*p3, p1*p2*p3);
-        Vectors eB(sField.rows(), Vector(p1*p2*p3));
+        Matrix eA(neln,neln);
+        Vectors eB(sField.rows(), Vector(neln));
         size_t ip = 0;
         for (int k = 0; k < nGP[2]; ++k)
           for (int j = 0; j < nGP[1]; ++j)
             for (int i = 0; i < nGP[0]; ++i, ++ip) {
               const BasisFunctionVals& bfs = cache.getVals(iel,ip);
 
-              double dJw = (wg[0][i]*wg[1][j]*wg[2][k] *
-                            utl::Jacobian(J,dNdX,Xnod,bfs.dNdu));
+              double dJw = utl::Jacobian(J,dNdX,Xnod,bfs.dNdu);
+              if (dJw == 0.0) continue; // skip singular points
+
+              dJw *= wg[0][i]*wg[1][j]*wg[2][k];
 
               // Integrate the mass matrix
               eA.outer_product(bfs.N, bfs.N, true, dJw);
@@ -1497,9 +1517,8 @@ bool ASMs3DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                 eB[r-1].add(bfs.N,sField(r,ip+1)*dJw);
             }
 
-        const IntVec& mnpc = gmnpc[iel];
-        A.assemble(eA, mnpc);
-        B.assemble(eB, mnpc, nnod);
+        A.assemble(eA, gmnpc[iel]);
+        B.assemble(eB, gmnpc[iel], npnod);
       }
     }
 
