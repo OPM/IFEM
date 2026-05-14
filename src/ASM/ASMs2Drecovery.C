@@ -158,18 +158,22 @@ bool ASMs2D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                  const L2Integrand& integrand,
                                  bool continuous) const
 {
-  const size_t nnod = this->getNoProjectionNodes();
-
-  const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  const Go::SplineSurface* geo  = this->getBasis(ASM::GEOMETRY_BASIS);
   const Go::SplineSurface* proj = this->getBasis(ASM::PROJECTION_BASIS);
   const bool separateProjBasis = proj != geo;
   const bool singleBasis = !separateProjBasis && this->getNoBasis() == 1;
+  const bool checkAge = this->getElementActivator() != nullptr;
+  if (separateProjBasis && checkAge)
+  {
+    std::cerr <<" *** ASMs2D::assembleL2matrices: Separate projection basis "
+              <<" can not be used with element activation."<< std::endl;
+    return false;
+  }
 
   const int p1 = proj->order_u();
   const int p2 = proj->order_v();
   const int n1 = proj->numCoefs_u();
-  int nel1 = proj->numCoefs_u() - p1 + 1;
-
+  const int nel1 = n1 - p1 + 1;
   const int pmax = p1 > p2 ? p1 : p2;
 
   // Get Gaussian quadrature point coordinates (and weights if continuous)
@@ -204,8 +208,10 @@ bool ASMs2D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
     return false;
   }
 
+  const size_t npnod = this->getNoProjectionNodes();
   const IntMat gmnpc = this->getElmNodes(ASM::PROJECTION_BASIS);
   A.preAssemble(gmnpc, gmnpc.size());
+
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -219,40 +225,46 @@ bool ASMs2D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
       Matrix dNdu, Xnod, J;
       for (int iel : projThreadGroups[g][t])
       {
-        int i1 = iel % nel1;
-        int i2 = iel / nel1;
-        int ip = (i2*ng1*nel1 + i1)*ng2;
+        if (checkAge && !this->isElementActive(iel,integrand.getTimeLevel()))
+          continue; // inactive element
+
         const IntVec& mnpc = gmnpc[iel];
         if (mnpc.empty())
           continue;
 
+        int i1 = iel % nel1;
+        int i2 = iel / nel1;
+        int ip = (i2*ng1*nel1 + i1)*ng2;
+
         if (continuous)
         {
           // Set up control point (nodal) coordinates for current element
+          bool skip = false;
           if (singleBasis)
           {
-            if (!this->getElementCoordinates(Xnod,1+iel)) {
-              ok = false;
-              continue;
-            } else if ((dA = this->getParametricArea(1+iel)) < 0.0) {
-              ok = false;
-              continue;
-            }
+            if (!this->getElementCoordinates(Xnod,1+iel))
+              skip = true;
+            if ((dA = 0.25*this->getParametricArea(1+iel)) < 0.0)
+              skip = true;
           }
           else
           {
-            if (!this->getElementCoordinatesPrm(Xnod,gpar[0][i1*ng1],gpar[1][i2*ng2])) {
-              ok = false;
-              continue;
-            } else if ((dA = 0.25 * proj->knotSpan(0,mnpc.back() % n1)
-                                  * proj->knotSpan(1,mnpc.back() / n1)) < 0.0) {
-              ok = false;
-              continue; // topology error (probably logic error)
-            }
+            if (!this->getElementCoordinatesPrm(Xnod,
+                                                gpar[0][i1*ng1],
+                                                gpar[1][i2*ng2]))
+              skip = true;
+            if ((dA = 0.25 * proj->knotSpan(0,mnpc.back() % n1)
+                           * proj->knotSpan(1,mnpc.back() / n1)) < 0.0)
+              skip = true; // topology error (probably logic error)
+          }
+          if (skip)
+          {
+            ok = false;
+            continue;
           }
         }
 
-        // --- Integration loop over all Gauss points in each direction ----------
+        // --- Integration loop over all Gauss points in each direction --------
 
         Matrix eA(p1*p2, p1*p2);
         Vectors eB(sField.rows(), Vector(p1*p2));
@@ -282,30 +294,11 @@ bool ASMs2D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
           }
 
         A.assemble(eA, mnpc);
-        B.assemble(eB, mnpc, nnod);
+        B.assemble(eB, mnpc, npnod);
       }
     }
 
   return ok;
-}
-
-
-/*!
-  \brief Evaluates monomials in 2D up to the specified order.
-*/
-
-static void evalMonomials (int p1, int p2, double x, double y, Vector& P)
-{
-  P.resize(p1*p2);
-  P.fill(1.0);
-
-  int i, j, k, ip = 1;
-  for (j = 0; j < p2; j++)
-    for (i = 0; i < p1; i++, ip++)
-    {
-      for (k = 0; k < i; k++) P(ip) *= x;
-      for (k = 0; k < j; k++) P(ip) *= y;
-    }
 }
 
 
@@ -351,6 +344,21 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
   const size_t nCmp = sField.rows(); // Number of result components
   const size_t nPol = (n1+1)*(n2+1); // Number of terms in polynomial expansion
+
+  // Lambda functions evaluating the monomials in 2D up to the specified order.
+  auto&& evalMonomials = [n1,n2,nPol](double x, double y, Vector& P)
+  {
+    P.resize(nPol);
+    P.fill(1.0);
+
+    int i, j, k, ip = 1;
+    for (j = 0; j <= n2; j++)
+      for (i = 0; i <= n1; i++, ip++)
+      {
+        for (k = 0; k < i; k++) P(ip) *= x;
+        for (k = 0; k < j; k++) P(ip) *= y;
+      }
+  };
 
   Matrix sValues(nCmp,gpar[0].size()*gpar[1].size());
   Vector P(nPol);
@@ -402,7 +410,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
 		  // Evaluate the polynomial expansion at current Gauss point
 		  surf->point(X,u,v);
-		  evalMonomials(n1+1,n2+1,X[0]-G[0],X[1]-G[1],P);
+		  evalMonomials(X[0]-G[0],X[1]-G[1],P);
 
 #if SP_DEBUG > 1
 		  std::cout <<"Itg. point "<< i <<","<< j <<" (u,v) = "
