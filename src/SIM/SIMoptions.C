@@ -394,6 +394,8 @@ bool SIMoptions::parseProjectionMethod (const char* ptype, int version)
     project[DGL2] = "Discrete global L2-projection";
   else if (!strcasecmp(ptype,"cgl2"))
     project[version == 1 ? CGL2 : CGL2_INT] = "Continuous global L2-projection";
+  else if (!strcasecmp(ptype,"gl2"))
+    project[CGL2_INT] = "Continuous global L2-projection";
   else if (!strcasecmp(ptype,"scr"))
     project[SCR] = "Superconvergent recovery";
   else if (!strcasecmp(ptype,"vdsa"))
