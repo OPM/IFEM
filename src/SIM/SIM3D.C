@@ -284,27 +284,48 @@ bool SIM3D::parseGeometryTag (const tinyxml2::XMLElement* elem)
 
 bool SIM3D::parseBCTag (const tinyxml2::XMLElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"fixpoint") && !ignoreDirichlet)
+  if (ignoreDirichlet)
+    return true; // Ignore all boundary conditions
+
+  else if (!strcasecmp(elem->Value(),"fixpoint"))
   {
     if (!this->createFEMmodel()) return false;
 
-    int patch = 0, code = 123;
-    double rx = 0.0, ry = 0.0, rz = 0.0;
+    int patch = 0;
     utl::getAttribute(elem,"patch",patch);
-    utl::getAttribute(elem,"code",code);
-    utl::getAttribute(elem,"rx",rx);
-    utl::getAttribute(elem,"ry",ry);
-    utl::getAttribute(elem,"rz",rz);
     int pid = this->getLocalPatchIndex(patch);
     if (pid < 1) return pid == 0;
 
     ASM3D* pch = dynamic_cast<ASM3D*>(myModel[pid-1]);
     if (!pch) return false;
 
+    int code = 123;
+    double rx = 0.0, ry = 0.0, rz = 0.0;
+    utl::getAttribute(elem,"code",code);
+    utl::getAttribute(elem,"rx",rx);
+    utl::getAttribute(elem,"ry",ry);
+    utl::getAttribute(elem,"rz",rz);
     IFEM::cout <<"\tConstraining P"<< patch
                <<" point at "<< rx <<" "<< ry <<" "<< rz
                <<" with code "<< code << std::endl;
     pch->constrainNode(rx,ry,rz,code);
+  }
+
+  else if (!strcasecmp(elem->Value(),"fixline"))
+  {
+    if (!this->createFEMmodel()) return false;
+
+    int patch = 0;
+    utl::getAttribute(elem,"patch",patch);
+    if ((patch = this->getLocalPatchIndex(patch)) < 1)
+      return patch == 0;
+
+    int line = 0, code = 123;
+    double xi = 0.0;
+    utl::getAttribute(elem,"line",line);
+    utl::getAttribute(elem,"code",code);
+    utl::getAttribute(elem,"xi",xi);
+    return this->addLineConstraint(patch,line%10,line/10,xi,code);
   }
 
   return true;
@@ -590,7 +611,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
   // Must dynamic cast here, since ASM3D is not derived from ASMbase
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
-  if (!pch) return error("3D patch",patch);
+  if (!pch) return error("3D patch",myModel[patch-1]->idx+1);
 
   switch (aldim)
     {
@@ -670,14 +691,14 @@ bool SIM3D::addLineConstraint (int patch, int lndx, int line, double xi,
   if (patch < 1 || patch > (int)myModel.size())
     return error("patch index",patch);
 
-  IFEM::cout <<"\tConstraining P"<< patch
+  IFEM::cout <<"\tConstraining P"<< myModel[patch-1]->idx+1
              <<" F"<< lndx <<" L"<< line <<" at xi="<< xi
              <<" in direction(s) "<< dirs
              <<" basis = " << (int)basis << std::endl;
 
   // Must dynamic cast here, since ASM3D is not derived from ASMbase
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
-  if (!pch) return error("3D patch",patch);
+  if (!pch) return error("3D patch",myModel[patch-1]->idx+1);
 
   switch (line)
     {
@@ -690,7 +711,7 @@ bool SIM3D::addLineConstraint (int patch, int lndx, int line, double xi,
         case 4: pch->constrainLine( 2,3,xi,dirs,0,basis); break;
         case 5: pch->constrainLine(-3,1,xi,dirs,0,basis); break;
         case 6: pch->constrainLine( 3,1,xi,dirs,0,basis); break;
-        default: error("face index",lndx);
+        default: return error("face index",lndx);
         }
       break;
 
