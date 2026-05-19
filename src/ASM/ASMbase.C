@@ -1492,7 +1492,7 @@ void ASMbase::extractElmRes (const Matrix& globRes, Vector& elmRes,
 
 
 bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
-                               const int* madof, int ngnod) const
+                               const int* madof, int ngnod, int inod) const
 {
   nodeVec.clear();
   if (ngnod == 0)
@@ -1502,14 +1502,23 @@ bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
   }
 
 #ifdef INDEX_CHECK
-  int maxDof = globRes.size();
+  const int maxDof = globRes.size();
 #endif
-  size_t nPchNod = ngnod == -2 ? nnod : MLGN.size();
-  nodeVec.reserve(nf*nPchNod);
-  for (size_t i = 0; i < nPchNod; i++)
+  const int maxNod = ngnod == -2 ? nnod : MLGN.size();
+  const int pchNod = inod > 0 ? 1 : maxNod;
+  nodeVec.reserve(nf*pchNod);
+  for (int i = 0; i < pchNod; i++)
   {
-    int inod = MLGN[i];
-#ifdef INDEX_CHECK
+    if (i > 0 || inod < 1)
+      inod = MLGN[i]; // Extract for all patch nodes
+    else if (inod <= maxNod)
+      inod = MLGN[inod-1]; // Extract only for the specified node
+    else
+    {
+      std::cerr <<" *** ASMbase::extractNodalVec: Local node "<< inod
+                <<" is out of range [1,"<< maxNod <<"]."<< std::endl;
+      return false;
+    }
     if (inod < 1 || (inod > ngnod && ngnod > 0))
     {
       std::cerr <<" *** ASMbase::extractNodalVec: Global node "<< inod;
@@ -1519,7 +1528,6 @@ bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
         std::cerr <<" is out of range."<< std::endl;
       return false;
     }
-#endif
     int idof = madof[inod-1] - 1;
     int jdof = madof[inod] - 1;
     if (idof == jdof)
@@ -1528,7 +1536,7 @@ bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
     else if (idof < 0 || idof > jdof || jdof > maxDof)
     {
       std::cerr <<" *** ASMbase::extractNodalVec: Global DOFs "
-                << idof+1 <<" "<< jdof
+                << idof+1 <<"..."<< jdof
                 <<" out of range [1,"<< maxDof <<"]."<< std::endl;
       return false;
     }
@@ -1589,6 +1597,44 @@ bool ASMbase::injectNodalVec (const RealArray& nodeVec, RealArray& globVec,
       ldof += ndof;
     }
 
+  return true;
+}
+
+
+bool ASMbase::injectNodalVec (const RealArray& nodeVec, RealArray& globVec,
+                              const int* madof, int inod) const
+{
+  if (inod < 1 || inod > static_cast<int>(MLGN.size()))
+  {
+    std::cerr <<" *** ASMbase::injectNodalVec: Node index "<< inod
+              <<" is out of range. [1,"<< MLGN.size() <<"]."<< std::endl;
+    return false;
+  }
+
+  inod = MLGN[inod-1]; // Inject only for the specified node
+
+  int idof = madof[inod-1] - 1;
+  int ndof = madof[inod] - 1 - idof;
+  if (ndof == 0)
+    return true; // DOF-less node, do nothing
+
+#ifdef INDEX_CHECK
+  int maxDof = globVec.size();
+  if (idof < 0 || ndof < 0 || idof+ndof > maxDof)
+  {
+    std::cerr <<" *** ASMbase::injectNodalVec: Global DOFs "
+              << idof+1 <<"..."<< idof+ndof
+              <<" out of range [1,"<< maxDof <<"]."<< std::endl;
+    return false;
+  }
+  else if (ndof > static_cast<int>(nodeVec.size()))
+  {
+    std::cerr <<" *** ASMbase::injectNodalVec: Nodal array too short "
+              << nodeVec.size() <<" < "<< ndof <<"."<< std::endl;
+    return false;
+  }
+#endif
+  std::copy(nodeVec.begin(), nodeVec.begin()+ndof, globVec.begin()+idof);
   return true;
 }
 

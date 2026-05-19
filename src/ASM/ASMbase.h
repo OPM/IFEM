@@ -832,8 +832,9 @@ public:
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] madof Global Matrix of Accumulated DOFs
   //! \param[in] ngnod Dimension of madof (the default -1 means unknown)
+  //! \param[in] inod 1-based local index of the node to extract (or 0 for all)
   bool extractNodalVec(const RealArray& globVec, RealArray& nodeVec,
-                       const int* madof, int ngnod = -1) const;
+                       const int* madof, int ngnod = -1, int inod = 0) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
@@ -858,6 +859,14 @@ public:
   //! \param[in] basis Which basis to inject nodal values for (mixed methods)
   bool injectNodalVec(const RealArray& nodeVec, RealArray& globVec,
                       const IntVec& madof, int basis = 0) const;
+
+  //! \brief Injects nodal results for a single node into the global vector.
+  //! \param[in] nodeVec Nodal result vector
+  //! \param globVec Global solution vector in DOF-order
+  //! \param[in] madof Global Matrix of Accumulated DOFs
+  //! \param[in] inod 1-based local index of the node to inject
+  bool injectNodalVec(const RealArray& nodeVec, RealArray& globVec,
+                      const int* madof, int inod) const;
 
   //! \brief Creates and adds a two-point constraint to this patch.
   //! \param[in] slave Global node number of the node to constrain
