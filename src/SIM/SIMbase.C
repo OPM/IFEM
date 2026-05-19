@@ -2326,7 +2326,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
       continue; // skip empty or inactive patches
 
     // Extract the primary solution control point values for this patch
-    if (!this->extractPatchSolution(myProblem,{psol},idx-1))
+    if (!this->extractPatchSolution(myProblem,{psol},idx-1,time.t))
       return false;
 
     // Initialize material properties for this patch in case of multiple regions
@@ -2536,8 +2536,15 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
 }
 
 
-bool SIMbase::extractPatchSolution (IntegrandBase* problem,
-                                    const Vectors& sol, size_t pindx) const
+/*!
+  If \a time &gt; 0 and element activation is used, this method will also
+  assign solution values to control/nodal points only connected to inactive
+  elements that are connected to other active elements. These values are
+  based on the average nodal values of the connected neighbor element.
+*/
+
+bool SIMbase::extractPatchSolution (IntegrandBase* problem, const Vectors& sol,
+                                    size_t pindx, double time) const
 {
   if (!problem || !mySam) return false;
 
@@ -2545,9 +2552,65 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
   if (!pch) return false;
 
   problem->initNodeMap(pch->getGlobalNodeNums());
+
+  Vectors tmpSol;
+  if (pch->getElementActivator() && time > 0.0)
+  {
+    // We need to assign values to the nodes/control points only connected to
+    // not-yet activated elements that are connected to at least one node that
+    // also is connected to an active element
+
+    // First, find all currently active elements and nodes
+    IntSet activeNodes;
+    IntVec inactiveElms;
+    for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+      if (pch->isElementActive(iel-1,time))
+        for (int inod : pch->getElementNodes(iel))
+          activeNodes.insert(pch->getNodeID(1+inod));
+      else
+        inactiveElms.push_back(iel);
+
+    for (int iel : inactiveElms)
+    {
+      // Find mean value for inactive elements connected to active elements
+      size_t nanod = 0;
+      RealArray nodSol;
+      Vectors avgSol(problem->getNoSolutions());
+      for (int inod : pch->getElementNodes(iel))
+        if (activeNodes.find(pch->getNodeID(1+inod)) != activeNodes.end())
+        {
+          ++nanod;
+          for (size_t i = 0; i < avgSol.size(); i++)
+            if (i < sol.size() && !sol[i].empty())
+            {
+              pch->extractNodalVec(sol[i],nodSol,mySam->getMADOF(),-1,1+inod);
+              avgSol[i].add(nodSol);
+            }
+        }
+
+      if (nanod > 0)
+      {
+        for (Vector& s : avgSol)
+          s *= 1.0/static_cast<double>(nanod);
+
+        if (tmpSol.empty())
+          tmpSol = sol;
+
+        // Now assign this value to the connected inactive nodes
+        for (int inod : pch->getElementNodes(iel))
+          if (activeNodes.find(pch->getNodeID(1+inod)) == activeNodes.end())
+            for (size_t i = 0; i < avgSol.size(); i++)
+              if (!avgSol[i].empty())
+                pch->injectNodalVec(avgSol[i],tmpSol[i],mySam->getMADOF(),1+inod);
+      }
+    }
+  }
+
+  const Vectors& psol = tmpSol.empty() ? sol : tmpSol;
+
   for (size_t i = 0; i < problem->getNoSolutions(); i++)
-    if (i < sol.size() && !sol[i].empty())
-      pch->extractNodalVec(sol[i],problem->getSolution(i),mySam->getMADOF());
+    if (i < psol.size() && !psol[i].empty())
+      pch->extractNodalVec(psol[i],problem->getSolution(i),mySam->getMADOF());
     else
       problem->getSolution(i).clear();
 

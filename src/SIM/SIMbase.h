@@ -624,14 +624,15 @@ protected:
   //! \param[in] problem The integrand to receive patch-level solution vectors
   //! \param[in] sol Global primary solution vectors in DOF-order
   //! \param[in] pindx Local patch index to extract solution vectors for
+  //! \param[in] time Current time (used only if element activators exist)
   //!
   //! \details This method is typically invoked before ASMbase::integrate()
   //! on the specified patch, in order to extract all patch-level vector
   //! quantities needed by the Integrand. This also includes any dependent
   //! vectors from other simulator classes that have been registered.
   //! All patch-level vectors are stored within the provided integrand.
-  virtual bool extractPatchSolution(IntegrandBase* problem,
-                                    const Vectors& sol, size_t pindx) const;
+  virtual bool extractPatchSolution(IntegrandBase* problem, const Vectors& sol,
+                                    size_t pindx, double time = 0.0) const;
 
 public:
   using SIMdependency::registerDependency;
