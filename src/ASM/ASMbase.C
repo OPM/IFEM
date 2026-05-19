@@ -1450,34 +1450,27 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes,
 
 
 bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
-                               const int* madof, int ngnod) const
+                               const int* madof, int inod) const
 {
   nodeVec.clear();
-  if (ngnod == 0)
-  {
-    std::cerr <<" *** ASMbase::extractNodalVec: Empty MADOF array."<< std::endl;
-    return false;
-  }
-
 #ifdef INDEX_CHECK
   int maxDof = globRes.size();
 #endif
-  size_t nPchNod = ngnod == -2 ? nnod : MLGN.size();
+  size_t nPchNod = inod > 0 ? 1 : (inod < 0 ? nnod : MLGN.size());
   nodeVec.reserve(nf*nPchNod);
   for (size_t i = 0; i < nPchNod; i++)
   {
-    int inod = MLGN[i];
-#ifdef INDEX_CHECK
-    if (inod < 1 || (inod > ngnod && ngnod > 0))
+    if (i > 0 || inod < 1)
+      inod = MLGN[i]; // Extract for all patch nodes
+    else if (inod <= static_cast<int>(MLGN.size()))
+      inod = MLGN[inod-1]; // Extract only for the specified node
+    else
     {
-      std::cerr <<" *** ASMbase::extractNodalVec: Global node "<< inod;
-      if (ngnod > 0)
-        std::cerr <<" is out of range [1,"<< ngnod <<"]."<< std::endl;
-      else
-        std::cerr <<" is out of range."<< std::endl;
+      std::cerr <<" *** ASMbase::extractNodalVec: Node index "<< inod
+                <<" is out of range. [1,"<< MLGN.size() <<"]."<< std::endl;
       return false;
     }
-#endif
+
     int idof = madof[inod-1] - 1;
     int jdof = madof[inod] - 1;
     if (idof == jdof)
@@ -1547,6 +1540,44 @@ bool ASMbase::injectNodalVec (const RealArray& nodeVec, RealArray& globVec,
       ldof += ndof;
     }
 
+  return true;
+}
+
+
+bool ASMbase::injectNodalVec (const RealArray& nodeVec, RealArray& globVec,
+                              const int* madof, int inod) const
+{
+  if (inod < 1 || inod > static_cast<int>(MLGN.size()))
+  {
+    std::cerr <<" *** ASMbase::injectNodalVec: Node index "<< inod
+              <<" is out of range. [1,"<< MLGN.size() <<"]."<< std::endl;
+    return false;
+  }
+
+  size_t ldof = 0;
+  for (int j = 0; j < inod-1; j++)
+    if (int jnod = MLGN[j]; jnod > 0)
+      ldof += madof[jnod] - madof[jnod-1];
+
+  inod = MLGN[inod-1]; // Inject only for the specified node
+
+  int idof = madof[inod-1] - 1;
+  int jdof = madof[inod] - 1;
+  if (idof == jdof)
+    return true; // DOF-less node, do nothing
+
+#ifdef INDEX_CHECK
+  int maxDof = globVec.size();
+  if (idof < 0 || idof > jdof || jdof > maxDof)
+  {
+    std::cerr <<" *** ASMbase::injectNodalVec: Global DOFs "
+              << idof+1 <<" "<< jdof
+              <<" out of range [1,"<< maxDof <<"]."<< std::endl;
+    return false;
+  }
+#endif
+  std::copy(nodeVec.begin()+ldof, nodeVec.begin()+ldof+jdof-idof,
+            globVec.begin()+idof);
   return true;
 }
 
