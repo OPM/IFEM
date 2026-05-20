@@ -1766,6 +1766,10 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   const RealArray& upar = *gpar;
   size_t nPoints = upar.size();
+#if SP_DEBUG > 3
+  std::cout <<"\nASMs1D::evalSolution("<< nPoints <<")"<< std::endl;
+#endif
+
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
     fe.u = param[0] = upar[i];
@@ -1828,6 +1832,11 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
 
+#if SP_DEBUG > 3
+    std::cout << 1+i <<" "<< 1+iel <<" u = "<< fe.u <<" :";
+    for (double v : solPt) std::cout <<" "<< v;
+    std::cout << std::endl;
+#endif
     sField.fillColumn(1+i,solPt);
   }
 

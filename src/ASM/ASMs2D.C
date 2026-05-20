@@ -2919,6 +2919,11 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   else
     return false;
 
+#if SP_DEBUG > 3
+  std::cout <<"\nASMs2D::evalSolution("<< nPoints
+            <<","<< std::boolalpha << regular <<")"<< std::endl;
+#endif
+
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
@@ -2972,6 +2977,9 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if ((fe.age = this->getAge(iel,X.t)) < 0.0)
       continue; // zero-area or inactive element
 
+    fe.idx = firstEl + iel;
+    fe.iel = MLGE[iel];
+
     // Fetch associated control point coordinates
     utl::gather(ip,nsd,Xnod,Xtmp);
 
@@ -3011,6 +3019,11 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
 
+#if SP_DEBUG > 3
+    std::cout << 1+i <<" "<< 1+iel <<" (u,v) = ("<< fe.u <<" "<< fe.v <<") :";
+    for (double v : solPt) std::cout <<" "<< v;
+    std::cout << std::endl;
+#endif
     sField.fillColumn(1+i,solPt);
   }
 
