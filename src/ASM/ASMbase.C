@@ -30,10 +30,9 @@
 bool ASMbase::fixHomogeneousDirichlet = true;
 int  ASMbase::dbgElm = 0;
 
-//! This quantitiy is used to scale the characteristic element sizes which
-//! are used by residual error estimates, etc., such that they always are in
-//! the range [0,1.0]. The applications have to set an appropriate value,
-//! when needed.
+//! This quantitiy is used to scale the characteristic element sizes which are
+//! used by residual error estimates, etc., such that they always are in the
+//! range [0,1.0]. Applications have to set an appropriate value, when needed.
 double ASMbase::modelSize = 1.0;
 
 int ASMbase::gEl = 0;
@@ -44,15 +43,15 @@ IntVec ASMbase::Empty;
 ASM::CachePolicy ASM::cachePolicy = ASM::PRE_CACHE;
 
 
-/*!
-  \brief Convenience function writing error message for non-implemented methods.
-*/
-
-static bool Aerror (const char* name)
+namespace
 {
-  std::cerr <<" *** ASMbase::"<< name
-	    <<": Must be implemented in sub-class."<< std::endl;
-  return false;
+  //! \brief Helper function writing error message for non-implemented methods.
+  bool Aerror (const char* name)
+  {
+    std::cerr <<" *** ASMbase::"<< name
+              <<": Must be implemented in a sub-class."<< std::endl;
+    return false;
+  }
 }
 
 
@@ -185,7 +184,18 @@ void ASMbase::clear (bool retainGeometry)
   dCode.clear();
   mpcs.clear();
 
+  MNEC.clear();
+
   myActiveEls = nullptr;
+}
+
+
+void ASMbase::invertConnectivities ()
+{
+  MNEC.resize(nnod);
+  for (size_t iel = 0; iel < MNPC.size(); iel++)
+    for (int inod : MNPC[iel])
+      MNEC[inod].insert(iel);
 }
 
 
@@ -1857,6 +1867,12 @@ bool ASMbase::isElementActive (int iel, double time) const
 }
 
 
+bool ASMbase::inActiveElement (int iel, double time) const
+{
+  return this->getAge(iel,time,true) < 0.0;
+}
+
+
 bool ASMbase::inActive (double time) const
 {
   if (myElActive)
@@ -1871,7 +1887,7 @@ bool ASMbase::inActive (double time) const
 }
 
 
-double ASMbase::getAge (int iel, double time) const
+double ASMbase::getAge (int iel, double time, bool includeNeighbor) const
 {
   if (iel < 0 || iel >= static_cast<int>(MLGE.size()))
     return -1001.0; // element index out of range
@@ -1890,6 +1906,19 @@ double ASMbase::getAge (int iel, double time) const
     return time; // no activation time, age equals current time
 
   time -= (*myElActive)(1+iel);
+  if (time < -1.0e-12 && includeNeighbor)
+  {
+    // This element is not born yet, but check its nighbors
+    if (MNEC.empty()) // Construct node-to-element connectivities for this patch
+      const_cast<ASMbase*>(this)->invertConnectivities();
+
+    // Check if the currently unborn element is connected to other
+    // born elements, then consider this an active element as well
+    for (int inod : MNPC[iel])
+      for (int jel : MNEC[inod])
+        if (this->isElementActive(jel,time))
+          return 0.0; // connected to an active element
+  }
   return time < -1.0e-12 || time > 0.0 ? time : 0.0;
 }
 
