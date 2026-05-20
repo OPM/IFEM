@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <functional>
 #include <iomanip>
+#include <numeric>
 
 
 bool ASMbase::fixHomogeneousDirichlet = true;
@@ -188,7 +189,20 @@ void ASMbase::clear (bool retainGeometry)
   dCode.clear();
   mpcs.clear();
 
+  MNEC.clear();
+
   myActiveEls = nullptr;
+}
+
+
+void ASMbase::invertConnectivities ()
+{
+  std::vector<IntSet> tmp(nnod);
+  for (size_t iel = 0; iel < MNPC.size(); iel++)
+    for (int inod : MNPC[iel])
+      tmp[inod].insert(iel);
+
+  MNEC.swap(tmp);
 }
 
 
@@ -276,7 +290,7 @@ size_t ASMbase::getNodeIndex (int globalNum, bool) const
 
 int ASMbase::getNodeID (size_t inod, bool) const
 {
-  return inod < 1 || inod > MLGN.size() ? 0 : MLGN[inod-1];
+  return inod > 0 && --inod < MLGN.size() ? MLGN[inod] : 0;
 }
 
 
@@ -295,17 +309,13 @@ size_t ASMbase::getElmIndex (int globalNum) const
 
 int ASMbase::getElmID (size_t iel) const
 {
-  return iel < 1 || iel > MLGE.size() ? 0 : abs(MLGE[iel-1]);
+  return iel > 0 && --iel < MLGE.size() ? abs(MLGE[iel]) : 0;
 }
 
 
 const IntVec& ASMbase::getElementNodes (int iel) const
 {
-  if (iel > 0 && iel <= static_cast<int>(MNPC.size()))
-    return MNPC[iel-1];
-
-  static IntVec empty;
-  return empty;
+  return iel > 0 && --iel < static_cast<int>(MNPC.size()) ? MNPC[iel] : Empty;
 }
 
 
@@ -342,12 +352,9 @@ size_t ASMbase::getNoElms (bool includeZeroVolElms, bool includeXElms) const
   if (includeZeroVolElms)
     return includeXElms ? MLGE.size() : nel;
 
-  size_t numels = 0;
-  for (int iel : MLGE)
-    if (iel > 0 || (includeXElms && iel < 0))
-      numels++;
-
-  return numels;
+  return std::accumulate(MLGE.begin(), MLGE.end(), 0u,
+                         [&incNeg=includeXElms](size_t n, int iel)
+                         { return iel > 0 || (incNeg && iel < 0) ? n+1u : n; });
 }
 
 
@@ -1940,7 +1947,7 @@ bool ASMbase::inActive (double time) const
 }
 
 
-double ASMbase::getAge (int iel, double time) const
+double ASMbase::getAge (int iel, double time, bool includeNeighbor) const
 {
   if (iel < 0 || iel >= static_cast<int>(MLGE.size()))
     return -1001.0; // element index out of range
@@ -1956,10 +1963,25 @@ double ASMbase::getAge (int iel, double time) const
   if (time < 0.0) time = 0.0; // reset to zero to avoid element deactivation
 
   if (!myElActive)
-    return time; // no activation time, age equals current time
+    return time; // no birth time, age equals current time
 
-  time -= (*myElActive)(1+iel);
-  return time < -1.0e-12 || time > 0.0 ? time : 0.0;
+  double elmAge = time - (*myElActive)(1+iel);
+  if (elmAge < -1.0e-12 && includeNeighbor)
+  {
+    // This element is not born yet, but check its neighbors.
+    // First, construct node-to-element connectivities for this patch.
+#pragma omp critical (ASMbase_MNEC)
+    if (MNEC.empty())
+      const_cast<ASMbase*>(this)->invertConnectivities();
+
+    // Check if this element is connected to other elements already born,
+    // then consider this an active element as well
+    for (int inod : MNPC[iel])
+      for (int jel : MNEC[inod])
+        if (jel != iel && this->isElementActive(jel,time))
+          return 0.0; // connected to an active element
+  }
+  return elmAge < -1.0e-12 || elmAge > 0.0 ? elmAge : 0.0;
 }
 
 
