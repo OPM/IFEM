@@ -262,6 +262,11 @@ public:
   //! \param[out] x Solution vector
   bool solve(const SystemVector& B, SystemVector& x) override;
 
+  //! \brief Solves a linear system of equations for multiple right-hand-sides.
+  //! \param B Right-hand-side vectors to solve for
+  //! \param[out] sol Matrix of solution vectors (row-oriented)
+  bool solve(SystemVector& B, Matrix& sol) override;
+
   //! \brief Multiplication with a scalar.
   void mult(Real alpha) override;
 
@@ -301,11 +306,6 @@ public:
 
   //! \brief Returns a const-ref to process administrator.
   const ProcessAdm& getAdm() const { return adm; }
-
-  //! \brief Solve for multiple right-hand-side vectors.
-  //! \param B Vectors with right-hand-sides to solve for
-  //! \param sField Resulting vectors stored as a matrix
-  bool solveMultipleRhs(PETScVectors& B, Matrix& sField);
 
   //! \brief Returns a const-ref to domain decompositioning.
   const DomainDecomposition& getDD() const;
