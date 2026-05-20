@@ -3385,6 +3385,11 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   else
     return false;
 
+#if SP_DEBUG > 3
+  std::cout <<"\nASMs3D::evalSolution("<< nPoints
+            <<","<< std::boolalpha << regular <<")"<< std::endl;
+#endif
+
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
   const int p3 = svol->order(2);
@@ -3424,7 +3429,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     }
 
     int iel = this->findElementContaining(param) - 1;
-    if ((fe.age = this->getAge(iel,X.t)) < 0.0)
+    if ((fe.age = this->getAge(iel,X.t,ASM::includeNeighbor_L2)) < 0.0)
       continue; // zero-volume or inactive element
 
     fe.idx = firstEl + iel;
@@ -3459,6 +3464,12 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
 
+#if SP_DEBUG > 3
+    std::cout << 1+i <<" "<< 1+iel
+              <<" (u,v,w) = ("<< fe.u <<" "<< fe.v <<" "<< fe.w <<") :";
+    for (double v : solPt) std::cout <<" "<< v;
+    std::cout << std::endl;
+#endif
     sField.fillColumn(1+i,solPt);
   }
 
