@@ -349,6 +349,11 @@ public:
     return this->solve(x.copy(b));
   }
 
+  //! \brief Solves a linear system of equations for multiple right-hand-sides.
+  //! \param b Right-hand-side vectors on input, solution vectors on output
+  //! \param[out] x Matrix of solution vectors (row-oriented)
+  virtual bool solve(SystemVector& b, Matrix& x);
+
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const = 0;
 

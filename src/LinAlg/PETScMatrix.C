@@ -793,10 +793,10 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
   }
 
 #if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,pA,pA, factored ? SAME_PRECONDITIONER : SAME_NONZERO_PATTERN);
+  KSPSetOperators(ksp,pA,pA, factored ? SAME_PRECONDITIONER : SAME_NONZERO_PATTERN);
 #else
-    KSPSetOperators(ksp,pA,pA);
-    KSPSetReusePreconditioner(ksp, factored ? PETSC_TRUE : PETSC_FALSE);
+  KSPSetOperators(ksp,pA,pA);
+  KSPSetReusePreconditioner(ksp, factored ? PETSC_TRUE : PETSC_FALSE);
 #endif
 
   if (setParams) {
@@ -831,37 +831,43 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
 }
 
 
-bool PETScMatrix::solveMultipleRhs (PETScVectors& B, Matrix& sField)
+bool PETScMatrix::solve (SystemVector& B, Matrix& sol)
 {
+  PETScVectors* Bptr = dynamic_cast<PETScVectors*>(&B);
+  if (!Bptr)
+    return false;
+
+  sol.resize(Bptr->size(),nrow);
+
   Vec xg;
   VecScatter ctx;
   if (m_dd && m_dd->isPartitioned())
-    VecScatterCreateToAll(B.get(0), &ctx, &xg);
+    VecScatterCreateToAll(Bptr->get(0), &ctx, &xg);
 
   Vec x;
-  VecDuplicate(B.get(0), &x);
+  VecDuplicate(Bptr->get(0), &x);
 
-  for (size_t i = 0; i < B.size(); ++i) {
-    VecAssemblyBegin(B.get(i));
-    VecAssemblyEnd(B.get(i));
-
-    if (!this->solve(B.get(i), x, false))
-      return false;
-
-    if (m_dd && m_dd->isPartitioned()) {
+  bool ok = true;
+  for (size_t i = 0; i < Bptr->size() && ok; ++i) {
+    Vec b = Bptr->get(i);
+    VecAssemblyBegin(b);
+    VecAssemblyEnd(b);
+    if (!this->solve(b, x, false))
+      ok = false;
+    else if (m_dd && m_dd->isPartitioned()) {
       VecScatterBegin(ctx, x, xg, INSERT_VALUES, SCATTER_FORWARD);
       VecScatterEnd(ctx, x, xg, INSERT_VALUES, SCATTER_FORWARD);
       PetscScalar* ga;
       VecGetArray(xg, &ga);
       const auto& g2leq = m_dd->getG2LEQ(0);
       for (const auto& it : g2leq)
-        sField(i+1, it.second) = ga[it.first-1];
+        sol(i+1, it.second) = ga[it.first-1];
       VecRestoreArray(xg, &ga);
     } else {
       PetscScalar* xa;
       VecGetArray(x, &xa);
-      for (size_t eq = 0; eq < B.dim(); ++eq)
-        sField(i+1, eq+1) = xa[eq];
+      for (size_t eq = 0; eq < Bptr->dim(); ++eq)
+        sol(i+1, eq+1) = xa[eq];
       VecRestoreArray(x, &xa);
     }
   }
@@ -873,7 +879,7 @@ bool PETScMatrix::solveMultipleRhs (PETScVectors& B, Matrix& sField)
     VecScatterDestroy(&ctx);
   }
 
-  return true;
+  return ok;
 }
 
 
