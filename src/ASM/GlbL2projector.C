@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief General integrand for L2-projection of secondary solutions.
+//! \brief General integrands for global L2-projection.
 //!
 //==============================================================================
 
@@ -28,10 +28,16 @@
 #include "LinSolParams.h"
 #include "ProcessAdm.h"
 #endif
+#include <numeric>
 
 
-LinAlg::MatrixType GlbL2::MatrixType   = LinAlg::SPARSE;
-LinSolParams*      GlbL2::SolverParams = nullptr;
+namespace GlbL2
+{
+  //! Matrix type for global L2-projection (version 1 only)
+  LinAlg::MatrixType MatrixType = LinAlg::SPARSE;
+  //! Linear solver parameters for the global L2-projection (version 1 only)
+  LinSolParams* SolverParams = nullptr;
+}
 
 
 namespace
@@ -107,6 +113,7 @@ L2ProbIntegrand::L2ProbIntegrand (const ASMbase& patch,
                                   const ProcessAdm& adm) :
   L2Integrand(patch, adm), m_itg(itg)
 {
+  myTime = itg.getTimeLevel();
 }
 
 
@@ -124,9 +131,10 @@ size_t L2ProbIntegrand::dim () const
 
 L2FuncIntegrand::L2FuncIntegrand (const ASMbase& patch,
                                   const FunctionBase& func,
-                                  const ProcessAdm& adm) :
+                                  const ProcessAdm& adm, double time) :
   L2Integrand(patch, adm), m_func(func)
 {
+  myTime = time;
 }
 
 
@@ -148,7 +156,7 @@ bool L2FuncIntegrand::evaluate (Matrix& sField, const RealArray* gpar) const
 
   double xi[3];    // Normalized spline domain parameters always in [0,1]
   double param[3]; // Actual domain parameters to be used for evaluation
-  Vec4   X(param);
+  Vec4   X(param,myTime);
   for (size_t i = 0; i < gpar[0].size(); ++i) {
     for (size_t j = 0; j < 3 && j < m_patch.getNoSpaceDim(); ++j)
       xi[j] = u[j][0] + gpar[j][i] / (u[j][1] - u[j][0]);
@@ -166,308 +174,364 @@ size_t L2FuncIntegrand::dim () const
 }
 
 
-/*!
-  \brief Local integral container class for L2-projections.
-*/
-
-class L2Mats : public ElmMats
+namespace
 {
-public:
-  //! \brief The constructor initializes pointers and references.
-  //! \param[in] p The global L2 integrand object containing projection matrices
-  //! \param[in] nen Number of element nodes
-  //! \param[in] nf Number of field components
-  //! \param[in] q Pointer to element data associated with the problem integrand
-  L2Mats(GlbL2& p, size_t nen, size_t nf, LocalIntegral* q = nullptr)
-    : gl2Int(p), elmData(q)
+  using uIntVec     = std::vector<size_t>;
+  using FunctionVec = std::vector<FunctionBase*>;
+
+  class GL2;
+
+
+  /*!
+    \brief Local integral container class for L2-projections (version 2).
+  */
+
+  class L2Mats : public ElmMats
   {
-    this->resize(1,nf);
-    this->redim(nen);
-  }
-
-  //! \brief Empty destructor.
-  virtual ~L2Mats() {}
-
-  //! \brief Destruction method to clean up after numerical integration.
-  virtual void destruct() { delete elmData; delete this; }
-
-  GlbL2&         gl2Int;  //!< The global L2-projection integrand
-  LocalIntegral* elmData; //!< Element data associated with problem integrand
-
-  IntVec  mnpc;        //!< Matrix of element nodal correspondance
-  uIntVec elem_sizes;  //!< Size of each basis on the element
-  uIntVec basis_sizes; //!< Size of each basis on the patch
-};
-
-
-/*!
-  \brief Global integral container class for L2-projections.
-*/
-
-class L2GlobalInt : public GlobalIntegral
-{
-public:
-  //! \brief The constructor initializes the system matrix references.
-  L2GlobalInt(SparseMatrix& A_, StdVector& B_) : A(A_), B(B_) {}
-
-  //! \brief Empty destructor.
-  virtual ~L2GlobalInt() {}
-
-  //! \brief Adds a LocalIntegral object into a corresponding global object.
-  virtual bool assemble(const LocalIntegral* elmObj, int)
-  {
-    const L2Mats* elm = static_cast<const L2Mats*>(elmObj);
-    for (size_t i = 0; i < elm->mnpc.size(); i++)
+  public:
+    //! \brief The constructor initializes pointers and references.
+    //! \param[in] p Global L2 integrand object containing projection matrices
+    //! \param[in] iEl Global element number (1-based)
+    //! \param[in] nen Number of element nodes
+    //! \param[in] nf Number of field components
+    //! \param[in] q The main problem integrand
+    L2Mats(GL2& p, size_t iEl, size_t nen, size_t nf, Integrand* q)
+      : gl2Int(p)
     {
-      int inod = elm->mnpc[i]+1;
-      for (size_t j = 0; j < elm->mnpc.size(); j++)
-      {
-        int jnod = elm->mnpc[j]+1;
-        A(inod,jnod) += elm->A.front()(i+1,j+1);
-      }
-      for (const Vector& b : elm->b)
-      {
-        B(inod) += b[i];
-        inod += A.dim();
-      }
+      elmData = q ? q->getLocalIntegral(nen,iEl) : nullptr;
+      this->resize(1,nf);
+      this->redim(nen);
     }
-    return true;
-  }
 
-private:
-  SparseMatrix& A; //!< Reference to left-hand-side matrix
-  StdVector&    B; //!< Reference to right-hand-side vector
-};
+    //! \brief Destruction method to clean up after numerical integration.
+    void destruct() override { delete elmData; delete this; }
 
+    GL2&           gl2Int;  //!< The global L2-projection integrand
+    LocalIntegral* elmData; //!< Element data associated with problem integrand
 
-GlbL2::GlbL2 (IntegrandBase* p, size_t n) : problem(p)
-{
-  nrhs = p->getNoFields(2);
-  this->allocate(n);
-}
+    IntVec  mnpc;        //!< Matrix of element nodal correspondance
+    uIntVec elem_sizes;  //!< Size of each basis on the element
+    uIntVec basis_sizes; //!< Size of each basis on the patch
+  };
 
 
-GlbL2::GlbL2 (FunctionBase* f, size_t n) : problem(nullptr), functions({f})
-{
-  nrhs = f->dim();
-  this->allocate(n);
-}
+  /*!
+    \brief General integrand for L2-projection of secondary solutions.
+    \details This class is used only for version 2 of the L2-projection.
+  */
 
-
-GlbL2::GlbL2 (const FunctionVec& f, size_t n) : problem(nullptr), functions(f)
-{
-  nrhs = 0;
-  for (FunctionBase* func : f)
-    nrhs += func->dim();
-  this->allocate(n);
-}
-
-
-GlbL2::~GlbL2()
-{
-  delete pA;
-  delete pB;
-}
-
-
-void GlbL2::allocate (size_t n)
-{
-  pA = new SparseMatrix(SparseMatrix::SUPERLU);
-  pB = new StdVector(n*nrhs);
-  static_cast<SparseMatrix*>(pA)->redim(n,n);
-}
-
-
-int GlbL2::getIntegrandType () const
-{
-  if (problem)
-    // Mask off the element interface flag
-    return problem->getIntegrandType() & ~INTERFACE_TERMS;
-  else
-    return STANDARD;
-}
-
-
-LocalIntegral* GlbL2::getLocalIntegral (size_t nen, size_t iEl,
-                                        bool neumann) const
-{
-  if (problem)
-    return new L2Mats(*const_cast<GlbL2*>(this),nen,nrhs,
-                      problem->getLocalIntegral(nen,iEl,neumann));
-  else
-    return new L2Mats(*const_cast<GlbL2*>(this),nen,nrhs);
-}
-
-
-bool GlbL2::initElement (const IntVec& MNPC, const FiniteElement& fe,
-                         const Vec3& Xc, size_t nPt,
-                         LocalIntegral& elmInt)
-{
-  L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
-
-  gl2.mnpc = MNPC;
-  if (problem && gl2.elmData)
-    return problem->initElement(MNPC,fe,Xc,nPt,*gl2.elmData);
-  else
-    return true;
-}
-
-
-bool GlbL2::initElement (const IntVec& MNPC1,
-                         const MxFiniteElement& fe,
-                         const uIntVec& elem_sizes,
-                         const uIntVec& basis_sizes,
-                         LocalIntegral& elmInt)
-{
-  L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
-
-  gl2.mnpc = MNPC1;
-  gl2.elem_sizes = elem_sizes;
-  gl2.basis_sizes = basis_sizes;
-  if (problem && gl2.elmData)
-    return problem->initElement(MNPC1,fe,elem_sizes,basis_sizes,*gl2.elmData);
-  else
-    return true;
-}
-
-
-bool GlbL2::evalInt (LocalIntegral& elmInt,
-                     const FiniteElement& fe,
-                     const Vec3& X) const
-
-{
-  L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
-
-  Vector solPt;
-  solPt.reserve(nrhs);
-  if (problem)
+  class GL2 : public Integrand
   {
-    if (!problem->evalSol(solPt,fe,X,gl2.mnpc))
-      if (!problem->diverged(fe.iGP+1))
+  public:
+    //! \brief The constructor initializes the projection matrices.
+    //! \param[in] prb The main problem integrand
+    //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
+    GL2(IntegrandBase* prb, size_t n) : A(SparseMatrix::SUPERLU)
+    {
+      problem = prb;
+      nrhs = prb->getNoFields(2);
+      A.redim(n,n);
+      B.redim(n*nrhs);
+    }
+
+    //! \brief Alternative constructor for projection of an explicit function.
+    //! \param[in] func The function to do L2-projection on
+    //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
+    GL2(FunctionBase* func, size_t n) : A(SparseMatrix::SUPERLU)
+    {
+      problem = nullptr;
+      functions = { func };
+      nrhs = func->dim();
+      A.redim(n,n);
+      B.redim(n*nrhs);
+    }
+
+    //! \brief Alternative constructor for projection of explicit functions.
+    //! \param[in] funcs The functions to do L2-projection on
+    //! \param[in] n Dimension of the L2-projection matrices (number of nodes)
+    GL2(const FunctionVec& funcs, size_t n) : A(SparseMatrix::SUPERLU)
+    {
+      problem = nullptr;
+      functions = funcs;
+      nrhs = std::accumulate(funcs.begin(), funcs.end(), 0u,
+                             [](size_t a, const FunctionBase* f)
+                             { return a + f->dim(); });
+      A.redim(n,n);
+      B.redim(n*nrhs);
+    }
+
+    //! \brief Returns current solution mode.
+    SIM::SolutionMode getMode(bool) const override { return SIM::RECOVERY; }
+
+    //! \brief Defines which FE quantities are needed by the integrand.
+    int getIntegrandType() const override
+    {
+      if (problem) // Mask off the element interface flag
+        return problem->getIntegrandType() & ~INTERFACE_TERMS;
+      else
+        return STANDARD;
+    }
+
+    using Integrand::getLocalIntegral;
+    //! \brief Returns a local integral object for the given element.
+    //! \param[in] nen Number of nodes on element
+    //! \param[in] iEl Global element number (1-based)
+    LocalIntegral* getLocalIntegral(size_t nen, size_t iEl, bool) const override
+    {
+      return new L2Mats(*const_cast<GL2*>(this),iEl,nen,nrhs,problem);
+    }
+
+    //! \brief Initializes current element for numerical integration.
+    //! \param[in] MNPC Matrix of nodal point correspondance for current element
+    //! \param[in] fe Nodal and integration point data for current element
+    //! \param[in] X0 Cartesian coordinates of the element center
+    //! \param[in] nPt Number of integration points in this element
+    //! \param elmInt Local integral for element
+    bool initElement(const IntVec& MNPC, const FiniteElement& fe,
+                     const Vec3& X0, size_t nPt,
+                     LocalIntegral& elmInt) override
+    {
+      L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
+
+      gl2.mnpc = MNPC;
+      if (problem && gl2.elmData)
+        return problem->initElement(MNPC,fe,X0,nPt,*gl2.elmData);
+      else
+        return true;
+    }
+
+    //! \brief Initializes current element for numerical integration (mixed).
+    //! \param[in] MNPC1 Matrix of nodal point correspondance for the element
+    //! \param[in] fe Nodal and integration point data for current element
+    //! \param[in] elem_sizes Size of each basis on the element
+    //! \param[in] basis_sizes Size of each basis on the patch
+    //! \param elmInt Local integral for element
+    bool initElement(const IntVec& MNPC1, const MxFiniteElement& fe,
+                     const uIntVec& elem_sizes, const uIntVec& basis_sizes,
+                     LocalIntegral& elmInt) override
+    {
+      L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
+
+      gl2.mnpc = MNPC1;
+      gl2.elem_sizes = elem_sizes;
+      gl2.basis_sizes = basis_sizes;
+      if (problem && gl2.elmData)
+        return problem->initElement(MNPC1,fe,elem_sizes,basis_sizes,
+                                    *gl2.elmData);
+      else
+        return true;
+    }
+
+    //! \brief Dummy implementation.
+    bool initElement(const IntVec&, LocalIntegral&) override { return false; }
+    //! \brief Dummy implementation.
+    bool initElement(const IntVec&, const uIntVec&, const uIntVec&,
+                     LocalIntegral&) override { return false; }
+
+    //! \brief Dummy implementation.
+    bool initElementBou(const IntVec&,
+                        LocalIntegral&) override { return false; }
+    //! \brief Dummy implementation.
+    bool initElementBou(const IntVec&, const uIntVec&, const uIntVec&,
+                        LocalIntegral&) override { return false; }
+
+    using Integrand::evalInt;
+    //! \brief Evaluates the integrand at an interior point.
+    //! \param elmInt The local integral object to receive the contributions
+    //! \param[in] fe Finite element data of current integration point
+    //! \param[in] X Cartesian coordinates of current integration point
+    bool evalInt(LocalIntegral& elmInt,
+                 const FiniteElement& fe, const Vec3& X) const override
+    {
+      L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
+
+      Vector solPt;
+      solPt.reserve(nrhs);
+      if (problem)
+      {
+        if (!problem->evalSol(solPt,fe,X,gl2.mnpc))
+          if (!problem->diverged(fe.iGP+1))
+            return false;
+      }
+      else if (functions.size() == 1)
+        solPt = functions.front()->getValue(X);
+      else for (FunctionBase* func : functions)
+      {
+        RealArray funcPt = func->getValue(X);
+        solPt.push_back(funcPt.begin(),funcPt.end());
+      }
+
+      gl2.A.front().outer_product(fe.N,fe.N,true,fe.detJxW);
+      for (size_t j = 0; j < solPt.size(); j++)
+        gl2.b[j].add(fe.N,solPt[j]*fe.detJxW);
+
+      return true;
+    }
+
+    using Integrand::evalIntMx;
+    //! \brief Evaluates the integrand at an interior point.
+    //! \param elmInt The local integral object to receive the contributions
+    //! \param[in] fe Mixed finite element data of current integration point
+    //! \param[in] X Cartesian coordinates of current integration point
+    bool evalIntMx(LocalIntegral& elmInt, const MxFiniteElement& fe,
+                   const Vec3& X) const override
+    {
+      if (!problem)
+        return this->evalInt(elmInt,fe,X);
+
+      L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
+
+      Vector solPt;
+      if (!problem->evalSol(solPt,fe,X,gl2.mnpc,gl2.elem_sizes,gl2.basis_sizes))
+        if (!problem->diverged(fe.iGP+1))
+          return false;
+
+      gl2.A.front().outer_product(fe.N,fe.N,true,fe.detJxW);
+      for (size_t j = 0; j < solPt.size(); j++)
+        gl2.b[j].add(fe.N,solPt[j]*fe.detJxW);
+
+      return true;
+    }
+
+    //! \brief Pre-computes the sparsity pattern of the projection matrix \b A.
+    //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
+    //! \param[in] nel Number of elements
+    //! \param[in] checkNZ If \e true, flag non-zero contributions in assembly
+    void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel, bool checkNZ)
+    {
+      A.preAssemble(MMNPC,nel);
+      if (checkNZ)
+        A.initNonZeroEqs();
+    }
+
+    //! \brief Solves the projection equation system and evaluates nodal values.
+    //! \param[out] sField Nodal/control-point values of the projected results.
+    bool solve(Matrix& sField)
+    {
+      // Insert a 1.0 value on the diagonal for equations with no contributions.
+      // Needed when immersed boundaries with "totally outside" elements.
+      const size_t nnod = A.dim();
+      for (size_t i = 1; i <= nnod; i++)
+        if (A(i,i) == 0.0) A(i,i) = 1.0;
+
+#if SP_DEBUG > 1
+      std::cout <<"\nGlobal L2-projection matrix:\n"<< A;
+      std::cout <<"\nGlobal L2-projection RHS:"<< B;
+#endif
+
+      // Solve the patch-global equation system
+      if (!A.solve(B)) return false;
+
+      // Store the nodal values of the projected field
+      sField.resize(nrhs,nnod);
+      for (size_t i = 1; i <= nnod; i++)
+        for (size_t j = 1; j <= nrhs; j++)
+          sField(j,i) = B(i+(j-1)*nnod);
+
+#if SP_DEBUG > 1
+      std::cout <<"\nSolution:"<< sField;
+#endif
+      return true;
+    }
+
+    //! \brief Solves the projection equation system and evaluates nodal values.
+    //! \param[out] sField Nodal/control-point values of the projected results.
+    bool solve(const std::vector<Matrix*>& sField)
+    {
+      if (sField.size() != functions.size())
+      {
+        std::cerr <<" *** GL2::solve: Logic error, size(field)="<< sField.size()
+                  <<" != size(functions)="<< functions.size() << std::endl;
         return false;
-  }
-  else if (functions.size() == 1)
-    solPt = functions.front()->getValue(X);
-  else for (FunctionBase* func : functions)
+      }
+
+      // Insert a 1.0 value on the diagonal for equations with no contributions.
+      // Needed when immersed boundaries with "totally outside" elements.
+      const size_t nnod = A.dim();
+      for (size_t i = 1; i <= nnod; i++)
+        if (A(i,i) == 0.0) A(i,i) = 1.0;
+
+#if SP_DEBUG > 1
+      std::cout <<"\nGlobal L2-projection matrix:\n"<< A;
+      std::cout <<"\nGlobal L2-projection RHS:"<< B;
+#endif
+
+      // Solve the patch-global equation system
+      if (!A.solve(B)) return false;
+
+      // Store the nodal values of the projected fields
+      size_t offset = 0;
+      for (size_t k = 0; k < sField.size(); k++)
+      {
+        size_t ncomp = functions[k]->dim();
+        sField[k]->resize(ncomp,nnod);
+        for (size_t i = 1; i <= nnod; i++)
+          for (size_t j = 1; j <= ncomp; j++)
+            (*sField[k])(j,i) = B(i+(offset+j-1)*nnod);
+        offset += ncomp;
+
+#if SP_DEBUG > 1
+        std::cout <<"\nSolution "<< k <<":"<< *sField[k];
+#endif
+      }
+      return true;
+    }
+
+  private:
+    SparseMatrix A; //!< Left-hand-side matrix of the L2-projection
+    StdVector    B; //!< Right-hand-side vectors of the L2-projection
+
+    IntegrandBase* problem; //!< The main problem integrand
+    FunctionVec  functions; //!< Explicit functions to L2-project
+    size_t            nrhs; //!< Number of right-hand-size vectors
+
+    friend class L2GlobalInt;
+  };
+
+
+  /*!
+    \brief Global integral container class for L2-projections (version 2).
+  */
+
+  class L2GlobalInt : public GlobalIntegral
   {
-    RealArray funcPt = func->getValue(X);
-    solPt.push_back(funcPt.begin(),funcPt.end());
-  }
+  public:
+    //! \brief The constructor initializes the system matrix references.
+    L2GlobalInt(GL2& gl2) : A(gl2.A), B(gl2.B) {}
 
-  gl2.A.front().outer_product(fe.N,fe.N,true,fe.detJxW);
-  for (size_t j = 0; j < solPt.size(); j++)
-    gl2.b[j].add(fe.N,solPt[j]*fe.detJxW);
+    //! \brief Adds a LocalIntegral object into a corresponding global object.
+    bool assemble(const LocalIntegral* elmObj, int) override
+    {
+      const L2Mats* elm = static_cast<const L2Mats*>(elmObj);
+      for (size_t i = 0; i < elm->mnpc.size(); i++)
+      {
+        int inod = elm->mnpc[i]+1;
+        A.flagNonZeroEq(inod);
+        for (size_t j = 0; j < elm->mnpc.size(); j++)
+        {
+          int jnod = elm->mnpc[j]+1;
+          A(inod,jnod) += elm->A.front()(i+1,j+1);
+        }
+        for (const Vector& b : elm->b)
+        {
+          B(inod) += b[i];
+          inod += A.dim();
+        }
+      }
+      return true;
+    }
 
-  return true;
+  private:
+    SparseMatrix& A; //!< Reference to left-hand-side matrix
+    StdVector&    B; //!< Reference to right-hand-side vector
+  };
 }
 
 
-bool GlbL2::evalIntMx (LocalIntegral& elmInt,
-                       const MxFiniteElement& fe,
-                       const Vec3& X) const
-
-{
-  if (!problem)
-    return this->evalInt(elmInt,fe,X);
-
-  L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
-
-  Vector solPt;
-  if (!problem->evalSol(solPt,fe,X,gl2.mnpc,gl2.elem_sizes,gl2.basis_sizes))
-    if (!problem->diverged(fe.iGP+1))
-      return false;
-
-  gl2.A.front().outer_product(fe.N,fe.N,true,fe.detJxW);
-  for (size_t j = 0; j < solPt.size(); j++)
-    gl2.b[j].add(fe.N,solPt[j]*fe.detJxW);
-
-  return true;
-}
-
-
-void GlbL2::preAssemble (const IntMat& MMNPC, size_t nel)
-{
-  pA->preAssemble(MMNPC,nel);
-}
-
-
-bool GlbL2::solve (Matrix& sField)
-{
-  SparseMatrix& A = static_cast<SparseMatrix&>(*pA);
-  StdVector&    B = static_cast<StdVector&>(*pB);
-
-  // Insert a 1.0 value on the diagonal for equations with no contributions.
-  // Needed in immersed boundary calculations with "totally outside" elements.
-  size_t i, j, nnod = A.dim();
-  for (i = 1; i <= nnod; i++)
-    if (A(i,i) == 0.0) A(i,i) = 1.0;
-
-#if SP_DEBUG > 1
-  std::cout <<"\nGlobal L2-projection matrix:\n"<< A;
-  std::cout <<"\nGlobal L2-projection RHS:"<< B;
-#endif
-
-  // Solve the patch-global equation system
-  if (!A.solve(B)) return false;
-
-  // Store the nodal values of the projected field
-  sField.resize(nrhs,nnod);
-  for (i = 1; i <= nnod; i++)
-    for (j = 1; j <= nrhs; j++)
-      sField(j,i) = B(i+(j-1)*nnod);
-
-#if SP_DEBUG > 1
-  std::cout <<"\nSolution:"<< sField;
-#endif
-  return true;
-}
-
-
-bool GlbL2::solve (const std::vector<Matrix*>& sField)
-{
-  if (sField.size() != functions.size())
-  {
-    std::cerr <<" *** GlbL2::solve: Logic error, size(sField)="<< sField.size()
-              <<" != size(functions)="<< functions.size() << std::endl;
-    return false;
-  }
-
-  SparseMatrix& A = *pA;
-  StdVector&    B = *pB;
-
-  // Insert a 1.0 value on the diagonal for equations with no contributions.
-  // Needed in immersed boundary calculations with "totally outside" elements.
-  size_t i, j, nnod = A.dim();
-  for (i = 1; i <= nnod; i++)
-    if (A(i,i) == 0.0) A(i,i) = 1.0;
-
-#if SP_DEBUG > 1
-  std::cout <<"\nGlobal L2-projection matrix:\n"<< A;
-  std::cout <<"\nGlobal L2-projection RHS:"<< B;
-#endif
-
-  // Solve the patch-global equation system
-  if (!A.solve(B)) return false;
-
-  // Store the nodal values of the projected fields
-  size_t offset = 0;
-  for (size_t k = 0; k < sField.size(); k++)
-  {
-    size_t ncomp = functions[k]->dim();
-    sField[k]->resize(ncomp,nnod);
-    for (i = 1; i <= nnod; i++)
-      for (j = 1; j <= ncomp; j++)
-        (*sField[k])(j,i) = B(i+(offset+j-1)*nnod);
-    offset += ncomp;
-
-#if SP_DEBUG > 1
-    std::cout <<"\nSolution "<< k <<":"<< *sField[k];
-#endif
-  }
-
-  return true;
-}
-
+/*!
+  This method implements version 2 of the global L2-projection
+  for secondary solution variables of the provided \a integrand.
+*/
 
 bool ASMbase::L2projection (Matrix& sField,
                             IntegrandBase* integrand,
@@ -475,40 +539,53 @@ bool ASMbase::L2projection (Matrix& sField,
 {
   PROFILE2("ASMbase::L2projection");
 
-  GlbL2 gl2(integrand,this->getNoNodes(1));
-  L2GlobalInt dummy(*gl2.pA,*gl2.pB);
+  GL2 gl2(integrand,this->getNoNodes(1));
+  L2GlobalInt dummy(gl2);
 
-  gl2.preAssemble(MNPC,this->getNoElms(true));
+  gl2.preAssemble(MNPC,this->getNoElms(true),this->getElementActivator());
   return this->integrate(gl2,dummy,time) && gl2.solve(sField);
 }
 
+
+/*!
+  This method implements version 2 of the global L2-projection
+  of an explicit function.
+*/
 
 bool ASMbase::L2projection (Matrix& sField, FunctionBase* function, double t)
 {
   PROFILE2("ASMbase::L2projection");
 
-  GlbL2 gl2(function,this->getNoNodes(1));
-  L2GlobalInt dummy(*gl2.pA,*gl2.pB);
-  TimeDomain time; time.t = t;
+  GL2 gl2(function,this->getNoNodes(1));
+  L2GlobalInt dummy(gl2);
 
-  gl2.preAssemble(MNPC,this->getNoElms(true));
-  return this->integrate(gl2,dummy,time) && gl2.solve(sField);
+  gl2.preAssemble(MNPC,this->getNoElms(true),this->getElementActivator());
+  return this->integrate(gl2,dummy,TimeDomain(t)) && gl2.solve(sField);
 }
 
+
+/*!
+  This method implements version 2 of the global L2-projection
+  of a set of explicit functions.
+*/
 
 bool ASMbase::L2projection (const std::vector<Matrix*>& sField,
                             const FunctionVec& function, double t)
 {
   PROFILE2("ASMbase::L2projection");
 
-  GlbL2 gl2(function,this->getNoNodes(1));
-  L2GlobalInt dummy(*gl2.pA,*gl2.pB);
-  TimeDomain time; time.t = t;
+  GL2 gl2(function,this->getNoNodes(1));
+  L2GlobalInt dummy(gl2);
 
-  gl2.preAssemble(MNPC,this->getNoElms(true));
-  return this->integrate(gl2,dummy,time) && gl2.solve(sField);
+  gl2.preAssemble(MNPC,this->getNoElms(true),this->getElementActivator());
+  return this->integrate(gl2,dummy,TimeDomain(t)) && gl2.solve(sField);
 }
 
+
+/*!
+  This method implements version 1 of the global L2-projection,
+  and supports both discrete and continuous projections.
+*/
 
 bool ASMbase::globalL2projection (Matrix& sField,
                                   const L2Integrand& integrand,
@@ -518,15 +595,14 @@ bool ASMbase::globalL2projection (Matrix& sField,
 
   PROFILE2("ASMbase::globalL2");
 
+  const size_t npnod = this->getNoProjectionNodes();
+  const size_t ncomp = integrand.dim();
 #ifdef HAS_PETSC
+  PETScMatrix* Ap = nullptr;
   ProcessAdm singleAdm;
-  const bool isPart = integrand.getAdm().dd.isPartitioned();
-  const ProcessAdm& adm = isPart ? integrand.getAdm() : singleAdm;
 #endif
 
   // Assemble the projection matrices
-  size_t i, npnod = this->getNoProjectionNodes();
-  size_t j, ncomp = integrand.dim();
   SystemMatrix* A;
   SystemVector* B;
   switch (GlbL2::MatrixType) {
@@ -534,33 +610,38 @@ bool ASMbase::globalL2projection (Matrix& sField,
     A = new SparseMatrix(npnod,npnod,SparseMatrix::UMFPACK);
     B = new StdVector(npnod*ncomp);
     break;
+
 #ifdef HAS_PETSC
   case LinAlg::PETSC:
     if (GlbL2::SolverParams)
     {
-      PETScMatrix* Ap;
-      A = Ap = new PETScMatrix(adm, *GlbL2::SolverParams);
-
       const IntMat nodes = this->getElmNodes(ASM::PROJECTION_BASIS);
-      const bool useAdmPart = this->neighbors.empty() &&
-                              nodes.size() == nel;
+      const bool useAdm = neighbors.empty() && nodes.size() == nel;
+      const bool isPart = integrand.getAdm().dd.isPartitioned();
+      const ProcessAdm& adm = isPart ? integrand.getAdm() : singleAdm;
 
       IntMat neighs;
-      if (adm.dd.isPartitioned() && !useAdmPart && adm.getProcId() == 0) {
+      if (adm.dd.isPartitioned() && !useAdm && adm.getProcId() == 0) {
         neighs.resize(nodes.size());
         this->getElmConnectivities(neighs, ASM::PROJECTION_BASIS);
       }
-      Ap->init(npnod, &nodes, &neighs, useAdmPart ? &adm.dd.getElms() : nullptr);
+
+      A = Ap = new PETScMatrix(adm, *GlbL2::SolverParams);
+      Ap->init(npnod, &nodes, &neighs, useAdm ? &adm.dd.getElms() : nullptr);
       if (adm.dd.isPartitioned())
         const_cast<ASMbase*>(this)->generateProjThreadGroupsFromElms(Ap->getDD().getElms());
-      B = new PETScVectors(static_cast<PETScMatrix&>(*A), ncomp);
+      B = new PETScVectors(*Ap, ncomp);
       break;
     }
 #endif
+
   default:
     A = new SparseMatrix(npnod,npnod,SparseMatrix::SUPERLU);
     B = new StdVector(npnod*ncomp);
   }
+
+  if (this->getElementActivator())
+    A->initNonZeroEqs();
 
   if (!this->assembleL2matrices(*A,*B,integrand,continuous))
   {
@@ -579,35 +660,28 @@ bool ASMbase::globalL2projection (Matrix& sField,
             <<"-------------------"<< std::endl;
 #endif
 
-
+  // Solve the patch-global equation system
+  sField.resize(ncomp,npnod);
+  bool ok = false;
 #ifdef HAS_PETSC
-  if (GlbL2::MatrixType == LinAlg::PETSC) {
-    PETScVectors& Bp = static_cast<PETScVectors&>(*B);
-    sField.resize(ncomp, npnod);
-    if (!static_cast<PETScMatrix*>(A)->solveMultipleRhs(Bp, sField))
-    {
-      delete A;
-      delete B;
-      return false;
-    }
-  }
+  if (Ap)
+    ok = Ap->solveMultipleRhs(static_cast<PETScVectors&>(*B),sField);
   else
 #endif
-  {
-    // Solve the patch-global equation system
-    if (!A->solve(*B))
+    if ((ok = A->solve(*B)))
     {
-      delete A;
-      delete B;
-      return false;
+      // Store the control-point values of the projected field
+      const StdVector& stdB = dynamic_cast<const StdVector&>(*B);
+      for (size_t i = 1; i <= npnod; i++)
+        for (size_t j = 1; j <= ncomp; j++)
+          sField(j,i) = stdB(i+(j-1)*npnod);
     }
-
-    // Store the control-point values of the projected field
-    const StdVector& stdB = dynamic_cast<const StdVector&>(*B);
-    sField.resize(ncomp,npnod);
-    for (i = 1; i <= npnod; i++)
-      for (j = 1; j <= ncomp; j++)
-        sField(j,i) = stdB(i+(j-1)*npnod);
+  if (!ok)
+  {
+    delete A;
+    delete B;
+    sField.clear();
+    return false;
   }
 
 #if SP_DEBUG > 1
@@ -630,7 +704,7 @@ bool ASMbase::globalL2projection (Matrix& sField,
     return false;
 
   // Enforce the corner values in the projected field
-  for (i = 0; i < corners.size(); i++)
+  for (size_t i = 0; i < corners.size(); i++)
   {
 #if SP_DEBUG > 1
     std::cout <<"Replacing end/corner-point values of projected field at node "

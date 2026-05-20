@@ -1089,21 +1089,29 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
                                     const L2Integrand& integrand,
                                     bool continuous) const
 {
+  const Go::SplineSurface* srf = this->getBasis(ASM::PROJECTION_BASIS);
+  const bool checkAge = this->getElementActivator() != nullptr;
+  if (srf != surf.get() && checkAge)
+  {
+    std::cerr <<" *** ASMs2DLag::assembleL2matrices: Separate projection basis "
+              <<" can not be used with element activation."<< std::endl;
+    return false;
+  }
+
   ASMs2D::BasisFunctionCache& cache = *myCache.front();
   cache.init(1);
 
   const std::array<const double*,2>& wg = cache.weight();
   const std::array<int,2> nGP = cache.nGauss();
 
+  const int pp1 = srf->order_u();
+  const int pp2 = srf->order_v();
+  const int nelx = (nx-1) / (pp1-1);
+  const int neln = pp1*pp2;
+
+  const size_t npnod = this->getNoProjectionNodes();
   const IntMat gmnpc = this->getElmNodes(ASM::PROJECTION_BASIS);
   A.preAssemble(gmnpc, gmnpc.size());
-
-  const Go::SplineSurface* srf = this->getBasis(ASM::PROJECTION_BASIS);
-  const int p1 = srf->order_u();
-  const int p2 = srf->order_v();
-  const int nelx = (nx-1) / (p1-1);
-
-  const size_t nnod = this->getNoProjectionNodes();
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1114,7 +1122,11 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
     for (const IntVec& group : projThreadGroups[g])
     {
       Matrix dNdX, Xnod, J;
-      for (int iel : group) {
+      for (int iel : group)
+      {
+        if (checkAge && !this->isElementActive(iel,integrand.getTimeLevel()))
+          continue; // inactive element
+
         if (!this->getElementCoordinates(Xnod,1+iel)) {
           ok = false;
           continue;
@@ -1122,6 +1134,7 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
 
         const int i1 = nelx > 0 ? iel % nelx : 0;
         const int i2 = nelx > 0 ? iel / nelx : 0;
+
         std::array<RealArray,2> GP;
         GP[0].reserve(nGP[0]*nGP[1]);
         GP[1].reserve(nGP[0]*nGP[1]);
@@ -1136,8 +1149,8 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
 
         // --- Integration loop over all Gauss points in each direction --------
 
-        Matrix eA(p1*p2, p1*p2);
-        Vectors eB(sField.rows(), Vector(p1*p2));
+        Matrix eA(neln,neln);
+        Vectors eB(sField.rows(), Vector(neln));
         size_t ip = 0;
         for (int j = 0; j < nGP[1]; ++j)
           for (int i = 0; i < nGP[0]; ++i, ++ip) {
@@ -1157,7 +1170,7 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
           }
 
         A.assemble(eA, gmnpc[iel]);
-        B.assemble(eB, gmnpc[iel], nnod);
+        B.assemble(eB, gmnpc[iel], npnod);
       }
     }
 

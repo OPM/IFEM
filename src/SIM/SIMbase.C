@@ -1044,9 +1044,9 @@ void SIMbase::updateForNewElements (Vector& solution,
             if (oldNodes.find(pch->getNodeID(1+inod)) != oldNodes.end())
             {
               if (++count == 1)
-                oldSol.fill(solution.ptr()+nf*inod);
+                oldSol.fill(pchSol.data()+nf*inod);
               else
-                oldSol.add(Vector(solution.ptr()+nf*inod,nf));
+                oldSol.add(Vector(pchSol.data()+nf*inod,nf));
             }
           if (count > 1) oldSol /= static_cast<double>(count);
 #ifdef SP_DEBUG
@@ -2274,71 +2274,74 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   // of the result evaluation buffers.
   myProblem->initResultPoints(time.t,-1);
 
-  size_t i, ofs = 0;
-  for (i = 0; i < myModel.size(); i++)
+  bool printMsg = msgLevel > 1;
+  size_t idx = 0, ofs = 0;
+  for (ASMbase* pch : myModel)
   {
-    if (myModel[i]->empty()) continue; // skip empty patches
+    LocalSystem::patch = idx++; // Hack: For patch-wise max-value calculation
+
+    if (pch->empty() || pch->inActive(time.t))
+      continue; // skip empty or inactive patches
 
     // Extract the primary solution control point values for this patch
-    if (!this->extractPatchSolution(myProblem,Vectors(1,psol),i))
+    if (!this->extractPatchSolution(myProblem,{psol},idx-1,time.t))
       return false;
 
     // Initialize material properties for this patch in case of multiple regions
-    this->setPatchMaterial(i+1);
-
-    LocalSystem::patch = i; // Hack: Used for patch-wise max-value calculation
+    this->setPatchMaterial(idx);
 
     // Project the secondary solution and retrieve control point values
     bool ok = false;
     switch (method) {
     case SIMoptions::GLOBAL:
-      if (msgLevel > 1 && i == 0)
+      if (printMsg)
         IFEM::cout <<"\tGreville point projection"<< std::endl;
-      ok = myModel[i]->evalSolution(values,*myProblem);
+      ok = pch->evalSolution(values,*myProblem);
       break;
 
     case SIMoptions::DGL2:
-      if (msgLevel > 1 && i == 0)
+      if (printMsg)
         IFEM::cout <<"\tDiscrete global L2-projection"<< std::endl;
-      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i],*myProblem,adm));
+      GlbL2::SolverParams = myGl2Params;
+      ok = pch->globalL2projection(values,L2ProbIntegrand(*pch,*myProblem,adm));
       break;
 
     case SIMoptions::CGL2:
-      if (msgLevel > 1 && i == 0)
+      if (printMsg)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
       GlbL2::SolverParams = myGl2Params;
-      ok = myModel[i]->globalL2projection(values,L2ProbIntegrand(*myModel[i],*myProblem,adm),true);
+      ok = pch->globalL2projection(values,L2ProbIntegrand(*pch,*myProblem,adm),
+                                   true);
       break;
 
     case SIMoptions::CGL2_INT:
-      if (msgLevel > 1 && i == 0)
+      if (printMsg)
         IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
-      GlbL2::SolverParams = myGl2Params;
-      ok = myModel[i]->L2projection(values,myProblem,time);
+      ok = pch->L2projection(values,myProblem,time);
       break;
 
     case SIMoptions::SCR:
-      if (msgLevel > 1 && i == 0)
+      if (printMsg)
         IFEM::cout <<"\tSuperconvergent recovery"<< std::endl;
-      ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'S');
+      ok = pch->evalSolution(values,*myProblem,nullptr,'S');
       break;
 
     case SIMoptions::VDSA:
-      if (msgLevel > 1 && i == 0)
+      if (printMsg)
         IFEM::cout <<"\tVariation diminishing projection"<< std::endl;
-      ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'A');
+      ok = pch->evalSolution(values,*myProblem,nullptr,'A');
       break;
 
     case SIMoptions::QUASI:
-      if (msgLevel > 1 && i == 0)
+      if (printMsg)
         IFEM::cout <<"\tQuasi interpolation"<< std::endl;
-      ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'L');
+      ok = pch->evalSolution(values,*myProblem,nullptr,'L');
       break;
 
     case SIMoptions::LEASTSQ:
-      if (msgLevel > 1 && i == 0)
+      if (printMsg)
         IFEM::cout <<"\tLeast squares projection"<< std::endl;
-      ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'W');
+      ok = pch->evalSolution(values,*myProblem,nullptr,'W');
       break;
 
     default:
@@ -2349,18 +2352,23 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     if (!ok)
     {
       std::cerr <<" *** SIMbase::project: Failure when projecting patch "
-                << myModel[i]->idx+1 <<"."<< std::endl;
+                << pch->idx+1 <<"."<< std::endl;
       return false;
     }
 
     // If true, we cannot assume we have a multi-patch numbering for
     // patch projections, so simply append each vector successively.
-    if (this->fieldProjections()) {
+    if (this->fieldProjections())
+    {
+      // We cannot assume we have a multi-patch numbering for patch projections,
+      // so simply append each vector successively here
       if (ssol.empty())
         ssol.resize(myProblem->getNoFields(2),ngNodes);
-      ssol.fillBlock(values, 1, ofs+1);
-      ofs += myModel[i]->getNoProjectionNodes();
-    } else {
+      ssol.fillBlock(values,1,ofs+1);
+      ofs += pch->getNoProjectionNodes();
+    }
+    else
+    {
       size_t nComps = values.rows();
       size_t nNodes = values.cols();
       if (ssol.empty())
@@ -2370,15 +2378,16 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
       // (these are typically the interface nodes)
       for (size_t n = 1; n <= nNodes; n++)
         if (count.empty())
-          ssol.fillColumn(myModel[i]->getNodeID(n),values.getColumn(n));
+          ssol.fillColumn(pch->getNodeID(n),values.getColumn(n));
         else
         {
-          int inod = myModel[i]->getNodeID(n);
+          int inod = pch->getNodeID(n);
           for (size_t j = 1; j <= nComps; j++)
             ssol(j,inod) += values(j,n);
           count(inod) ++;
         }
     }
+    printMsg = false;
   }
 
   // Divide through by count(n) to get the nodal average at the interface nodes
@@ -2395,38 +2404,46 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
                        int basis, int iField, int nFields,
                        SIMoptions::ProjectionMethod method, double time) const
 {
-  bool ok = true;
-  for (size_t j = 0; j < myModel.size() && ok; j++)
+  for (ASMbase* pch : myModel)
   {
-    if (myModel[j]->empty()) continue; // skip empty patches
+    if (pch->empty() || pch->inActive(time))
+      continue; // skip empty or inactive patches
 
+    bool ok = true;
     Vector loc_values;
+    Matrix ftmp(loc_values);
+
     switch (method) {
     case SIMoptions::GLOBAL:
       // Greville point projection
-      ok = myModel[j]->evaluate(f,loc_values,basis,time);
+      ok = pch->evaluate(f,loc_values,basis,time);
       break;
 
-    case SIMoptions::CGL2:
     case SIMoptions::CGL2_INT:
-      // Continuous global L2-projection
-      if (myModel[j]->separateProjectionBasis())
+      // Continuous global L2-projection (version 2)
+      if (!pch->separateProjectionBasis())
       {
-        if (myModel.size() > 1) {
-          std::cerr <<" *** L2 projection of explicit functions onto a"
-                    <<" separate basis is not available for multi-patch models."
-                    << std::endl;
-          return false;
-        }
-        Matrix ftmp(loc_values);
-        ok = myModel[j]->globalL2projection(ftmp,L2FuncIntegrand(*myModel[j],*f,adm),true);
+        ok = pch->L2projection(ftmp,const_cast<FunctionBase*>(f),time);
+        break;
+      }
+      // fall back to version 1 if separate projection basis
+
+    case SIMoptions::CGL2:
+      // Continuous global L2-projection (version 1)
+      if (myModel.size() > 1 && pch->separateProjectionBasis())
+      {
+        std::cerr <<" *** L2 projection of explicit functions onto a separate"
+                  <<" basis is not available for multi-patch models."
+                  << std::endl;
+        return false;
+      }
+
+      GlbL2::SolverParams = myGl2Params;
+      ok = pch->globalL2projection(ftmp,L2FuncIntegrand(*pch,*f,adm,time),true);
+      if (myModel.size() == 1 && pch->separateProjectionBasis())
+      {
         values = loc_values;
         return ok;
-      }
-      else
-      {
-        Matrix ftmp(loc_values);
-        ok = myModel[j]->L2projection(ftmp,const_cast<FunctionBase*>(f),time);
       }
       break;
 
@@ -2436,9 +2453,8 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
       return false;
     }
 
-    if (nFields <= (int)f->dim())
-      ok &= this->injectPatchSolution(values,loc_values,
-                                      myModel[j],f->dim(),basis);
+    if (nFields <= static_cast<int>(f->dim()))
+      ok &= this->injectPatchSolution(values,loc_values,pch,f->dim(),basis);
     else if (f->dim() > 1)
     {
       std::cerr <<" *** SIMbase::project: Cannot interleave non-scalar function"
@@ -2450,10 +2466,10 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
       // Interleave
       size_t i, k = iField;
       Vector loc_vector(loc_values.size()*nFields);
-      myModel[j]->extractNodeVec(values,loc_vector,0,basis);
+      pch->extractNodeVec(values,loc_vector,0,basis);
       for (i = 0; i < loc_values.size(); i++, k += nFields)
         loc_vector[k] = loc_values[i];
-      ok &= myModel[j]->injectNodeVec(loc_vector,values,0,basis);
+      ok &= pch->injectNodeVec(loc_vector,values,0,basis);
     }
     else
     {
@@ -2461,14 +2477,21 @@ bool SIMbase::project (RealArray& values, const FunctionBase* f,
                 <<" is out of range [1,"<< nFields <<"]."<< std::endl;
       return false;
     }
+
+    if (!ok)
+    {
+      std::cerr <<" *** SIMbase::project: Failure when projecting patch "
+                << pch->idx+1 <<"."<< std::endl;
+      return false;
+    }
   }
 
-  return ok;
+  return true;
 }
 
 
-bool SIMbase::extractPatchSolution (IntegrandBase* problem,
-                                    const Vectors& sol, size_t pindx) const
+bool SIMbase::extractPatchSolution (IntegrandBase* problem, const Vectors& sol,
+                                    size_t pindx, double time) const
 {
   if (!problem || !mySam) return false;
 
@@ -2476,9 +2499,70 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
   if (!pch) return false;
 
   problem->initNodeMap(pch->getGlobalNodeNums());
+
+  Vectors tmpSol;
+  if (pch->getElementActivator() && time > 0.0)
+  {
+    // We need to assign values to the nodes/control points only connected to
+    // not-yet activated elements that are connected to at least one node that
+    // also is connected to an active element
+
+    // First, find all currently active elements and nodes
+    IntSet activeElms, activeNodes;
+    IntVec inactiveElms;
+    for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+      if (pch->isElementActive(iel-1,time))
+      {
+        activeElms.insert(pch->getElmID(iel));
+        for (int inod : pch->getElementNodes(iel))
+          activeNodes.insert(pch->getNodeID(1+inod));
+      }
+      else
+        inactiveElms.push_back(iel);
+
+    Vectors avgSol(problem->getNoSolutions());
+    for (int iel : inactiveElms)
+    {
+      // Find mean value for inactive elements connected to active elements
+      size_t nanod = 0;
+      RealArray nodSol;
+      for (Vector& s : avgSol)
+        s.resize(problem->getNoSolutions(),true);
+      for (int inod : pch->getElementNodes(iel))
+        if (activeNodes.find(pch->getNodeID(1+inod)) != activeNodes.end())
+        {
+          ++nanod;
+          for (size_t i = 0; i < avgSol.size(); i++)
+            if (i < sol.size() && !sol[i].empty())
+            {
+              pch->extractNodalVec(sol[i],nodSol,mySam->getMADOF(),1+inod);
+              avgSol[i].add(nodSol);
+            }
+        }
+
+      if (nanod > 0)
+      {
+        for (Vector& s : avgSol)
+          s *= 1.0/static_cast<double>(nanod);
+
+        if (tmpSol.empty())
+          tmpSol = sol;
+
+        // Now assign this value to the connected inactive nodes
+        for (int inod : pch->getElementNodes(iel))
+          if (activeNodes.find(pch->getNodeID(1+inod)) == activeNodes.end())
+            for (size_t i = 0; i < avgSol.size(); i++)
+              if (!avgSol[i].empty())
+                pch->injectNodalVec(nodSol,tmpSol[i],mySam->getMADOF(),1+inod);
+      }
+    }
+  }
+
+  const Vectors& psol = tmpSol.empty() ? sol : tmpSol;
+
   for (size_t i = 0; i < problem->getNoSolutions(); i++)
-    if (i < sol.size() && !sol[i].empty())
-      pch->extractNodalVec(sol[i],problem->getSolution(i),mySam->getMADOF());
+    if (i < psol.size() && !psol[i].empty())
+      pch->extractNodalVec(psol[i],problem->getSolution(i),mySam->getMADOF());
     else
       problem->getSolution(i).clear();
 
