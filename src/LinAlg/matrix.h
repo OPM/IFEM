@@ -491,8 +491,9 @@ namespace utl //! General utility classes and functions.
     }
 
     //! \brief Increase or decrease the number of rows in the matrix.
-    matrix<T>& expandRows(int incRows)
+    matrix<T>& expandRows(int incRows, bool setRows = false)
     {
+      if (setRows) incRows -= nrow;
       int newRows = nrow + incRows;
       if (newRows < 1 || ncol < 1)
         // The matrix is empty
