@@ -491,9 +491,14 @@ namespace utl //! General utility classes and functions.
     }
 
     //! \brief Increase or decrease the number of rows in the matrix.
-    matrix<T>& expandRows(int incRows)
+    //! \param[in] incRows Number of rows to add (or remove if negative)
+    //! \param[in] setRows If \e true, \a incRows is the new number of rows
+    //! in the matrix and not the number of rows to add or remove
+    matrix<T>& expandRows(int incRows, bool setRows = false)
     {
-      int newRows = nrow + incRows;
+      const int curRows = nrow;
+      if (setRows) incRows -= curRows;
+      const int newRows = curRows + incRows;
       if (newRows < 1 || ncol < 1)
         // The matrix is empty
         this->clear();

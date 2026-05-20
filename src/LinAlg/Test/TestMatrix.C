@@ -105,6 +105,22 @@ TEST_CASE("TestMatrix.AddRows")
   for (size_t j = 1; j <= a.cols(); j++, fasit++)
     for (size_t i = 1; i <= 2; i++, fasit++)
       REQUIRE(a(i,j) == fasit);
+
+  a.expandRows(3,true);
+  std::cout <<"D:"<< a;
+  fasit = 1;
+  for (size_t j = 1; j <= a.cols(); j++, fasit++)
+  {
+    for (size_t i = 1; i <= 2; i++, fasit++)
+      REQUIRE(a(i,j) == fasit);
+    REQUIRE(a(3,j) == 0);
+  }
+
+  a.expandRows(1,true);
+  std::cout <<"E:"<< a;
+  fasit = 1;
+  for (size_t j = 1; j <= a.cols(); j++, fasit += 3)
+    REQUIRE(a(1,j) == fasit);
 }
 
 
