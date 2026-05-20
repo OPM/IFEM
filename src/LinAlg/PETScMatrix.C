@@ -831,8 +831,12 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
 }
 
 
-bool PETScMatrix::solveMultipleRhs (PETScVectors& B, Matrix& sField)
+bool PETScMatrix::solve (SystemVector& b, Matrix& sol)
 {
+  PETScVectors& B = static_cast<PETScVectors&>(b);
+
+  sol.resize(B.size(),nrow);
+
   Vec xg;
   VecScatter ctx;
   if (m_dd && m_dd->isPartitioned())
@@ -855,13 +859,13 @@ bool PETScMatrix::solveMultipleRhs (PETScVectors& B, Matrix& sField)
       VecGetArray(xg, &ga);
       const auto& g2leq = m_dd->getG2LEQ(0);
       for (const auto& it : g2leq)
-        sField(i+1, it.second) = ga[it.first-1];
+        sol(i+1, it.second) = ga[it.first-1];
       VecRestoreArray(xg, &ga);
     } else {
       PetscScalar* xa;
       VecGetArray(x, &xa);
       for (size_t eq = 0; eq < B.dim(); ++eq)
-        sField(i+1, eq+1) = xa[eq];
+        sol(i+1, eq+1) = xa[eq];
       VecRestoreArray(x, &xa);
     }
   }

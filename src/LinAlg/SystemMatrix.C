@@ -297,3 +297,26 @@ void SystemMatrix::dump (const char* fileName, std::streamsize precision,
     this->dump(fs,format);
   }
 }
+
+
+bool SystemMatrix::solve (SystemVector& b, Matrix& x)
+{
+  const size_t neqs = this->dim();
+  const size_t nrhs = b.dim() / this->dim();
+  if (neqs*nrhs != b.dim())
+  {
+    std::cerr <<"SystemMatrix::solve: Incompatible vector size, dim(A)="
+              << neqs <<" dim(b)="<< b.dim() << std::endl;
+    return false;
+  }
+  else if (!this->solve(b))
+    return false;
+
+  x.resize(nrhs,neqs);
+  const Real* s = b.getRef();
+  for (size_t j = 1; j <= nrhs; j++)
+    for (size_t i = 1; i <= neqs; i++, s++)
+      x(j,i) = *s;
+
+  return true;
+}

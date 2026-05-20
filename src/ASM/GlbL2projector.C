@@ -420,13 +420,7 @@ namespace
 #endif
 
       // Solve the patch-global equation system
-      if (!A.solve(B)) return false;
-
-      // Store the nodal values of the projected field
-      sField.resize(nrhs,nnod);
-      for (size_t i = 1; i <= nnod; i++)
-        for (size_t j = 1; j <= nrhs; j++)
-          sField(j,i) = B(i+(j-1)*nnod);
+      if (!A.solve(B,sField)) return false;
 
 #if SP_DEBUG > 1
       std::cout <<"\nSolution:"<< sField;
@@ -457,23 +451,28 @@ namespace
 #endif
 
       // Solve the patch-global equation system
-      if (!A.solve(B)) return false;
+      Matrix& solutions = *sField.front();
+      if (!A.solve(B,solutions)) return false;
 
-      // Store the nodal values of the projected fields
-      size_t offset = 0;
-      for (size_t k = 0; k < sField.size(); k++)
+      if (sField.size() > 1)
       {
-        size_t ncomp = functions[k]->dim();
-        sField[k]->resize(ncomp,nnod);
-        for (size_t i = 1; i <= nnod; i++)
-          for (size_t j = 1; j <= ncomp; j++)
-            (*sField[k])(j,i) = B(i+(offset+j-1)*nnod);
-        offset += ncomp;
-
+        // Split the solution vectors into one for each function
+        size_t offset = functions.front()->dim();
+        for (size_t k = 1; k < sField.size(); k++)
+        {
+          size_t ncomp = functions[k]->dim();
+          sField[k]->resize(ncomp,nnod);
+          for (size_t i = 1; i <= nnod; i++)
+            for (size_t j = 1; j <= ncomp; j++)
+              (*sField[k])(j,i) = solutions(offset+j,i);
+          offset += ncomp;
+        }
+        sField.front()->expandRows(functions.front()->dim()-solutions.rows());
+      }
 #if SP_DEBUG > 1
+      for (size_t k = 0; k < sField.size(); k++)
         std::cout <<"\nSolution "<< k <<":"<< *sField[k];
 #endif
-      }
       return true;
     }
 
@@ -656,27 +655,19 @@ bool ASMbase::globalL2projection (Matrix& sField,
 #if SP_DEBUG > 1
   std::cout <<"---- Matrix A -----\n"<< *A
             <<"-------------------"<< std::endl;
-  std::cout <<"---- Vector B -----\n"<< *B
-            <<"-------------------"<< std::endl;
+  const Vector& bVec = B->vec();
+  if (!bVec.empty())
+  {
+    std::cout <<"---- Vector B -----";
+    for (size_t i = 1; i <= npnod; i++)
+      for (size_t j = 0; j < ncomp; j++)
+	std::cout << (j > 0 ? " " : "\n") << bVec(i+npnod*j);
+    std::cout <<"\n-------------------"<< std::endl;
+  }
 #endif
 
   // Solve the patch-global equation system
-  sField.resize(ncomp,npnod);
-  bool ok = false;
-#ifdef HAS_PETSC
-  if (Ap)
-    ok = Ap->solveMultipleRhs(static_cast<PETScVectors&>(*B),sField);
-  else
-#endif
-    if ((ok = A->solve(*B)))
-    {
-      // Store the control-point values of the projected field
-      const StdVector& stdB = dynamic_cast<const StdVector&>(*B);
-      for (size_t i = 1; i <= npnod; i++)
-        for (size_t j = 1; j <= ncomp; j++)
-          sField(j,i) = stdB(i+(j-1)*npnod);
-    }
-  if (!ok)
+  if (!A->solve(*B,sField))
   {
     delete A;
     delete B;
