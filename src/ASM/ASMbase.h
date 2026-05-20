@@ -22,6 +22,7 @@
 #include <array>
 #include <string>
 
+using IntSet = std::set<int>;       //!< General integer set
 using IntVec = std::vector<int>;    //!< General integer vector
 using IntMat = std::vector<IntVec>; //!< General 2D integer matrix
 
@@ -339,10 +340,12 @@ public:
   void setActiveElements(IntVec* active) { myActiveEls = active; }
   //! \brief Returns \e true if element with 0-based index \a iel is active.
   bool isElementActive(int iel, double time = -1.0) const;
+  //! \brief Returns \e true if element with 0-based index \a iel is inactive.
+  bool inActiveElement(int iel, double time) const;
   //! \brief Returns \e true if none of the elements in the patch are active.
   bool inActive(double time) const;
   //! \brief Returns the age of the element with 0-based index \a iel.
-  double getAge(int iel, double time) const;
+  double getAge(int iel, double time, bool includeNeighbor = false) const;
   //! \brief Returns \e true if element is in process partition.
   //! \param[in] iel 0-based element index local to current patch
   bool isElementInPartition(int iel) const;
@@ -941,6 +944,9 @@ protected:
   // Miscellaneous methods for internal use
   // ======================================
 
+  //! \brief Constructs the \ref MNEC array for this patch.
+  void invertConnectivities();
+
   //! \brief Helper method used by evalPoint to search for a control point.
   //! \param[in] cit iterator of array of control point coordinates
   //! \param[in] end iterator of array of control point coordinates
@@ -1060,6 +1066,8 @@ protected:
   IntVec myMLGN; //!< The actual Matrix of Local to Global Node numbers
   IntMat myMNPC; //!< The actual Matrix of Nodal Point Correspondance
   IntVec myElms; //!< Elements on patch - used with partitioning
+
+  std::vector<IntSet> MNEC; //!< Matrix of Node to Element Connectivities
 
   //! \brief Numerical integration scheme for this patch.
   //! \details A value in the range [1,10] means use that number of Gauss
