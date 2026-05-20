@@ -1124,7 +1124,7 @@ bool ASMs2DLag::assembleL2matrices (SystemMatrix& A, SystemVector& B,
       Matrix dNdX, Xnod, J;
       for (int iel : group)
       {
-        if (checkAge && !this->isElementActive(iel,integrand.getTimeLevel()))
+        if (checkAge && this->inActiveElement(iel,integrand.getTimeLevel()))
           continue; // inactive element
 
         if (!this->getElementCoordinates(Xnod,1+iel)) {

@@ -54,6 +54,8 @@ namespace ASM {
   class InterfaceChecker;
   using NodeSet  = std::pair<std::string,IntVec>; //!< Named set container type
   using PatchVec = std::vector<ASMbase*>; //!< Spline patch container type
+  //! If \e true, the neighbors to newly activated elements are included
+  extern bool includeNeighbor_L2; //!< in global L2-projection
 }
 
 

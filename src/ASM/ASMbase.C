@@ -41,7 +41,12 @@ int ASMbase::gNod = 0;
 IntMap ASMbase::xNode;
 IntVec ASMbase::Empty;
 
-ASM::CachePolicy ASM::cachePolicy = ASM::PRE_CACHE;
+
+namespace ASM
+{
+  CachePolicy cachePolicy = PRE_CACHE;
+  bool includeNeighbor_L2 = false;
+}
 
 
 namespace
@@ -1918,6 +1923,12 @@ void ASMbase::getBoundaryElms (int lIndex, IntVec& elms,
 bool ASMbase::isElementActive (int iel, double time) const
 {
   return this->getAge(iel,time) >= 0.0;
+}
+
+
+bool ASMbase::inActiveElement (int iel, double time) const
+{
+  return this->getAge(iel,time,ASM::includeNeighbor_L2) < 0.0;
 }
 
 

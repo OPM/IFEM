@@ -1706,11 +1706,15 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   const RealArray& upar = *gpar;
   size_t nPoints = upar.size();
+#if SP_DEBUG > 3
+  std::cout <<"\nASMs1D::evalSolution("<< nPoints <<")"<< std::endl;
+#endif
+
   for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
     fe.u = param[0] = upar[i];
     int iel = this->findElementContaining(param) - 1;
-    if ((fe.age = this->getAge(iel,X.t) < 0.0))
+    if ((fe.age = this->getAge(iel,X.t,ASM::includeNeighbor_L2)) < 0.0)
       continue; // skip inactive elements
 
     fe.idx = firstEl + iel;
@@ -1768,6 +1772,11 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
 
+#if SP_DEBUG > 3
+    std::cout << 1+i <<" "<< 1+iel <<" u = "<< fe.u <<" :";
+    for (double v : solPt) std::cout <<" "<< v;
+    std::cout << std::endl;
+#endif
     sField.fillColumn(1+i,solPt);
   }
 
@@ -1822,7 +1831,7 @@ bool ASMs1D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
   for (size_t iel = 0; iel < mlge.size(); iel++)
   {
     if (mlge[iel] < 1) continue; // zero-length element
-    if (checkAge && !this->isElementActive(iel,integrand.getTimeLevel()))
+    if (checkAge && this->inActiveElement(iel,integrand.getTimeLevel()))
       continue; // inactive element
 
     if (continuous)
