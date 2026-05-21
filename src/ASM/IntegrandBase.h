@@ -290,17 +290,22 @@ public:
   size_t getNoSpaceDim() const { return nsd; }
   //! \brief Returns the number of primary/secondary solution field components.
   virtual size_t getNoFields(int = 2) const { return 0; }
+  //! \brief Returns the number of element-wise constant field components.
+  virtual size_t getNoElmFields() const { return 0; }
   //! \brief Returns the number of global %Lagrange multipliers in the model.
   virtual size_t getNoGLMs() const { return 0; }
 
   //! \brief Returns the name of a primary solution field component.
-  //! \param[in] idx Field component index
+  //! \param[in] idx Field component index (0-based)
   //! \param[in] prefix Name prefix for all components
   virtual std::string getField1Name(size_t idx, const char* prefix = 0) const;
   //! \brief Returns the name of a secondary solution field component.
-  //! \param[in] idx Field component index
+  //! \param[in] idx Field component index (0-based)
   //! \param[in] prefix Name prefix for all components
   virtual std::string getField2Name(size_t idx, const char* prefix = 0) const;
+  //! \brief Returns the name of an element-wise solution field component.
+  //! \param[in] idx Field component index (0-based)
+  virtual std::string getEFieldName(size_t idx) const;
   //! \brief Filters a result components for output.
   virtual bool suppressOutput(size_t, ASM::ResultClass) const { return false; }
 
@@ -473,7 +478,7 @@ public:
 
   //! \brief Sets a projected secondary solution as a field quantity.
   //! \param[in] f The field defining the projected secondary solution
-  //! \param[in] idx Projection index
+  //! \param[in] idx Projection index (0-based)
   virtual void setProjectedFields(Fields* f, size_t idx);
 
   //! \brief Assigns a parameter value to property functions of the integrand.

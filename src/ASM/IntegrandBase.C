@@ -423,6 +423,14 @@ std::string IntegrandBase::getField2Name (size_t idx, const char* prefix) const
 }
 
 
+std::string IntegrandBase::getEFieldName (size_t idx) const
+{
+  char name[32];
+  sprintf(name,"parameter %zu",1+idx);
+  return name;
+}
+
+
 bool IntegrandBase::inActive (int iel) const
 {
   if (elmGrp.empty()) return false;
