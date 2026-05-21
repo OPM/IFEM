@@ -127,6 +127,16 @@ TEST_CASE("TestMatrix.AugmentRows")
         REQUIRE(a(i,j) == static_cast<int>(i+na*(j-1)));
       else
         REQUIRE(a(i,j) == static_cast<int>(nA-na+i+nb*(j-1)));
+  REQUIRE(a.augmentRows(b,true));
+  std::cout <<"C:"<< a;
+  for (size_t j = 1; j <= a.cols(); j++)
+    for (size_t i = 1; i <= a.rows(); i++)
+      if (i <= nb)
+        REQUIRE(a(i,j) == b(i,j));
+      else if (i > nb+na)
+        REQUIRE(a(i,j) == b(i-nb-na,j));
+      else
+        REQUIRE(a(i,j) == static_cast<int>(i-nb+na*(j-1)));
 }
 
 

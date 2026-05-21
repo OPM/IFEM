@@ -524,21 +524,28 @@ namespace utl //! General utility classes and functions.
     }
 
     //! \brief Increase the number of rows by augmenting the given matrix.
-    bool augmentRows(const matrix<T>& B)
+    //! \details If \a prepend is \e true, the matrix \b B is inserted as the
+    //! first rows of this matrix. Otherwise, it is appended as the last rows.
+    bool augmentRows(const matrix<T>& B, bool prepend = false)
     {
       if (B.ncol != ncol)
         return false;
 
       size_t oldRows = nrow;
+      size_t offset = prepend ? B.nrow : 0;
       nrow += B.nrow;
       this->elem.resize(nrow*ncol,RETAIN);
       T* oldMat = this->ptr() + oldRows*(ncol-1);
       for (size_t c = ncol; c > 0; c--, oldMat -= oldRows)
       {
-        if (c > 1)
-          memmove(this->ptr(c-1),oldMat,oldRows*sizeof(T));
-        for (size_t r = nrow; r > oldRows; r--)
-          this->elem[r-1+nrow*(c-1)] = B(r-oldRows,c);
+        if (c > 1 || prepend)
+          memmove(this->ptr(c-1)+offset,oldMat,oldRows*sizeof(T));
+        if (prepend)
+          for (size_t r = 1; r <= B.nrow; r++)
+            this->elem[r-1+nrow*(c-1)] = B(r,c);
+        else
+          for (size_t r = nrow; r > oldRows; r--)
+            this->elem[r-1+nrow*(c-1)] = B(r-oldRows,c);
       }
       return true;
     }
