@@ -249,13 +249,6 @@ public:
   //! \param[in] globalNum If \e true, \a elmId is global otherwise patch-local
   virtual bool checkElementSize(int elmId, bool globalNum = true) const;
 
-  //! \brief Extracts element results for this patch from a global vector.
-  //! \param[in] globRes Global matrix of element results
-  //! \param[out] elmRes Element results for this patch
-  //! \param[in] internalFirst Global index of first element in the patch
-  virtual void extractElmRes(const Matrix& globRes, Matrix& elmRes,
-                             size_t internalFirst) const;
-
   //! \brief Copies the refinement to another surface.
   //! \param basis Surface to copy refinement to
   //! \param[in] multiplicity Wanted multiplicity
@@ -481,10 +474,10 @@ public:
   //! \param[in] fType Flag telling which file type(s) to write
   virtual void storeMesh(const std::string& fName, int fType) const;
 
-  //! \brief Set master patch for VTF output.
-  //! \param pch Master patch to use
-  void setOutputMaster(const ASMu2D* pch)
-  { outputMaster = pch; }
+  //! \brief Sets the master patch to use for VTF- and HDF5-output.
+  void setOutputMaster(const ASMu2D* pch) { outputMaster = pch; }
+  //! \brief Returns the master patch to use for VTF- and HDF5-output.
+  virtual const ASMbase* getOutputMaster() const { return outputMaster; }
 
 protected:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.

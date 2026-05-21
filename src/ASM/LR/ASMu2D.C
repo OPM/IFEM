@@ -50,6 +50,7 @@ ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
 {
   aMin = 0.0;
   tensorspline = tensorPrjBas = nullptr;
+  outputMaster = this;
 }
 
 
@@ -59,6 +60,8 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
 {
   aMin = 0.0;
   tensorspline = tensorPrjBas = nullptr;
+  outputMaster = this;
+
   is_rational = patch.is_rational;
 
   // Need to set nnod here,
@@ -1965,10 +1968,10 @@ double ASMu2D::findPoint (Vec3&, double*) const
 
 bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
-  if (!lrspline) return false;
-
-  if (outputMaster)
+  if (outputMaster && outputMaster != this)
     return outputMaster->getGridParameters(prm, dir, nSegPerSpan);
+
+  if (!lrspline) return false;
 
   double eps = ElementBlock::eps;
 
@@ -3058,16 +3061,6 @@ void ASMu2D::storeMesh (const std::string& fName, int fType) const
     else
       lrspline->writePostscriptMeshWithControlPoints(meshFile);
   }
-}
-
-
-void ASMu2D::extractElmRes (const Matrix& globRes, Matrix& elmRes,
-                            size_t internalFirst) const
-{
-  if (outputMaster)
-    outputMaster->extractElmRes(globRes, elmRes, internalFirst);
-  else
-    this->ASMbase::extractElmRes(globRes, elmRes, internalFirst);
 }
 
 

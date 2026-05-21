@@ -49,6 +49,7 @@ ASMu3D::ASMu3D (unsigned char n_f)
 {
   vMin = 0.0;
   tensorspline = tensorPrjBas = nullptr;
+  outputMaster = this;
 }
 
 
@@ -58,6 +59,7 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
 {
   vMin = 0.0;
   tensorspline = tensorPrjBas = nullptr;
+  outputMaster = this;
 
   // Need to set nnod here,
   // as hasXNodes might be invoked before the FE data is generated
@@ -1428,10 +1430,10 @@ double ASMu3D::findPoint (Vec3&, double*) const
 
 bool ASMu3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
-  if (!lrspline) return false;
-
-  if (outputMaster)
+  if (outputMaster && outputMaster != this)
     return outputMaster->getGridParameters(prm, dir, nSegPerSpan);
+
+  if (!lrspline) return false;
 
   double eps = ElementBlock::eps;
 
@@ -2442,16 +2444,6 @@ void ASMu3D::generateThreadGroupsFromElms (const IntVec& elms)
 void ASMu3D::generateProjThreadGroupsFromElms (const IntVec& elms)
 {
   projThreadGroups = projThreadGroups.filter(elms);
-}
-
-
-void ASMu3D::extractElmRes (const Matrix& globRes, Matrix& elmRes,
-                            size_t internalFirst) const
-{
-  if (outputMaster)
-    outputMaster->extractElmRes(globRes, elmRes, internalFirst);
-  else
-    this->ASMbase::extractElmRes(globRes, elmRes, internalFirst);
 }
 
 

@@ -1449,6 +1449,23 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes,
 }
 
 
+void ASMbase::extractElmRes (const Matrix& globRes, Vector& elmRes,
+                             size_t irow) const
+{
+  elmRes.clear();
+  elmRes.reserve(MLGE.size());
+
+  for (size_t i = 0; i < MLGE.size(); i++)
+    if (MLGE[i] > 0 && MNPC[i].size() > 1)
+    {
+      if (size_t icol = MLGE[i]; icol <= globRes.cols())
+        elmRes.push_back(globRes(irow,icol));
+      else
+        elmRes.push_back(0.0);
+    }
+}
+
+
 bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
                                const int* madof, int ngnod) const
 {

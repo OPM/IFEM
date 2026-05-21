@@ -479,17 +479,10 @@ public:
   //! \param[in] coefs The coefficients for the field
   virtual Fields* getProjectedFields(const Vector& coefs, size_t = 0) const;
 
-  //! \brief Set master patch for VTF output.
-  //! \param pch Master patch to use
-  void setOutputMaster(const ASMu3D* pch)
-  { outputMaster = pch; }
-
-  //! \brief Extracts element results for this patch from a global vector.
-  //! \param[in] globRes Global matrix of element results
-  //! \param[out] elmRes Element results for this patch
-  //! \param[in] internalFirst Global index of first element in the patch
-  virtual void extractElmRes(const Matrix& globRes, Matrix& elmRes,
-                             size_t internalFirst) const;
+  //! \brief Sets the master patch to use for VTF- and HDF5-output.
+  void setOutputMaster(const ASMu3D* pch) { outputMaster = pch; }
+  //! \brief Returns the master patch to use for VTF- and HDF5-output.
+  virtual const ASMbase* getOutputMaster() const { return outputMaster; }
 
 protected:
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
