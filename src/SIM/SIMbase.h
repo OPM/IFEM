@@ -586,12 +586,12 @@ public:
 
 protected:
   //! \brief Returns a vector function associated with given patch and property.
-  //! \param[in] patch 1-based index of the patch to retrieve property for
+  //! \param[in] patch One-based index of the patch to retrieve property for
   //! \param[in] ptype The property type associated with the vector function
   VecFunc* getVecFunc(size_t patch, Property::Type ptype) const;
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
-  //! \param[in] patch 1-based index of the patch to receive the property
+  //! \param[in] patch One-based index of the patch to receive the property
   //! \param[in] lndx Local index of the boundary item to receive the property
   //! \param[in] ldim Dimension of the boundary item to receive the property
   //! \param[in] dirs Which local DOFs to constrain
@@ -673,8 +673,25 @@ public:
   //! \brief Extracts element results for a specified patch.
   //! \param[in] glbRes Global element result array
   //! \param[out] elRes Patch-level element result array
+  //! \param[in] row One-based index of the row to extract from \a glbRes
   //! \param[in] pindx Local patch index to extract element results for
-  bool extractPatchElmRes(const Matrix& glbRes, Matrix& elRes, int pindx) const;
+  //! \param[out] name Name of the result component associated with row \a row
+  //! \param[in] prefix Optional common prefix for all result components
+  bool extractElmRes(const Matrix& glbRes, Vector& elRes,
+                     size_t row, int pindx, std::string& name,
+                     const char* prefix = nullptr) const;
+  //! \brief Extracts element results for a specified patch.
+  //! \param[in] glbRes Global element result array
+  //! \param[out] elRes Patch-level element result array
+  //! \param[in] row One-based index of the row to extract from \a glbRes
+  //! \param[in] pindx Local patch index to extract element results for
+  bool extractElmRes(const Matrix& glbRes, Vector& elRes,
+                     size_t row, int pindx) const;
+  //! \brief Extracts element results for a specified patch.
+  //! \param[in] glbRes Global element result array
+  //! \param[out] elRes Patch-level element result array
+  //! \param[in] pindx Local patch index to extract element results for
+  bool extractElmRes(const Vector& glbRes, Vector& elRes, int pindx) const;
 
   //! \brief Returns the local patch index for the given global patch number.
   //! \details For serial applications this is an identity mapping only, whereas
@@ -686,7 +703,7 @@ public:
   //! \brief Returns a const reference to our FEM model.
   const PatchVec& getFEModel() const { return myModel; }
   //! \brief Returns a pointer to a specified patch of our FEM model.
-  //! \param[in] idx 1-based patch index
+  //! \param[in] idx One-based patch index
   //! \param[in] glbIndex If \e true, the patch index is assumed to be global
   //! for the whole model, otherwise it is assumed local within current process.
   //! For serial applications this option has no effect.

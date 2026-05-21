@@ -277,23 +277,6 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
       this->writeBasis(sim, sim->getName() + "-proj", -1, level);
   }
 
-  const IntegrandBase* prob = sim->getProblem();
-  NormBase* norm = eNorm ? sim->getNormIntegrand() : nullptr;
-  size_t normGrp = norm ? norm->getNoFields(0) : 0;
-
-  // Extract names for the projection methods used
-  std::vector<const char*> projPfx;
-  if (proj || norm)
-  {
-    projPfx.reserve(sim->opt.project.size());
-    for (const auto& pfx : sim->opt.project)
-      projPfx.push_back(pfx.second.c_str());
-    if (normGrp > 1+projPfx.size())
-      projPfx.resize(normGrp-1,nullptr);
-    else
-      normGrp = 1+projPfx.size();
-  }
-
   bool exportSol = results & (DataExporter::PRIMARY | DataExporter::SECONDARY);
   std::string str = std::to_string(level) + "/" + sim->getName();
   std::vector<hid_t> egroup, group;
@@ -302,7 +285,7 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
   for (size_t b = 1; b <= sim->getNoBasis(); ++b) {
     std::string basis = str + "-" + std::to_string(b);
     this->addGroup(basis);
-    if (norm || (results & DataExporter::ELEMENT_MASK))
+    if (eNorm || (results & DataExporter::ELEMENT_MASK))
       egroup.push_back(this->getGroup(basis + "/knotspan"));
     if (exportSol && !sol->empty())
       group.push_back(this->getGroup(basis + "/fields"));
@@ -337,6 +320,10 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
   static std::vector<size_t> old_count;
   if ((results & DataExporter::ELEMENT_MASK) && old_count.empty())
     old_count.resize(sim->getNoPatches(),0);
+
+  const IntegrandBase* prob = sim->getProblem();
+  Vector values;
+  std::string name;
 
 
   //============================================================================
@@ -398,14 +385,15 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
       // if another projection already has been performed
       if (proj) {
         hid_t gid = sim->fieldProjections() ? group.back() : group.front();
-        for (size_t p = 0; p < proj->size(); p++)
+        SIMoptions::ProjectionMap::const_iterator it = sim->opt.project.begin();
+        for (size_t p = 0; p < proj->size(); ++p, ++it)
           if (!proj->at(p).empty())
           {
             Matrix field;
             extractProjection(pch, proj->at(p), field, p+1 == proj->size());
             for (size_t j = 0; j < field.rows(); j++)
               if (!prob->suppressOutput(j,ASM::PROJECTED))
-                this->writeArray(gid, prob->getField2Name(j,projPfx[p]),
+                this->writeArray(gid, prob->getField2Name(j,it->second.c_str()),
                                  idx, field.cols(), field.getRow(j+1).ptr(),
                                  H5T_NATIVE_DOUBLE);
           }
@@ -438,17 +426,12 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
                              H5T_NATIVE_DOUBLE);
       }
 
-      if (norm) {
-        Matrix patchEnorm;
-        sim->extractPatchElmRes(*eNorm,patchEnorm,loc-1);
-        for (size_t j = 1; j <= normGrp; ++j)
-          for (size_t k = 1; k <= norm->getNoFields(j); ++k)
-            if (norm->hasElementContributions(j,k))
-              this->writeArray(egroup.front(),
-                               prefix+norm->getName(j, k, j > 1 ? projPfx[j-2] : nullptr),
-                               idx, patchEnorm.cols(), patchEnorm.getRow(k).ptr(),
-                               H5T_NATIVE_DOUBLE);
-      }
+      if (eNorm)
+        for (size_t k = 1; k <= eNorm->rows(); k++)
+          if (sim->extractElmRes(*eNorm,values,k,loc-1,name))
+            this->writeArray(egroup.front(), prefix+name,
+                             idx, values.size(), values.ptr(),
+                             H5T_NATIVE_DOUBLE);
 
       if (results & DataExporter::ELEMENT_MASK) {
         std::vector<char> mask(pch->getNoElms());
@@ -516,33 +499,31 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
         for (size_t j = 0; j < prob->getNoFields(2); j++)
           if (!prob->suppressOutput(j,rClass))
             writeArray(gid, prefix+prob->getField2Name(j),
-                       idx, 0, &dummy,H5T_NATIVE_DOUBLE);
+                       idx, 0, &dummy, H5T_NATIVE_DOUBLE);
       }
 
       if (proj) {
         hid_t gid = sim->fieldProjections() ? group.back() : group.front();
-        for (size_t p = 0; p < proj->size(); p++)
+        SIMoptions::ProjectionMap::const_iterator it = sim->opt.project.begin();
+        for (size_t p = 0; p < proj->size(); ++p, ++it)
           if (!proj->at(p).empty())
             for (size_t j = 0; j < prob->getNoFields(2); j++)
               if (!prob->suppressOutput(j,ASM::PROJECTED))
-                writeArray(gid, prob->getField2Name(j,projPfx[p]),
-                           idx, 0, &dummy,H5T_NATIVE_DOUBLE);
+                writeArray(gid, prob->getField2Name(j,it->second.c_str()),
+                           idx, 0, &dummy, H5T_NATIVE_DOUBLE);
       }
 
-      if (norm)
-        for (size_t j = 1; j <= normGrp; j++)
-          for (size_t k = 1; k <= norm->getNoFields(j); k++)
-            if (norm->hasElementContributions(j,k))
-              writeArray(egroup.front(),
-                         prefix+norm->getName(j, k, j > 1 ? projPfx[j-2] : nullptr),
-                         idx, 0, &dummy,H5T_NATIVE_DOUBLE);
+      if (eNorm)
+        for (size_t k = 1; k <= eNorm->rows(); k++)
+          if (sim->extractElmRes(*eNorm,values,k,-1,name))
+            this->writeArray(egroup.front(), prefix+name,
+                             idx, 0, &dummy, H5T_NATIVE_DOUBLE);
 
       if (results & DataExporter::EIGENMODES) // TODO (akva?)
         std::cerr <<"  ** HDF5Writer: Oops, eigenmodes not yet supported for distributed patches"
                   <<"\n     The HDF5-file will most likely be inconsistent."<< std::endl;
     }
 
-  delete norm;
   for (hid_t g : group)
     if (g != -1)
       H5Gclose(g);
@@ -564,28 +545,24 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
 #ifdef HAS_HDF5
   std::string str = std::to_string(level) + "/" + sim->getName() + "-1";
   this->addGroup(str);
-
   hid_t group = this->getGroup(str + "/knotspan");
 
-  Matrix infield(1,sol->size());
-  infield.fillRow(1,sol->ptr());
-  double dummy = 0.0;
+  Vector elmRes;
 
   for (int idx = 1; idx <= sim->getNoPatches(); idx++)
     if (int loc = sim->getLocalPatchIndex(idx); loc > 0 &&
         (sim->getProcessAdm().getProcId() == 0 ||
          sim->getProcessAdm().isParallel()))
     {
-      Matrix elmRes;
-      sim->extractPatchElmRes(infield,elmRes,loc-1);
+      sim->extractElmRes(*sol,elmRes,loc-1);
       writeArray(group,prefix+entry.second.description,idx,
-                 elmRes.cols(),elmRes.getRow(1).ptr(),H5T_NATIVE_DOUBLE);
+                 elmRes.size(),elmRes.ptr(),H5T_NATIVE_DOUBLE);
     }
     else
       // Write empty dummy records for patches
       // not owned by current processor
       writeArray(group,prefix+entry.second.description,idx,
-                 0,&dummy,H5T_NATIVE_DOUBLE);
+                 0,elmRes.ptr(),H5T_NATIVE_DOUBLE);
 
   H5Gclose(group);
 #else

@@ -2631,13 +2631,92 @@ bool SIMbase::fieldProjections () const
 }
 
 
-bool SIMbase::extractPatchElmRes (const Matrix& glbRes, Matrix& elRes,
-				  int pindx) const
-{
-  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
-  if (!pch || glbRes.empty()) return false;
+/*!
+  This method is used by the HDF5Writer, to extract patch-level element results
+  from a global norm array, together with the associated component name from
+  the underlying NormBase object of the integrand. If \a pindx is negative,
+  only the component name is extracted and no results data.
+*/
 
-  pch->extractElmRes(glbRes,elRes);
+bool SIMbase::extractElmRes (const Matrix& glbRes, Vector& elRes,
+                             size_t row, int pindx, std::string& name,
+                             const char* prefix) const
+{
+  size_t iField = myProblem->getNoElmFields();
+  if (iField > 0 && row <= iField)
+    name = myProblem->getEFieldName(row-1); // Element-wise material parameter
+
+  else if (NormBase* norm = myProblem->getNormIntegrand(mySol); norm)
+  {
+    const size_t normGrp = std::max(norm->getNoFields(0), 1+opt.project.size());
+    SIMoptions::ProjectionMap::const_iterator pit = opt.project.end();
+
+    // Find the name of this result norm from the NormBase object.
+    // The first norm group uses the name as it is. The other groups assume
+    // the corresponding projection method name as prefix. If the prefix
+    // argument is specified, it is used as a common prefix for all norm groups.
+    bool found = false;
+    size_t iGroup = 0, iComp = 0;
+    while (!found && ++iGroup <= normGrp)
+    {
+      if (iGroup == 2)
+        pit = opt.project.begin();
+      else if (iGroup > 2 && pit != opt.project.end())
+        ++pit;
+
+      iComp = 0;
+      while (!found && ++iComp <= norm->getNoFields(iGroup))
+        found = ++iField == row;
+    }
+
+    if (found)
+    {
+      // Check if the norm has element contributions
+      if (iGroup > 1 || !prefix)
+        found = norm->hasElementContributions(iGroup,iComp);
+      else if (iComp > 2) // hack: dual refinement indicators as norm #2
+        found = false;
+    }
+
+    if (found)
+    {
+      const bool project = pit != opt.project.end();
+      if (project)
+        name = prefix ? std::string(prefix) + " " + pit->second : pit->second;
+      name = norm->getName(iGroup, iComp, project ? name.c_str() : prefix);
+    }
+
+    delete norm;
+    if (!found)
+      return false; // No element contribution for this component
+  }
+  else
+    name = "norm_" + std::to_string(row);
+
+  return pindx >= 0 ? this->extractElmRes(glbRes,elRes,row,pindx) : true;
+}
+
+
+bool SIMbase::extractElmRes (const Matrix& glbRes, Vector& elRes,
+                             size_t row, int pindx) const
+{
+  if (row > glbRes.rows()) return false;
+
+  ASMbase* pch = this->getPatch(pindx+1);
+  if (!pch) return false;
+
+  pch->getOutputMaster()->extractElmRes(glbRes,elRes,row);
+  return true;
+}
+
+
+bool SIMbase::extractElmRes (const Vector& glbRes, Vector& elRes,
+                             int pindx) const
+{
+  ASMbase* pch = this->getPatch(pindx+1);
+  if (!pch) return false;
+
+  pch->getOutputMaster()->extractElmRes(glbRes,elRes);
   return true;
 }
 
