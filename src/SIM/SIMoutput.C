@@ -1806,6 +1806,8 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
       return norm->hasElementContributions(iGroup,iNorm);
   };
 
+  const size_t nEField = myProblem->getNoElmFields();
+
   size_t idxW = 0;
   size_t nrow = norms.rows();
   if (dualField && dualPrefix) idxW = ++nrow;
@@ -1839,12 +1841,12 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
           field(idxW,j) = dualField->getScalarValue(grid->getCenter(j));
     }
 
-    for (k = 0, i = j = l = 1; i <= nrow; i++, l++)
+    for (k = l = 0, i = j = 1; i <= nrow; i++)
     {
-      if (l > norm->getNoFields(j))
+      if (i > nEField && ++l > norm->getNoFields(j))
         l = 1, ++j;
 
-      if (writeNorm(j,l) || i == idxW)
+      if (i <= nEField || i == idxW || writeNorm(j,l))
       {
         if (!myVtf->writeEres(field.getRow(i),++nBlock,geomID))
           return false;
@@ -1855,14 +1857,16 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   }
 
   std::string normName;
-  for (k = 0, i = j = l = 1; k < sID.size() && !sID[k].empty(); i++, l++)
+  for (k = l = 0, i = j = 1; k < sID.size() && !sID[k].empty(); i++)
   {
-    if (l > norm->getNoFields(j))
+    if (i > nEField && ++l > norm->getNoFields(j))
       l = 1, ++j;
 
-    if (writeNorm(j,l) || i == idxW)
+    if (i <= nEField || i == idxW || writeNorm(j,l))
     {
-      if (i == idxW && dualPrefix)
+      if (i <= nEField)
+        normName = "Element " + myProblem->getEFieldName(i-1);
+      else if (i == idxW && dualPrefix)
         normName = std::string(dualPrefix) + " extraction function";
       else if (j == 1 && dualPrefix)
         normName = norm->getName(j,l,dualPrefix);
