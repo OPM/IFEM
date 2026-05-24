@@ -1795,92 +1795,72 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   if (mergeVtf && myModel.size() > 1)
     return true; // not implemented for merged patches, ignore
 
-  NormBase* norm = myProblem->getNormIntegrand(mySol);
-
-  // Lambda function telling whether a norm quantity should be saved or not.
-  auto&& writeNorm = [norm,dualPrefix](size_t iGroup, size_t iNorm)
-  {
-    if (iGroup == 1 && dualPrefix)
-      return iNorm <= 2; // hack: dual refinement indicators as norm #2
-    else
-      return norm->hasElementContributions(iGroup,iNorm);
-  };
-
-  const size_t nEField = myProblem->getNoElmFields();
-
-  size_t idxW = 0;
   size_t nrow = norms.rows();
-  if (dualField && dualPrefix) idxW = ++nrow;
-  std::vector<IntVec> sID(nrow);
-  Matrix field;
+  size_t idxW = dualField && dualPrefix ? ++nrow : 0;
 
-  size_t i, j, k, l;
+  Vector field;
+  std::vector<IntVec> sID(nrow);
+  std::vector<std::string> names;
+  names.reserve(nrow);
+
   int geomID = myGeomID;
-  for (const ASMbase* pch : myModel)
+  for (size_t pidx = 0; pidx < myModel.size(); pidx++)
   {
-    if (pch->empty())
+    if (myModel[pidx]->empty())
       continue; // skip empty patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing element norms for patch "
-                 << pch->idx+1 << std::endl;
+                 << myModel[pidx]->idx+1 << std::endl;
 
     const ElementBlock* grid = myVtf->getBlock(++geomID);
-    pch->extractElmRes(norms,field);
+    const size_t ngel = grid ? grid->getNoElms() : 0;
 
-    size_t ncol = grid ? grid->getNoElms() : 0;
-    if (ncol != field.cols() || nrow > field.rows())
+    size_t i, k = 0;
+    for (i = 1; i <= nrow; i++)
     {
-      // Expand/compress the element result array to match current grid block
-      Matrix efield(field);
-      field.resize(nrow,ncol);
-      for (j = 1; j <= ncol; j++)
-        field.fillColumn(j,efield.getColumn(grid->getElmId(j)));
-      if (idxW && dualField->initPatch(pch->idx))
-        for (j = 1; j <= ncol; j++)
-          field(idxW,j) = dualField->getScalarValue(grid->getCenter(j));
-    }
+      field.clear();
+      field.reserve(ngel);
+      std::string normName;
 
-    for (k = l = 0, i = j = 1; i <= nrow; i++)
-    {
-      if (i > nEField && ++l > norm->getNoFields(j))
-        l = 1, ++j;
-
-      if (i <= nEField || i == idxW || writeNorm(j,l))
+      if (i != idxW)
       {
-        if (!myVtf->writeEres(field.getRow(i),++nBlock,geomID))
+        // Extract the i'th element norm for this patch from the global array
+        if (this->extractElmRes(norms,field,i,pidx,normName,dualPrefix))
+          if (field.size() != ngel)
+          {
+            // Expand the element result array to match current grid block
+            Vector efield(field);
+            field.clear();
+            for (size_t j = 1; j <= ngel; j++)
+              field.push_back(efield(grid->getElmId(j)));
+          }
+      }
+      else if (dualField->initPatch(pidx))
+      {
+        // Extract the piece-wise constant dual solution field (w)
+        for (size_t j = 1; j <= ngel; j++)
+          field.push_back(dualField->getScalarValue(grid->getCenter(j)));
+        normName = std::string(dualPrefix) + " extraction function";
+      }
+
+      if (!field.empty())
+      {
+        if (myVtf->writeEres(field,++nBlock,geomID))
+          sID[k++].push_back(nBlock);
+        else
           return false;
 
-        sID[k++].push_back(nBlock);
+        if (names.size() < k)
+          names.push_back(normName);
       }
     }
   }
 
-  std::string normName;
-  for (k = l = 0, i = j = 1; k < sID.size() && !sID[k].empty(); i++)
-  {
-    if (i > nEField && ++l > norm->getNoFields(j))
-      l = 1, ++j;
+  for (size_t k = 0; k < sID.size() && !sID[k].empty(); k++)
+    if (!myVtf->writeSblk(sID[k],names[k].c_str(),++idBlock,iStep,true))
+      return false;
 
-    if (i <= nEField || i == idxW || writeNorm(j,l))
-    {
-      if (i <= nEField)
-        normName = "Element " + myProblem->getEFieldName(i-1);
-      else if (i == idxW && dualPrefix)
-        normName = std::string(dualPrefix) + " extraction function";
-      else if (j == 1 && dualPrefix)
-        normName = norm->getName(j,l,dualPrefix);
-      else if (j > 1 && j-2 < prefix.size())
-        normName = norm->getName(j,l,prefix[j-2].c_str());
-      else
-        normName = norm->getName(j,l);
-
-      if (!myVtf->writeSblk(sID[k++],normName.c_str(),++idBlock,iStep,true))
-        return false;
-    }
-  }
-
-  delete norm;
   return true;
 }
 
