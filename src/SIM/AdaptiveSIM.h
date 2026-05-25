@@ -31,10 +31,8 @@ public:
   //! \param sim The FE model
   //! \param[in] sa If \e true, this is a stand-alone driver
   explicit AdaptiveSIM(SIMoutput& sim, bool sa = true);
-  //! \brief Empty destructor.
-  virtual ~AdaptiveSIM() {}
 
-  //! \brief Initializes the \a projs and \a prefix arrays.
+  //! \brief Initializes the \ref projs and \ref projd arrays.
   //! \param[in] normGroup Index to the norm group to base mesh adaptation on
   bool initAdaptor(size_t normGroup = 0);
 
@@ -96,6 +94,8 @@ protected:
   virtual bool savePoints(int iStep) const;
 
 private:
+  Vectors projs; //!< Projected secondary solutions
+  Vectors projd; //!< Projected dual solutions
   Vectors gNorm; //!< Global norms
   Vectors dNorm; //!< Dual global norms
   Matrix  eNorm; //!< Element norms
@@ -103,10 +103,6 @@ private:
 
   int geoBlk; //!< Running VTF geometry block counter
   int nBlock; //!< Running VTF result block counter
-
-  std::vector<Vector>      projs;  //!< Projected secondary solutions
-  std::vector<Vector>      projd;  //!< Projected dual solutions
-  std::vector<std::string> prefix; //!< Norm prefices for VTF-output
 
 protected:
   Vectors solution; //!< All solutions (including Galerkin projections)

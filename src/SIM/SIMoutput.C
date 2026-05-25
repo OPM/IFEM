@@ -1787,7 +1787,6 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 */
 
 bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
-                           const std::vector<std::string>& prefix,
                            int idBlock, const char* dualPrefix)
 {
   if (norms.empty() || !myVtf)

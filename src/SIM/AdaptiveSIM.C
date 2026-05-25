@@ -53,13 +53,6 @@ bool AdaptiveSIM::initAdaptor (size_t normGroup)
   if (model.haveDualSol())
     projd.resize(opt.project.size());
 
-  if (opt.format >= 0)
-  {
-    prefix.reserve(opt.project.size());
-    for (const SIMoptions::ProjectionMap::value_type& prj : opt.project)
-      prefix.push_back(prj.second);
-  }
-
   return true;
 }
 
@@ -139,15 +132,15 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep, bool withRF,
     return failure();
 
   // Project the secondary solution onto the splines basis
-  size_t idx = 0;
   model.setMode(SIM::RECOVERY);
-  for (const SIMoptions::ProjectionMap::value_type& prj : opt.project)
-    if (prj.first <= SIMoptions::NONE)
-      idx++; // No projection for this norm group
-    else if (!model.project(projs[idx++],solution.front(),prj.first))
+  SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
+  for (size_t idx = 0; pit != opt.project.end(); ++idx, ++pit)
+    if (pit->first <= SIMoptions::NONE)
+      continue; // No projection for this norm group
+    else if (!model.project(projs[idx],solution.front(),pit->first))
       return failure();
-    else if (idx == adaptor && idx <= projd.size() && solution.size() > 1)
-      if (!model.project(projd[idx-1],solution[1],prj.first))
+    else if (1+idx == adaptor && idx < projd.size() && solution.size() > 1)
+      if (!model.project(projd[idx],solution[1],pit->first))
         return failure();
 
   if (msgLevel > 1 && !projs.empty())
@@ -255,20 +248,16 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
 
   // Write projected solution fields
   SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
-  for (size_t i = 0; i < projs.size(); i++, ++pit)
+  for (size_t i = 0; i < projs.size(); ++i, ++pit)
     if (!model.writeGlvP(projs[i],iStep,nBlock,100+10*i,pit->second.c_str()))
       return false;
 
   // Write element norms
-  if (!model.writeGlvN(eNorm,iStep,nBlock,prefix))
+  if (!model.writeGlvN(eNorm,iStep,nBlock))
     return false;
 
-  if (!fNorm.empty())
-  {
-    std::vector<std::string> prefix = { "Dual projected" };
-    if (!model.writeGlvN(fNorm,iStep,nBlock,prefix,300,"Dual"))
-      return false;
-  }
+  if (!model.writeGlvN(fNorm,iStep,nBlock,300,"Dual"))
+    return false;
 
   // Write state information
   return model.writeGlvStep(iStep,iStep,1);
