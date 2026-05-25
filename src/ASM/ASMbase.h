@@ -814,14 +814,6 @@ public:
   //! \brief Extracts element results for this patch from a global matrix.
   //! \param[in] globRes Global matrix of element results
   //! \param[out] elmRes Element results for this patch
-  //! \param[in] internalFirst If non-zero, the data in \a globRes are assumed
-  //! to be ordered w.r.t. the internal element ordering, and the actual value
-  //! is the global index of the first element in the patch
-  void extractElmRes(const Matrix& globRes, Matrix& elmRes,
-                     size_t internalFirst = 0) const;
-  //! \brief Extracts element results for this patch from a global matrix.
-  //! \param[in] globRes Global matrix of element results
-  //! \param[out] elmRes Element results for this patch
   //! \param[in] irow 1-based index of the row to extract from \a globRes
   void extractElmRes(const Matrix& globRes, Vector& elmRes, size_t irow) const;
 

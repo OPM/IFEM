@@ -1430,25 +1430,6 @@ void ASMbase::extractElmRes (const Vector& globRes, Vector& elmRes,
 }
 
 
-void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes,
-                             size_t internalFirst) const
-{
-  elmRes.resize(globRes.rows(),MLGE.size(),true);
-
-  size_t ivel = 0, jel = internalFirst;
-  for (size_t i = 0; i < MLGE.size(); i++)
-    if (MLGE[i] > 0 && MNPC[i].size() > 1)
-    {
-      ++ivel;
-      size_t icol = internalFirst ? jel++ : MLGE[i];
-      if (icol <= globRes.cols())
-        elmRes.fillColumn(ivel,globRes.getColumn(icol));
-    }
-
-  elmRes.resize(globRes.rows(),ivel);
-}
-
-
 void ASMbase::extractElmRes (const Matrix& globRes, Vector& elmRes,
                              size_t irow) const
 {
