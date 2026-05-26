@@ -1880,7 +1880,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       else
         pch->extractNodeVec(ssol[k],norm->getProjection(k),nCmp,1);
 
-    norm->initPatch(pch->idx);
+    norm->initForPatch(pch);
+
     if (mySol)
       mySol->initPatch(pch->idx);
 
@@ -2007,7 +2008,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
           {
             if (p->patch != lp)
               ok = this->extractPatchSolution(psol,p->patch-1);
-            norm->initPatch(pch->idx);
+            norm->initForPatch(pch);
             if (mySol)
               mySol->initPatch(pch->idx);
             ok &= pch->integrate(*norm,p->lindx,globalNorm,time);
@@ -2021,7 +2022,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
           {
             if (p->patch != lp)
               ok = this->extractPatchSolution(psol,p->patch-1);
-            norm->initPatch(pch->idx);
+            norm->initForPatch(pch);
             if (mySol)
               mySol->initPatch(pch->idx);
             ok &= pch->integrateEdge(*norm,p->lindx,globalNorm,time);

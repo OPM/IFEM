@@ -40,18 +40,6 @@ void IntegrandBase::setMode (SIM::SolutionMode mode)
 
 
 /*!
-  Override this method if the integrand needs some patch-specific data
-  to be initialized before performing the numerical integration.
-  The default version only passes the patch index to the initPatch() method.
-*/
-
-void IntegrandBase::initForPatch (const ASMbase* pch)
-{
-  if (pch) this->initPatch(pch->idx);
-}
-
-
-/*!
   Override this method if the problem to be solved consists of multiple
   IntegrandBase objects. This method is then supposed to return the
   corresponding integrated quantity for this integrand.

@@ -57,9 +57,6 @@ public:
   //! which you need to have two (or more) distinct Neumann boundary conditions.
   virtual void setNeumannOrder(char) {}
 
-  //! \brief Define the index of the patch being processed.
-  virtual void initPatch(size_t) {}
-
 
   // Element-level initialization interface
   // ======================================

@@ -96,7 +96,9 @@ public:
   //! \brief Returns the system quantity to be integrated by \a *this.
   virtual GlobalIntegral& getGlobalInt(GlobalIntegral* gq) const;
   //! \brief Interface for initialization of integrand with patch-specific data.
-  virtual void initForPatch(const ASMbase* pch);
+  //! \details Override this method if the integrand needs some patch-specific
+  //! data to be initialized before performing the numerical integration.
+  virtual void initForPatch(const ASMbase*) {}
 
 
   // Element-level initialization interface
@@ -390,6 +392,10 @@ public:
   void initProjection(size_t nproj);
   //! \brief Sets a vector of LocalIntegrals to be used during norm integration.
   void setLocalIntegrals(LintegralVec* elementNorms) { lints = elementNorms; }
+  //! \brief Interface for initialization of integrand with patch-specific data.
+  //! \details Override this method if the integrand needs some patch-specific
+  //! data to be initialized before performing the numerical integration.
+  virtual void initForPatch(const ASMbase*) {}
 
   using Integrand::getLocalIntegral;
   //! \brief Returns a local integral container for the element \a iEl.
