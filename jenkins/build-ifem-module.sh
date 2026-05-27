@@ -149,6 +149,7 @@ function clone_module {
   GH_USER[IFEM-Burgers]=SintefMath
   GH_USER[IFEM-BeamGeometry]=kmokstad
   GH_USER[IFEM-ShellEx]=kmokstad
+  GH_USER[IFEM-PrintConcrete]=kmokstad
 
   if test -n "$GH_CREDENTIALS"
   then

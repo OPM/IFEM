@@ -93,6 +93,7 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/${ELASTICITY_SRC})
     add_subdirectory(FractureDynamics)
   endif()
 
+  add_app(PrintConcrete HAVE_PRINTCONCRETE)
 endif()
 
 add_app(Stokes HAVE_STOKES)
