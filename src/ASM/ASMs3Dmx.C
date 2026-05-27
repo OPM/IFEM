@@ -29,6 +29,7 @@
 #include <array>
 #include <numeric>
 #include <utility>
+#include <exception>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -90,9 +91,20 @@ bool ASMs3Dmx::readBasis (std::istream& is, size_t basis)
     nb.resize(nfx.size(), 0);
   }
 
-  Go::ObjectHeader head;
-  m_basis[--basis] = std::make_shared<Go::SplineVolume>();
-  is >> head >> *m_basis[basis];
+  try
+  {
+    Go::ObjectHeader head;
+    m_basis[--basis] = std::make_shared<Go::SplineVolume>();
+    is >> head >> *m_basis[basis];
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr <<" *** ASMs3Dmx::readBasis: Failure reading splines data ("
+              << e.what() <<")."<< std::endl;
+    m_basis[basis].reset();
+    return false;
+  }
+
   nb[basis] = m_basis[basis]->numCoefs(0) *
               m_basis[basis]->numCoefs(1) *
               m_basis[basis]->numCoefs(2);

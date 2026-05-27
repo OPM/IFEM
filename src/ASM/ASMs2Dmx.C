@@ -29,6 +29,7 @@
 #include <array>
 #include <numeric>
 #include <utility>
+#include <exception>
 
 
 ASMs2Dmx::ASMs2Dmx (unsigned char n_s, const CharVec& n_f)
@@ -94,9 +95,20 @@ bool ASMs2Dmx::readBasis (std::istream& is, size_t basis)
     nb.resize(nfx.size(), 0);
   }
 
-  Go::ObjectHeader head;
-  m_basis[--basis] = std::make_shared<Go::SplineSurface>();
-  is >> head >> *m_basis[basis];
+  try
+  {
+    Go::ObjectHeader head;
+    m_basis[--basis] = std::make_shared<Go::SplineSurface>();
+    is >> head >> *m_basis[basis];
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr <<" *** ASMs2Dmx::readBasis: Failure reading splines data ("
+              << e.what() <<")."<< std::endl;
+    m_basis[basis].reset();
+    return false;
+  }
+
   nb[basis] = m_basis[basis]->numCoefs_u() * m_basis[basis]->numCoefs_v();
 
   return true;

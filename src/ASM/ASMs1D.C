@@ -34,6 +34,7 @@
 #include "Tensor.h"
 #include "IFEM.h"
 #include <numeric>
+#include <exception>
 
 
 ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
@@ -63,9 +64,19 @@ bool ASMs1D::read (std::istream& is)
 {
   if (shareFE) return true;
 
-  Go::ObjectHeader head;
-  curv = std::make_shared<Go::SplineCurve>();
-  is >> head >> *curv;
+  try
+  {
+    Go::ObjectHeader head;
+    curv = std::make_shared<Go::SplineCurve>();
+    is >> head >> *curv;
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr <<" *** ASMs1D::read: Failure reading splines data ("
+              << e.what() <<")."<< std::endl;
+    curv.reset();
+    return false;
+  }
 
   // Eat white-space characters to see if there is more data to read
   char c;
@@ -78,23 +89,23 @@ bool ASMs1D::read (std::istream& is)
 
   if (!is.good() && !is.eof())
   {
-    std::cerr <<" *** ASMs1D::read: Failure reading spline data"<< std::endl;
+    std::cerr <<" *** ASMs1D::read: Failure reading splines data."<< std::endl;
     curv.reset();
     return false;
   }
   else if (curv->dimension() < 1)
   {
     std::cerr <<" *** ASMs1D::read: Invalid spline curve patch, dim="
-	      << curv->dimension() << std::endl;
+              << curv->dimension() <<"."<< std::endl;
     curv.reset();
     return false;
   }
   else if (curv->dimension() < nsd)
   {
-    std::cerr <<"  ** ASMs1D::read: The dimension of this curve patch "
-	      << curv->dimension() <<" is less than nsd="<< (int)nsd
-	      <<".\n                   Resetting nsd to "<< curv->dimension()
-	      <<" for this patch."<< std::endl;
+    IFEM::cout <<"  ** ASMs1D::read: The dimension of this curve patch "
+               << curv->dimension() <<" is less than nsd="<< (int)nsd
+               <<".\n                   Resetting nsd to "<< curv->dimension()
+               <<" for this patch."<< std::endl;
     nsd = curv->dimension();
   }
 

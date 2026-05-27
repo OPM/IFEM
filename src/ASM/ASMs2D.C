@@ -41,6 +41,7 @@
 #include "IFEM.h"
 #include <array>
 #include <utility>
+#include <exception>
 
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
@@ -140,9 +141,19 @@ bool ASMs2D::read (std::istream& is)
 {
   if (shareFE) return true;
 
-  Go::ObjectHeader head;
-  surf = std::make_shared<Go::SplineSurface>();
-  is >> head >> *surf;
+  try
+  {
+    surf = std::make_shared<Go::SplineSurface>();
+    Go::ObjectHeader head;
+    is >> head >> *surf;
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr <<" *** ASMs2D::read: Failure reading splines data ("
+              << e.what() <<")."<< std::endl;
+    surf.reset();
+    return false;
+  }
 
   // Eat white-space characters to see if there is more data to read
   char c;
@@ -155,23 +166,23 @@ bool ASMs2D::read (std::istream& is)
 
   if (!is.good() && !is.eof())
   {
-    std::cerr <<" *** ASMs2D::read: Failure reading spline data"<< std::endl;
+    std::cerr <<" *** ASMs2D::read: Failure reading splines data."<< std::endl;
     surf.reset();
     return false;
   }
   else if (surf->dimension() < 2)
   {
     std::cerr <<" *** ASMs2D::read: Invalid spline surface patch, dim="
-          << surf->dimension() << std::endl;
+              << surf->dimension() <<"."<< std::endl;
     surf.reset();
     return false;
   }
   else if (surf->dimension() < nsd)
   {
-    std::cerr <<"  ** ASMs2D::read: The dimension of this surface patch "
-	      << surf->dimension() <<" is less than nsd="<< (int)nsd
-	      <<".\n                   Resetting nsd to "<< surf->dimension()
-	      <<" for this patch."<< std::endl;
+    IFEM::cout <<"  ** ASMs2D::read: The dimension of this surface patch "
+               << surf->dimension() <<" is less than nsd="<< (int)nsd
+               <<".\n                   Resetting nsd to "<< surf->dimension()
+               <<" for this patch."<< std::endl;
     nsd = surf->dimension();
   }
 

@@ -38,6 +38,7 @@
 #include "IFEM.h"
 #include <array>
 #include <utility>
+#include <exception>
 
 
 ASMs3D::ASMs3D (unsigned char n_f) : ASMstruct(3,3,n_f), nodeInd(myNodeInd)
@@ -117,9 +118,19 @@ bool ASMs3D::read (std::istream& is)
 {
   if (shareFE) return true;
 
-  Go::ObjectHeader head;
-  svol = std::make_shared<Go::SplineVolume>();
-  is >> head >> *svol;
+  try
+  {
+    Go::ObjectHeader head;
+    svol = std::make_shared<Go::SplineVolume>();
+    is >> head >> *svol;
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr <<" *** ASMs3D::read: Failure reading splines data ("
+              << e.what() <<")."<< std::endl;
+    svol.reset();
+    return false;
+  }
 
   // Eat white-space characters to see if there is more data to read
   char c;
@@ -132,14 +143,14 @@ bool ASMs3D::read (std::istream& is)
 
   if (!is.good() && !is.eof())
   {
-    std::cerr <<" *** ASMs3D::read: Failure reading spline data"<< std::endl;
+    std::cerr <<" *** ASMs3D::read: Failure reading splines data."<< std::endl;
     svol.reset();
     return false;
   }
   else if (svol->dimension() < 3)
   {
     std::cerr <<" *** ASMs3D::read: Invalid spline volume patch, dim="
-              << svol->dimension() << std::endl;
+              << svol->dimension() <<"."<< std::endl;
     svol.reset();
     return false;
   }

@@ -42,6 +42,7 @@
 #include <fstream>
 #include <numeric>
 #include <utility>
+#include <exception>
 
 
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
@@ -111,8 +112,17 @@ bool ASMu2D::read (std::istream& is)
   }
   else {
     // Probably a SplineSurface, so we'll read that and convert
-    tensorspline = new Go::SplineSurface();
-    is >> *tensorspline;
+    try {
+      tensorspline = new Go::SplineSurface();
+      is >> *tensorspline;
+    }
+    catch (const std::exception& e) {
+      std::cerr <<" *** ASMu2D::read: Failure reading splines data ("
+                << e.what() <<")."<< std::endl;
+      delete tensorspline;
+      tensorspline = nullptr;
+      return false;
+    }
     lrspline.reset(new LR::LRSplineSurface(tensorspline));
   }
 
@@ -127,23 +137,23 @@ bool ASMu2D::read (std::istream& is)
   int readDim = lrspline->dimension();
   if (!is.good() && !is.eof())
   {
-    std::cerr <<" *** ASMu2D::read: Failure reading spline data"<< std::endl;
+    std::cerr <<" *** ASMu2D::read: Failure reading splines data."<< std::endl;
     lrspline.reset();
     return false;
   }
   else if (readDim < 2)
   {
     std::cerr <<" *** ASMu2D::read: Invalid lrspline patch, dim="
-              << readDim << std::endl;
+              << readDim <<"."<< std::endl;
     lrspline.reset();
     return false;
   }
   else if (readDim < nsd)
   {
-    std::cout <<"  ** ASMu2D::read: The dimension of this lrspline patch "
-              << readDim <<" is less than nsd="<< nsd
-              <<".\n                   Resetting nsd to "<< readDim
-              <<" for this patch."<< std::endl;
+    IFEM::cout <<"  ** ASMu2D::read: The dimension of this lrspline patch "
+               << readDim <<" is less than nsd="<< nsd
+               <<".\n                   Resetting nsd to "<< readDim
+               <<" for this patch."<< std::endl;
     nsd = readDim;
   }
 

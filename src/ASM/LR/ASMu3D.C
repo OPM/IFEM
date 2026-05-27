@@ -41,6 +41,7 @@
 #include <array>
 #include <numeric>
 #include <utility>
+#include <exception>
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
@@ -108,8 +109,17 @@ bool ASMu3D::read (std::istream& is)
   }
   else {
     // Probably a SplineVolume, so we'll read that and convert
-    tensorspline = new Go::SplineVolume();
-    is >> *tensorspline;
+    try {
+      tensorspline = new Go::SplineVolume();
+      is >> *tensorspline;
+    }
+    catch (const std::exception& e) {
+      std::cerr <<" *** ASMu3D::read: Failure reading splines data ("
+                << e.what() <<")."<< std::endl;
+      delete tensorspline;
+      tensorspline = nullptr;
+      return false;
+    }
     lrspline.reset(new LR::LRSplineVolume(tensorspline));
   }
 
@@ -123,14 +133,14 @@ bool ASMu3D::read (std::istream& is)
 
   if (!is.good() && !is.eof())
   {
-    std::cerr <<" *** ASMu3D::read: Failure reading spline data"<< std::endl;
+    std::cerr <<" *** ASMu3D::read: Failure reading splines data."<< std::endl;
     lrspline.reset();
     return false;
   }
   else if (lrspline->dimension() < 3)
   {
     std::cerr <<" *** ASMu3D::read: Invalid spline volume patch, dim="
-              << lrspline->dimension() << std::endl;
+              << lrspline->dimension() <<"."<< std::endl;
     lrspline.reset();
     return false;
   }
