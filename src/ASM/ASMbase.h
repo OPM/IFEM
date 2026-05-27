@@ -43,6 +43,7 @@ class SystemMatrix;
 class SystemVector;
 class FunctionBase;
 class RealFunc;
+class IntFunc;
 class VecFunc;
 class Vec3;
 class Tensor;
@@ -53,11 +54,6 @@ namespace ASM {
   using NodeSet  = std::pair<std::string,IntVec>; //!< Named set container type
   using PatchVec = std::vector<ASMbase*>; //!< Spline patch container type
 }
-
-namespace utl {
-  template<class Arg,class Result> class Function;
-}
-using IntFunc = utl::Function<int,double>; //!< Real-valued integer function
 
 
 /*!

@@ -359,7 +359,7 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
       const char* funcdef = elem->FirstChild()->Value();
       IFEM::cout <<"\tActivation function for P"<< patch
                  <<": "<< funcdef << std::endl;
-      pch->setElementActivator(utl::parseIntFunc(funcdef,type));
+      pch->setElementActivator(this->parseElemActivator(funcdef,type));
     }
   }
 
@@ -1064,6 +1064,17 @@ bool SIMinput::readTopologyOnly (const std::string& fileName)
         return false;
 
   return (nGlbNodes = this->renumberNodes()) > 0;
+}
+
+
+/*!
+  The default implementation returns an identity mapping.
+*/
+
+IntFunc* SIMinput::parseElemActivator (const std::string&,
+                                       const std::string&) const
+{
+  return new IntFunc();
 }
 
 

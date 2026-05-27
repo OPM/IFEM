@@ -20,7 +20,6 @@ class TensorFunc;
 namespace tinyxml2 { class XMLElement; }
 
 using VecTimeFunc = utl::Function<Real,Vec3>; //!< Vector-valued real function
-using IntFunc     = utl::Function<int,Real>;  //!< Real-valued integer function
 
 
 /*!
@@ -610,6 +609,26 @@ protected:
 };
 
 
+/*!
+  \brief A real-valued integer function.
+*/
+
+class IntFunc : public utl::Function<int,Real>
+{
+protected:
+  Real sf; //!< Scaling factor
+  Real f0; //!< Function value offset
+
+public:
+  //! \brief Constructor initializing the function parameters.
+  explicit IntFunc(Real s = Real(1), Real ofs = Real(0)) : sf(s), f0(ofs) {}
+
+protected:
+  //! \brief Evaluates the linear function.
+  Real evaluate(const int& x) const override { return f0 + sf*Real(x); }
+};
+
+
 namespace utl
 {
   //! \brief Creates a scalar-valued function by parsing a character string.
@@ -653,12 +672,6 @@ namespace utl
   //! \details The implementation of this method is in the file ExprFunctions.C
   //! for encapsulation of the autodiff package.
   VecFunc* parseExprVecFunc(const std::string& function, bool autodiff);
-
-  //! \brief Creates a scalar-valued int function by parsing a character string.
-  //! \param[in] func Character string to parse function definition from
-  //! \param[in] type %Function definition type flag
-  IntFunc* parseIntFunc(const std::string& func,
-                        const std::string& type = "expression");
 
   //! \brief Creates a vector-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from

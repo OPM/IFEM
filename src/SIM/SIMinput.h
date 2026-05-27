@@ -20,6 +20,7 @@
 #include "Vec3.h"
 
 class ModelGenerator;
+class IntFunc;
 
 namespace LR { struct RefineData; }
 
@@ -141,6 +142,10 @@ protected:
   //! \param[in] patches List of patch indices
   bool parsePatchList(const tinyxml2::XMLElement* elem,
                       std::vector<int>& patches) const;
+
+  //! \brief Parses an element activation function.
+  virtual IntFunc* parseElemActivator(const std::string&,
+                                      const std::string&) const;
 
   //! \brief Creates a set of Property objects.
   //! \param[in] setName Name of the topology set the property is defined on

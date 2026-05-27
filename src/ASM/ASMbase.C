@@ -20,7 +20,7 @@
 #include "Tensor.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
-#include "Function.h"
+#include "Functions.h"
 #include "Utilities.h"
 #include <algorithm>
 #include <functional>
