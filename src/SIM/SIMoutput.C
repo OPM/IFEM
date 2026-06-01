@@ -658,60 +658,30 @@ bool SIMoutput::getElementSet (int iset, std::string& name,
 }
 
 
-bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
+bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool append)
 {
-  if (adm.dd.isPartitioned() && adm.getProcId() != 0)
-    return true; // write VTF-file only for procId=0 when domain decomposition
+  if (inpFile && !this->openGlv(inpFile))
+    return false;
 
-  // Lambda function for creating a new VTF-file name.
-  auto&& getVTFname = [this](const char* inpFile)
-  {
-    char* vtfName = new char[strlen(inpFile)+10];
-    strtok(strcpy(vtfName,inpFile),".");
-    if (!adm.dd.isPartitioned() && nProc > 1)
-      sprintf(vtfName+strlen(vtfName),"_p%04d",myPid);
-#if HAS_VTFAPI == 2
-    strcat(vtfName,".vtfx");
-#else
-    strcat(vtfName,".vtf");
-#endif
-    return vtfName;
-  };
-
-  if (inpFile)
-  {
-    if (myVtf)
-    {
-      std::cerr <<" *** SIMoutput::writeGlvG: Logic error,"
-                <<" VTF file is already opened."<< std::endl;
-      return false;
-    }
-
-    // Open a new VTF-file
-    const char* fName = getVTFname(opt.vtf.empty() ? inpFile : opt.vtf.c_str());
-    IFEM::cout <<"\nWriting VTF-file "<< fName << std::endl;
-    myVtf = new VTF(fName,opt.format);
-    delete[] fName;
-  }
-
-  return this->writeGlvG(nBlock, doClear ? 0.0 : -1.0);
+  return this->writeGlvG(nBlock,0.0,append);
 }
 
 
 /*!
+  This method tesselates the spline patches into linear finite elements with
+  a fixed number of elements within each knot-span of non-zero length.
+  The solution fields are then evaluated at the nodal points of the generated FE
+  mesh and written to the VTF-file as vector and scalar fields by other methods.
+
   When \a time &gt; 0 and there already exist some geometry blocks in the VTF,
   this method assumes that the new geometry blocks are based on the same set of
   nodes such that new node blocks are not required to be written.
 */
 
-bool SIMoutput::writeGlvG (int& nBlock, double time)
+bool SIMoutput::writeGlvG (int& nBlock, double time, bool append)
 {
   if (!myVtf)
-  {
-    std::cerr <<" *** SIMoutput::writeGlvG: Logic error,"
-              <<" VTF file is not opened yet."<< std::endl;
-    return false;
-  }
+    return true; // no VTF output (silently ignore)
 
   // Get the ID list of current node blocks, if any
   IntVec nodeBlocks;
@@ -721,10 +691,10 @@ bool SIMoutput::writeGlvG (int& nBlock, double time)
   {
     for (i = 1; (nodeBlock = myVtf->getNodeBlock(i)); i++)
       nodeBlocks.push_back(nodeBlock);
-    if (mergeVtf) // Get the size of the last node block written
+    if (i > 1 && mergeVtf) // Get the size of the last node block written
       nNodeLast = myVtf->getBlock(i-1)->getNoNodes();
   }
-  if (time >= 0.0)
+  if (!append)
     myVtf->clearGeometryBlocks();
 
   ElementBlock* singlePart = nullptr;
@@ -1912,6 +1882,41 @@ bool SIMoutput::writeGlvE (const Vector& field, int iStep, int& nBlock,
   }
 
   return sID.empty() ? true : myVtf->writeSblk(sID,name,idBlock,iStep,true);
+}
+
+
+bool SIMoutput::openGlv (const char* inpFile)
+{
+  if (myVtf)
+  {
+    std::cerr <<" *** SIMoutput::openGlv: Logic error,"
+              <<" VTF-file is already opened."<< std::endl;
+    return false;
+  }
+  else if (opt.format < 0)
+    return true; // no VTF output in this run
+  else if (adm.dd.isPartitioned() && adm.getProcId() != 0)
+    return true; // write VTF-file only for procId=0 when domain decomposition
+
+  if (!opt.vtf.empty())
+    inpFile = opt.vtf.c_str();
+
+  // Create a valid VTF-file name
+  char* fName = new char[strlen(inpFile)+12];
+  strtok(strcpy(fName,inpFile),".");
+  if (!adm.dd.isPartitioned() && nProc > 1)
+    sprintf(fName+strlen(fName),"_p%04d",myPid);
+#if HAS_VTFAPI == 2
+  strcat(fName,".vtfx");
+#else
+  strcat(fName,".vtf");
+#endif
+
+  // Open a new VTF-file
+  IFEM::cout <<"\nWriting VTF-file "<< fName << std::endl;
+  myVtf = new VTF(fName,opt.format);
+  delete[] fName;
+  return true;
 }
 
 

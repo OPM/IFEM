@@ -72,21 +72,14 @@ public:
   //! \brief Writes current model geometry to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from
-  //! \param[in] doClear If \e true, clear geometry block if \a inpFile is null
-  //!
-  //! \details The spline patches are tesselated into linear finite elements
-  //! with a fixed number of elements within each knot-span of non-zero length.
-  //! The solution fields are then evaluated at the nodal points of the
-  //! generated FE mesh and written to the VTF-file as vector and scalar fields
-  //! by the other \a writeGlv* methods.
-  virtual bool writeGlvG(int& nBlock, const char* inpFile, bool doClear = true);
+  //! \param[in] append If \e true, append new blocks to existing ones, if any
+  bool writeGlvG(int& nBlock, const char* inpFile, bool append = false);
 
   //! \brief Writes current model geometry to the currently open VTF-file.
   //! \param nBlock Running result block counter
-  //! \param[in] time The time from which this (new) geometry applies,
-  //! in case of time-evolution. If negative, the current geometry is appended
-  //! to the already existing geometry blocks.
-  bool writeGlvG(int& nBlock, double time);
+  //! \param[in] time The time from which this (new) geometry applies
+  //! \param[in] append If \e true, append new blocks to existing ones
+  virtual bool writeGlvG(int& nBlock, double time, bool append = false);
 
   //! \brief Writes additional, problem-specific, results to the VTF-file.
   virtual bool writeGlvA(int&, int, double, int = 1) const { return true; }
@@ -242,6 +235,9 @@ public:
   //! \param[in] itype Type identifier of the step
   bool writeGlvStep(int iStep, double value = 0.0, int itype = 0);
 
+  //! \brief Opens a new VTF-file.
+  //! \param[in] inpFile File name used to construct the VTF-file name from
+  bool openGlv(const char* inpFile);
   //! \brief Closes the current VTF-file.
   void closeGlv();
 

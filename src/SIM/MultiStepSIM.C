@@ -108,26 +108,18 @@ void MultiStepSIM::setStartGeo (int gID)
 
 bool MultiStepSIM::saveModel (const char* fileName)
 {
-  geoBlk = nBlock = 0; // initialize the VTF block counters
-  return this->saveModel(geoBlk,nBlock,fileName);
+  return model.openGlv(fileName) && this->saveModel();
 }
 
 
-bool MultiStepSIM::saveModel (int& gBlock, int& rBlock,
-                              const char* fileName, bool clearG)
+bool MultiStepSIM::saveModel (double initialTime)
 {
-  PROFILE1("MultiStepSIM::saveModel");
-
   // Reset nViz to 1 if less than 3 parametric dimensions
   for (unsigned short int i = model.getNoParamDim(); i < 3; i++)
     model.opt.nViz[i] = 1;
 
-  // Write VTF-file with model geometry
-  if (!model.writeGlvG(gBlock,fileName,clearG))
-    return false;
-
-  // Write Dirichlet boundary conditions
-  return !saveBCs || model.writeGlvBC(rBlock);
+  geoBlk = nBlock = 0; // initialize the VTF block counters
+  return this->saveModel(geoBlk,nBlock,initialTime);
 }
 
 
@@ -135,8 +127,12 @@ bool MultiStepSIM::saveModel (int& gBlock, int& rBlock, double time)
 {
   PROFILE1("MultiStepSIM::saveModel");
 
-  // Write model geometry and BCs to already opened VTF-file
-  return model.writeGlvG(gBlock,time) && (!saveBCs || model.writeGlvBC(rBlock));
+  // Write VTF-file with model geometry
+  if (!model.writeGlvG(gBlock,time))
+    return false;
+
+  // Write Dirichlet boundary conditions
+  return !saveBCs || model.writeGlvBC(rBlock);
 }
 
 
