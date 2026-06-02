@@ -21,8 +21,6 @@
 #include <sstream>
 #include <iomanip>
 
-using namespace SIM;
-
 const char* NonLinSIM::inputContext = "nonlinearsolver";
 
 
@@ -39,7 +37,7 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
   divgLim = 10.0;
   alpha   = alphaO = 1.0;
   eta     = 0.0;
-  saveExL = updNewN = false;
+  updNewN = saveExL = false;
 }
 
 
@@ -153,8 +151,10 @@ bool NonLinSIM::parse (const tinyxml2::XMLElement* elem)
     }
     else if (!strcasecmp(child->Value(),"fromZero"))
       fromIni = true;
+    else if ((value = utl::getValue(child,"updateNewNodes")))
+      updNewN = atoi(value);
     else if (!strcasecmp(child->Value(),"updateNewNodes"))
-      updNewN = true;
+      updNewN = 1;
     else if (!strcasecmp(child->Value(),"printCond"))
       rCond = 0.0; // Compute and report condition number in the iteration log
 
@@ -192,23 +192,27 @@ bool NonLinSIM::advanceStep (TimeStep& param, bool updateTime)
 {
   bool status = this->MultiStepSIM::advanceStep(param,updateTime);
   if (status && updateTime && updNewN && model.hasElementActivator())
-    model.updateForNewElements(solution.front(),param.time);
+    model.updateForNewElements(solution.front(),param.time,updNewN-1);
   this->pushSolution(); // Update solution vectors between time steps
   return status;
 }
 
 
-ConvStatus NonLinSIM::solve (double zero_tol, std::streamsize outPrec)
+SIM::ConvStatus NonLinSIM::solve (double zero_tol, std::streamsize outPrec)
 {
   TimeStep singleStep; // Solves the nonlinear equations in one single step
-  return this->solveStep(singleStep,STATIC,zero_tol,outPrec);
+  return this->solveStep(singleStep,SIM::STATIC,zero_tol,outPrec);
 }
 
 
-ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
-                                 double zero_tolerance, std::streamsize outPrec)
+SIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
+                                      SIM::SolutionMode mode,
+                                      double zero_tolerance,
+                                      std::streamsize outPrec)
 {
   PROFILE1("NonLinSIM::solveStep");
+
+  using namespace SIM;
 
   if (solution.empty())
     return FAILURE;
@@ -402,8 +406,10 @@ bool NonLinSIM::lineSearch (TimeStep& param)
 }
 
 
-ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
+SIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 {
+  using namespace SIM;
+
   if (iteNorm <= NONE)
     return CONVERGED; // No iterations, we are solving a linear problem
 
