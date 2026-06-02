@@ -1008,12 +1008,12 @@ bool SIMbase::hasElementActivator (double t1, double t0) const
 /*!
   The nodes that are connected only to elements that are activated in
   the current (not yet calculated) step, are assigned initial values
-  equal to the mean of the other already activated nodes, that are
-  connected to the newly activated element.
+  equal to the mean of the other already activated nodes,
+  that are connected to the newly activated element.
 */
 
-void SIMbase::updateForNewElements (Vector& solution,
-                                    const TimeDomain& time) const
+void SIMbase::updateForNewElements (Vector& solution, const TimeDomain& time,
+                                    int verbose) const
 {
   // Find all elements and nodes that were active in the previous time step
   IntSet oldElms, oldNodes;
@@ -1049,33 +1049,47 @@ void SIMbase::updateForNewElements (Vector& solution,
             if (oldNodes.find(pch->getNodeID(1+inod)) != oldNodes.end())
             {
               if (++count == 1)
-                oldSol.fill(solution.ptr()+nf*inod);
+                oldSol.fill(pchSol.data()+nf*inod);
               else
-                oldSol.add(Vector(solution.ptr()+nf*inod,nf));
+                oldSol.add(Vector(pchSol.data()+nf*inod,nf));
+              if (verbose > 2)
+              {
+                IFEM::cout <<"\n\tActive node "<< 1+inod <<" ["
+                           << pch->getNodeID(1+inod) <<"]:";
+                for (size_t i = 0; i < nf; i++)
+                  IFEM::cout <<" "<< pchSol[nf*inod+i];
+              }
             }
-          if (count > 1) oldSol /= static_cast<double>(count);
-#ifdef SP_DEBUG
-          std::cout <<"\nAverage solution of new active element "
-                    << pch->getElmID(iel) <<":";
-          for (double v : oldSol) std::cout <<" "<< v;
-#endif
+          if (count > 1)
+            oldSol /= static_cast<double>(count);
+          if (verbose > 0)
+          {
+            IFEM::cout <<"\n  Average solution of new active element "
+                       << pch->getElmID(iel) <<" (from "<< count
+                       <<" of "<< elmNodes.size() <<" nodes):";
+            for (double v : oldSol) IFEM::cout <<" "<< v;
+          }
 
           // Assign this solution to the newly activated nodes
           for (int inod : elmNodes)
             if (int nodeId = pch->getNodeID(1+inod);
                 oldNodes.find(nodeId) == oldNodes.end())
             {
-#ifdef SP_DEBUG
-              std::cout <<"\n\tAssigned to new node "<< nodeId;
-#endif
               double* ptr = solution.ptr() + nf*(nodeId-1);
+              if (verbose > 0)
+                IFEM::cout <<"\n\tAssigned to new node "<< nodeId;
+              if (verbose > 1)
+              {
+                IFEM::cout <<" (replacing";
+                for (size_t i = 0; i < nf; i++) IFEM::cout <<" "<< ptr[i];
+                IFEM::cout <<")";
+              }
               for (size_t i = 0; i < nf; i++, ptr++)
                 if (mySam->getEquation(nodeId,i+1) > 0)
                   *ptr = oldSol[i];
             }
-#ifdef SP_DEBUG
-          std::cout << std::endl;
-#endif
+          if (verbose > 0)
+            IFEM::cout << std::endl;
         }
     }
 }
@@ -2877,6 +2891,7 @@ void SIMbase::dumpSolVec (const Vector& x, bool isExpanded, bool expOnly)
       os << std::setprecision(17);
       double old_tol = utl::zero_print_tol;
       utl::zero_print_tol = dmp.eps;
+
       char vecName[16];
       if (dmp.step.size() == 1)
         strcpy(vecName,"x");
@@ -2885,11 +2900,9 @@ void SIMbase::dumpSolVec (const Vector& x, bool isExpanded, bool expOnly)
       if (dmp.expand == isExpanded)
         StdVector::dump(x,vecName,dmp.format,os);
       else if (mySam)
-      {
-        StdVector solVec;
-        if (mySam->getSolVec(solVec,x))
+        if (StdVector solVec; mySam->getSolVec(solVec,x))
           StdVector::dump(solVec,vecName,dmp.format,os);
-      }
+
       utl::zero_print_tol = old_tol;
     }
 }
