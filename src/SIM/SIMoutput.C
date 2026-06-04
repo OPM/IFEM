@@ -1324,14 +1324,14 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
   Matrix singleField, projField;
   Matrix field, pdir;
   Vector lovec;
+  Vector& patchSol = myProblem->getSolution();
 
   size_t i, j;
   bool empty = false;
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (!this->extractNodeVec(psol,myProblem->getSolution(),
-                              pch,psolComps,empty))
+    if (!this->extractNodeVec(psol,patchSol,pch,psolComps,empty))
       return -1;
     else if (pch->empty() || pch->inActive(time))
       continue; // skip empty and inactive patches
@@ -1490,10 +1490,11 @@ bool SIMoutput::eval2ndSolution (const Vector& psol, double time, int psolComps)
   myProblem->initResultPoints(time);
 
   Matrix field;
+  Vector& patchSol = myProblem->getSolution();
+
   bool empty = false;
   for (const ASMbase* pch : myModel)
-    if (!this->extractNodeVec(psol,myProblem->getSolution(),
-                              pch,psolComps,empty))
+    if (!this->extractNodeVec(psol,patchSol,pch,psolComps,empty))
       return false;
     else if (pch->empty() || pch->inActive(time))
       continue; // skip empty and inactive patches
@@ -1750,79 +1751,139 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 /*!
   If \a dualPrefix is not null, it is assumed that the \a norms were
   computed from the dual solution and therefore labelled as such.
-  In addition to the \a norms, also the SIMbase::dualField function value
-  is written as a scalar field to the VTF-file in that case. This function is
-  then evaluated at the centre of each visualization element since it typically
-  is a discontinuous function.
+  In addition to the \a norms, the SIMbase::dualField function value is also
+  written as a scalar field to the VTF-file in that case (unless \ref mergeVtf
+  is \e true). This function is then evaluated at the centre of each
+  visualization element since it typically is a discontinuous function.
 */
 
 bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
-                           int idBlock, const char* dualPrefix)
+                           int idBlock, double time, const char* dualPrefix)
 {
   if (norms.empty() || !myVtf)
     return true; // no element norms
-  if (mergeVtf && myModel.size() > 1)
-    return true; // not implemented for merged patches, ignore
 
   size_t nrow = norms.rows();
-  size_t idxW = dualField && dualPrefix ? ++nrow : 0;
+  size_t idxW = dualField && dualPrefix && !mergeVtf ? ++nrow : 0;
+  size_t ielx = 0;
 
   Vector field;
+  Matrix singleField;
   std::vector<IntVec> sID(nrow);
+
+  // Find the last active patch at current time
+  size_t lastActive = myModel.back()->idx;
+  if (mergeVtf)
+    for (const ASMbase* pch : myModel)
+      if (!pch->empty() && !pch->inActive(time))
+        lastActive = pch->idx;
+
+  std::string normName;
   std::vector<std::string> names;
-  names.reserve(nrow);
+  if (!mergeVtf || lastActive == 0)
+    names.reserve(nrow);
+  else
+    names.resize(nrow);
 
   int geomID = myGeomID;
   for (size_t pidx = 0; pidx < myModel.size(); pidx++)
   {
-    if (myModel[pidx]->empty())
-      continue; // skip empty patches
+    const ASMbase* pch = myModel[pidx];
+    if (pch->empty() || pch->inActive(time))
+      continue; // skip empty and inactive patches
 
     if (msgLevel > 1)
       IFEM::cout <<"Writing element norms for patch "
-                 << myModel[pidx]->idx+1 << std::endl;
-
-    const ElementBlock* grid = myVtf->getBlock(++geomID);
-    const size_t ngel = grid ? grid->getNoElms() : 0;
+                 << pch->idx+1 << std::endl;
 
     size_t i, k = 0;
-    for (i = 1; i <= nrow; i++)
+    if (!mergeVtf || lastActive == 0)
     {
-      field.clear();
-      field.reserve(ngel);
-      std::string normName;
+      const ElementBlock* grid = myVtf->getBlock(++geomID);
+      const size_t ngel = grid ? grid->getNoElms() : 0;
 
-      if (i != idxW)
+      field.reserve(ngel);
+      for (i = 1; i <= nrow; i++)
       {
+        field.clear();
+        if (i != idxW)
+        {
+          // Extract the i'th element norm for this patch from the global array
+          if (this->extractElmRes(norms,field,i,pidx,normName,dualPrefix))
+            if (field.size() != ngel)
+            {
+              // Remap the element result array to match current grid block
+              Vector efield(field);
+              field.clear();
+              for (size_t j = 1; j <= ngel; j++)
+                field.push_back(efield(grid->getElmId(j)));
+            }
+        }
+        else if (dualField->initPatch(pidx))
+        {
+          // Extract the piece-wise constant dual solution field (w)
+          for (size_t j = 1; j <= ngel; j++)
+            field.push_back(dualField->getScalarValue(grid->getCenter(j)));
+          normName = std::string(dualPrefix) + " extraction function";
+        }
+
+        if (!field.empty())
+        {
+          if (myVtf->writeEres(field,++nBlock,geomID))
+            sID[k++].push_back(nBlock);
+          else
+            return false;
+
+          if (names.size() < k)
+            names.push_back(normName);
+        }
+      }
+    }
+    else
+    {
+      // Find the last active element in this patch
+      size_t lastActEl = pch->getNoElms();
+      while (lastActEl > 0 && !pch->isElementActive(lastActEl-1,time))
+        --lastActEl;
+
+      // We need to merge the results for all patches before writing them
+      singleField.resize(nrow,ielx+lastActEl);
+
+      for (i = 1; i <= nrow; i++)
         // Extract the i'th element norm for this patch from the global array
         if (this->extractElmRes(norms,field,i,pidx,normName,dualPrefix))
-          if (field.size() != ngel)
+        {
+          for (size_t j = 0; j < field.size() && j < lastActEl; j++)
+            if (pch->isElementActive(j,time))
+              singleField(i,ielx+j+1) = field[j];
+          if (names[i-1].empty() && !field.empty())
+            names[i-1] = normName;
+        }
+
+      if (lastActive == pch->idx)
+      {
+        const ElementBlock* grid = myVtf->getBlock(++geomID);
+        const size_t ngel = grid ? grid->getNoElms() : 0;
+        for (i = 1; i <= nrow; i++)
+        {
+          if (ngel == singleField.cols())
+            field = singleField.getRow(i);
+          else
           {
-            // Expand the element result array to match current grid block
-            Vector efield(field);
-            field.clear();
+            // Remap the element result array to match current grid block
+            field.resize(ngel);
+            Vector efield(singleField.getRow(i));
             for (size_t j = 1; j <= ngel; j++)
-              field.push_back(efield(grid->getElmId(j)));
+              field(j) = efield(grid->getElmId(j));
           }
+          if (myVtf->writeEres(field,++nBlock,geomID))
+            sID[k++].push_back(nBlock);
+          else
+            return false;
+        }
       }
-      else if (dualField->initPatch(pidx))
-      {
-        // Extract the piece-wise constant dual solution field (w)
-        for (size_t j = 1; j <= ngel; j++)
-          field.push_back(dualField->getScalarValue(grid->getCenter(j)));
-        normName = std::string(dualPrefix) + " extraction function";
-      }
-
-      if (!field.empty())
-      {
-        if (myVtf->writeEres(field,++nBlock,geomID))
-          sID[k++].push_back(nBlock);
-        else
-          return false;
-
-        if (names.size() < k)
-          names.push_back(normName);
-      }
+      else
+        ielx += lastActEl;
     }
   }
 
@@ -2061,6 +2122,7 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
     return false;
 
   Matrix field;
+  Vector& patchSol = myProblem->getSolution();
 
   for (const ASMbase* pch : myModel)
   {
@@ -2071,9 +2133,9 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
       os <<"\n# Patch: "<< pch->idx+1;
 
     // Extract and write primary solution
-    size_t nf = pch->getNoFields(1);
-    Vector& patchSol = myProblem->getSolution();
     pch->extractNodalVec(psol,patchSol,mySam->getMADOF());
+
+    const size_t nf = pch->getNoFields(1);
     for (size_t k = 0; k < nf; k++)
     {
       os << myProblem->getField1Name(k,"# FE");
@@ -2285,12 +2347,6 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   if (points.empty() && elms.empty() && !allElems)
     return true; // no points in this patch
 
-  bool getNames = compNames && compNames->empty();
-
-  // Extract patch-level control/nodal point values of the primary solution
-  patch->extractNodalVec(psol.front(),myProblem->getSolution(),
-                         mySam->getMADOF(),-2);
-
   // Lambda function augmenting two matrices with the same number of rows.
   auto&& augment = [](Matrix& A, const Matrix& B)
   {
@@ -2308,25 +2364,31 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
     return true;
   };
 
+  // Extract patch-level control/nodal point values of the primary solution
+  Vector& patchSol = myProblem->getSolution();
+  patch->extractNodalVec(psol.front(),patchSol,mySam->getMADOF(),-2);
+
   bool ok = false;
   Matrix tmp;
   if (opt.discretization >= ASM::Spline)
     // Evaluate the primary solution variables
-    ok = patch->evalSolution(tmp,myProblem->getSolution(),params.data(),false);
+    ok = patch->evalSolution(tmp,patchSol,params.data(),false);
   else if (!elms.empty())
     ok = true; // Skip element center primary solution evaluation for now
   else if (points.empty())
     // Evaluate the primary solution variables at all element centers
-    ok = patch->evalSolution(tmp,myProblem->getSolution(),nullptr,true);
+    ok = patch->evalSolution(tmp,patchSol,nullptr,true);
   else
     // Extract primary solution variables, for nodal points only
-    ok = patch->getSolution(tmp,myProblem->getSolution(),points);
+    ok = patch->getSolution(tmp,patchSol,points);
 
   if (ok) // Compute application-specific primary solution quantities, if any
     myProblem->primaryScalarFields(tmp);
 
   if (!ok || !augment(sol1,tmp))
     return false;
+
+  const bool getNames = compNames && compNames->empty();
 
   if (getNames && !tmp.empty())
     for (size_t i = 0; i < myProblem->getNoFields(1); i++)

@@ -256,7 +256,7 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep)
   if (!model.writeGlvN(eNorm,iStep,nBlock))
     return false;
 
-  if (!model.writeGlvN(fNorm,iStep,nBlock,300,"Dual"))
+  if (!model.writeGlvN(fNorm,iStep,nBlock,300,0.0,"Dual"))
     return false;
 
   // Write state information

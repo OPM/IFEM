@@ -211,9 +211,11 @@ public:
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] idBlock Starting value of result block numbering
+  //! \param[in] time Load/time step parameter
   //! \param[in] dualPrefix Prefix for dual solution norms
   bool writeGlvN(const Matrix& norms, int iStep, int& nBlock,
-                 int idBlock = 200, const char* dualPrefix = nullptr);
+                 int idBlock = 200, double time = 0.0,
+                 const char* dualPrefix = nullptr);
 
   //! \brief Writes a scalar function to the VTF-file.
   //! \param[in] f The function to output
