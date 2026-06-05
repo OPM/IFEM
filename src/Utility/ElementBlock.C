@@ -204,7 +204,14 @@ void ElementBlock::merge (const ElementBlock* other,
   for (int inod : other->MMNPC)
     MMNPC.push_back(inod < 0 ? inod : nodeNums[inod]);
 
-  MINEX.insert(MINEX.end(),other->MINEX.begin(),other->MINEX.end());
+  if (MINEX.empty())
+    MINEX = other->MINEX;
+  else
+  {
+    int ielMax = *std::max_element(MINEX.begin(),MINEX.end());
+    MINEX.reserve(MINEX.size()+other->MINEX.size());
+    for (int iel : other->MINEX) MINEX.push_back(ielMax+iel);
+  }
 }
 
 
