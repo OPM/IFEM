@@ -1103,7 +1103,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   size_t lastActive = 0;
   if (mergeVtf)
     for (const ASMbase* pch : myModel)
-      if (!pch->empty() && !pch->inActive(time))
+      if (!pch->empty() && !pch->inActive())
         lastActive = pch->idx;
 
   Matrix singleField;
@@ -1118,7 +1118,7 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   {
     if (!this->extractNodeVec(psol,lovec,pch,psolComps%10,empty))
       return -1;
-    else if (pch->empty() || pch->inActive(time))
+    else if (pch->empty() || pch->inActive())
       continue; // skip empty and inactive patches
 
     if (msgLevel > 1)
@@ -1318,7 +1318,7 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
   size_t lastActive = 0;
   if (mergeVtf)
     for (const ASMbase* pch : myModel)
-      if (!pch->empty() && !pch->inActive(time))
+      if (!pch->empty() && !pch->inActive())
         lastActive = pch->idx;
 
   Matrix singleField, projField;
@@ -1333,7 +1333,7 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
   {
     if (!this->extractNodeVec(psol,patchSol,pch,psolComps,empty))
       return -1;
-    else if (pch->empty() || pch->inActive(time))
+    else if (pch->empty() || pch->inActive())
       continue; // skip empty and inactive patches
 
     myProblem->initResultPoints(time,!lastActive); // include principal stresses
@@ -1519,8 +1519,6 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
 {
   if (ssol.empty() || !myVtf)
     return true; // no projected solution
-  if (mergeVtf && myModel.size() > 1)
-    return true; // not implemented for merged patches, ignore
 
   // Lambda function for updating (patch-wise) maximum result values.
   auto&& updateMaxVal = [](PointValues& maxVal, double res,
@@ -1539,6 +1537,14 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
   size_t nComp = myProblem->getNoFields(2);
   if (iStep > 0) sID.reserve(nComp);
 
+  // Find the last active patch at current time
+  size_t lastActive = 0;
+  if (mergeVtf)
+    for (const ASMbase* pch : myModel)
+      if (!pch->empty() && !pch->inActive())
+        lastActive = pch->idx;
+
+  Matrix singleField;
   Matrix field;
   Vector lovec;
 
@@ -1546,8 +1552,8 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty())
-      continue; // skip empty patches
+    if (pch->empty() || pch->inActive())
+      continue; // skip empty and inactive patches
 
     if (this->fieldProjections())
     {
@@ -1566,6 +1572,19 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
 
     if (!pch->evalProjSolution(field,lovec,opt.nViz,nComp))
       return false;
+
+    if (lastActive > 0)
+    {
+      // We need to merge the results for all patches before writing them
+      if (singleField.empty())
+        std::swap(singleField,field);
+      else
+        singleField.augmentCols(field);
+      if (lastActive == pch->idx)
+        std::swap(field,singleField);
+      else
+        continue;
+    }
 
     const ElementBlock* grid = myVtf->getBlock(++geomID);
     size_t j = 0;
@@ -1775,7 +1794,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   size_t lastActive = myModel.back()->idx;
   if (mergeVtf)
     for (const ASMbase* pch : myModel)
-      if (!pch->empty() && !pch->inActive(time))
+      if (!pch->empty() && !pch->inActive())
         lastActive = pch->idx;
 
   std::string normName;
@@ -1789,7 +1808,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   for (size_t pidx = 0; pidx < myModel.size(); pidx++)
   {
     const ASMbase* pch = myModel[pidx];
-    if (pch->empty() || pch->inActive(time))
+    if (pch->empty() || pch->inActive())
       continue; // skip empty and inactive patches
 
     if (msgLevel > 1)
