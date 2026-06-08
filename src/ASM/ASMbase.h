@@ -348,7 +348,7 @@ public:
   //! \brief Returns \e true if element with 0-based index \a iel is active.
   bool isElementActive(int iel, double time = -1.0) const;
   //! \brief Returns \e true if none of the elements in the patch are active.
-  bool inActive(double time) const;
+  bool inActive(double time = -1.0) const;
   //! \brief Returns the age of the element with 0-based index \a iel.
   double getAge(int iel, double time) const;
   //! \brief Returns \e true if element is in process partition.
@@ -1104,8 +1104,9 @@ private:
   std::vector<char> myLMTypes; //!< Type of %Lagrange multiplier ('L' or 'G')
   std::set<size_t>  myLMs;     //!< Nodal indices of the %Lagrange multipliers
 
-  IntFunc* myElActive; //!< Function returning activatiation time of element
+  IntFunc* myElActive; //!< Function returning activation time of an element
   IntVec* myActiveEls; //!< List of active elements during element assembly
+  mutable bool active; //!< If \e true, the patch is currently active
   static IntVec Empty; //!< Empty integer vector used when a reference is needed
 
 protected:

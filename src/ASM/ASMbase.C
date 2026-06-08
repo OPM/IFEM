@@ -30,10 +30,9 @@
 bool ASMbase::fixHomogeneousDirichlet = true;
 int  ASMbase::dbgElm = 0;
 
-//! This quantitiy is used to scale the characteristic element sizes which
-//! are used by residual error estimates, etc., such that they always are in
-//! the range [0,1.0]. The applications have to set an appropriate value,
-//! when needed.
+//! This quantity is used to scale the characteristic element sizes which are
+//! used by residual error estimates, etc., such that they always are in the
+//! range [0,1.0]. Applications have to set an appropriate value, when needed.
 double ASMbase::modelSize = 1.0;
 
 int ASMbase::gEl = 0;
@@ -44,15 +43,15 @@ IntVec ASMbase::Empty;
 ASM::CachePolicy ASM::cachePolicy = ASM::PRE_CACHE;
 
 
-/*!
-  \brief Convenience function writing error message for non-implemented methods.
-*/
-
-static bool Aerror (const char* name)
+namespace
 {
-  std::cerr <<" *** ASMbase::"<< name
-	    <<": Must be implemented in sub-class."<< std::endl;
-  return false;
+  //! \brief Helper function writing error message for non-implemented methods.
+  bool Aerror (const char* name)
+  {
+    std::cerr <<" *** ASMbase::"<< name
+              <<": Must be implemented in a sub-class."<< std::endl;
+    return false;
+  }
 }
 
 
@@ -68,6 +67,7 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   idx = 0;
   firstEl = firstIp = 0;
   myElActive = nullptr;
+  active = true;
 }
 
 
@@ -89,6 +89,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   firstIp = patch.firstIp;
   // Note: Properties are _not_ copied
   myElActive = nullptr; // Element activation function is not copied
+  active = true;
 }
 
 
@@ -130,6 +131,7 @@ ASMbase::ASMbase (const ASMbase& patch)
 
   myElActive = nullptr; // Element activation function is not copied
   nLag = 0; // Lagrange multipliers are not copied
+  active = true;
 }
 
 
@@ -448,6 +450,8 @@ void ASMbase::printElements (std::ostream& os) const
 }
 
 
+namespace {
+
 /*!
   \brief A helper class used by ASMbase::isFixed().
   \details The class is just an unary function that checks whether a DOF object
@@ -479,6 +483,7 @@ public:
     return false;
   }
 };
+}
 
 
 bool ASMbase::isFixed (int node, int dof, bool all) const
@@ -1863,17 +1868,29 @@ bool ASMbase::isElementActive (int iel, double time) const
 }
 
 
+/*!
+  If \a time is negative, the cached value \ref active (computed from an earlier
+  call with non-negative time) is used instead. This enables the usage of this
+  method also by callers where the current time is not available.
+*/
+
 bool ASMbase::inActive (double time) const
 {
-  if (myElActive)
+  if (time < 0.0)
+    return !active;
+  else if (myElActive)
   {
-    for (size_t iel = 0; iel < nel; iel++)
+    active = false;
+    for (size_t iel = 0; iel < nel && !active; iel++)
       if (MLGE[iel] > 0 && time+1.0e-12 > (*myElActive)(1+iel))
-        return false; // we have at least one active element
-    return true; // no elements activated at this time
+        active = true; // we have at least one active element
   }
+  else if (myActiveEls)
+    active = !myActiveEls->empty();
+  else
+    active = true;
 
-  return myActiveEls ? myActiveEls->empty() : false;
+  return !active;
 }
 
 
