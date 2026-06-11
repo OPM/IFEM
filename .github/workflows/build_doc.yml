@@ -1,0 +1,66 @@
+name: Build source code documentation
+
+on:
+  push:
+    tags:
+      - "release/*.*"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-doc:
+    name: Build API documentation
+
+    runs-on: ubuntu-22.04 # Can't use latest since BLAS is not included there
+
+    steps:
+      - name: Install doxygen
+        run: sudo apt -y install doxygen graphviz
+
+      - name: Install IFEM dependencies
+        run: |
+          sudo apt-add-repository -y ppa:ifem/ppa
+          sudo apt -y install libboost-dev libarpack2-dev libsuperlu-dev catch2 libtinyxml2-dev
+          sudo apt -y install libgotools-core-dev libgotools-trivariate-dev liblrspline1-dev
+
+      - name: Checkout source code repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout release tag
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            MY_TAG=${GITHUB_REF_NAME}
+          else
+            MY_TAG=$(git tag -l --sort=version:refname 'release/*.*' | tail -1)
+          fi
+          git checkout "$MY_TAG"
+
+      - name: Configure for build
+        run: |
+          mkdir Release
+          cd Release
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DIFEM_USE_PETSC=OFF -DIFEM_USE_ISTL=OFF -DIFEM_USE_UMFPACK=OFF
+
+      - name: Build the documentation
+        run: |
+          cd Release
+          make doc
+
+      - name: Check build status
+        run: |
+          set +e
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          .github/scripts/check_doc.sh
+          echo "NEW_DOC=$?" >> $GITHUB_ENV
+
+      - name: Push updated documentation
+        if: env.NEW_DOC == 1
+        run: |
+          git commit -m"Update source code documentation"
+          git push origin HEAD
