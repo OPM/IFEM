@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: build-docs-pages
+  cancel-in-progress: true
+
 jobs:
   build-doc:
     name: Build API documentation
@@ -17,19 +21,24 @@ jobs:
     runs-on: ubuntu-22.04 # Can't use latest since BLAS is not included there
 
     steps:
-      - name: Install doxygen
-        run: sudo apt -y install doxygen graphviz
+      - name: Add the IFEM personal package archive
+        run: |
+          sudo apt-add-repository -y ppa:ifem/ppa
+          sudo apt-get update
 
       - name: Install IFEM dependencies
         run: |
-          sudo apt-add-repository -y ppa:ifem/ppa
-          sudo apt -y install libboost-dev libarpack2-dev libsuperlu-dev catch2 libtinyxml2-dev
-          sudo apt -y install libgotools-core-dev libgotools-trivariate-dev liblrspline1-dev
+          sudo apt-get -y install libboost-dev libarpack2-dev libsuperlu-dev libtinyxml2-dev catch2
+          sudo apt-get -y install libgotools-core-dev libgotools-trivariate-dev liblrspline1-dev
+
+      - name: Install doxygen
+        run: sudo apt-get -y install doxygen graphviz
 
       - name: Checkout source code repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Checkout release tag
         run: |
@@ -50,17 +59,28 @@ jobs:
         run: |
           cd Release
           make doc
+          if [ ! -e doc/html/index.html ]; then
+            echo Expected file doc/html/index.html is missing.
+            echo \"make doc\" probably failed.
+            exit 1
+          fi
 
-      - name: Check build status
+      - name: Fetch existing documentation
         run: |
-          set +e
           git config user.name github-actions
           git config user.email github-actions@github.com
-          .github/scripts/check_doc.sh
-          echo "NEW_DOC=$?" >> $GITHUB_ENV
+          git fetch origin gh-pages:gh-pages
+          git checkout gh-pages
+          git rm -r --ignore-unmatch docs
 
-      - name: Push updated documentation
-        if: env.NEW_DOC == 1
+      - name: Push updates if changed
         run: |
-          git commit -m"Update source code documentation"
-          git push origin HEAD
+          mv Release/doc/html docs
+          git add docs
+          if git diff -I "^Generated on .* for IFEM" --quiet --cached HEAD; then
+            echo No changes in source code documentation
+            git reset --hard HEAD
+          else
+            git commit -m"Update source code documentation"
+            git push origin HEAD
+          fi
