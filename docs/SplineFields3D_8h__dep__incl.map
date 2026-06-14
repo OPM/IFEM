@@ -1,0 +1,6 @@
+<map id="src/ASM/SplineFields3D.h" name="src/ASM/SplineFields3D.h">
+<area shape="rect" id="node1" title="Class for spline&#45;based finite element vector fields in 3D." alt="" coords="146,5,333,32"/>
+<area shape="rect" id="node2" href="$ASMs3D_8C.html" title="Driver for assembly of structured 3D spline FE models." alt="" coords="5,80,151,107"/>
+<area shape="rect" id="node3" href="$Fields_8C.html" title="Base class for vector fields." alt="" coords="175,80,304,107"/>
+<area shape="rect" id="node4" href="$SplineFields3D_8C.html" title="Class for spline&#45;based finite element vector fields in 3D." alt="" coords="329,80,515,107"/>
+</map>

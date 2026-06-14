@@ -1,0 +1,15 @@
+<map id="NormBase" name="NormBase">
+<area shape="rect" id="node1" title="Base class representing a system level norm quantity." alt="" coords="1135,148,1225,175"/>
+<area shape="rect" id="node2" href="$classIntegrand.html" title="Abstract base class representing a system level integrated quantity." alt="" coords="554,57,638,84"/>
+<area shape="rect" id="node11" href="$classIntegrandBase.html" title="Base class representing a system level integrated quantity." alt="" coords="841,148,957,175"/>
+<area shape="rect" id="node3" title=" " alt="" coords="813,7,984,33"/>
+<area shape="rect" id="node4" href="$classFields.html" title="Base class for vector fields." alt="" coords="566,7,626,33"/>
+<area shape="rect" id="node5" title=" " alt="" coords="295,119,382,145"/>
+<area shape="rect" id="node12" title=" " alt="" coords="515,159,677,201"/>
+<area shape="rect" id="node6" title=" " alt="" coords="5,111,144,153"/>
+<area shape="rect" id="node7" title=" " alt="" coords="791,225,1007,252"/>
+<area shape="rect" id="node8" href="$classLocalIntegral.html" title="Abstract base class representing an element level integrated quantity." alt="" coords="543,288,649,315"/>
+<area shape="rect" id="node9" title=" " alt="" coords="257,257,420,284"/>
+<area shape="rect" id="node10" href="$classutl_1_1vector.html" title="A vector class with some added algebraic operations." alt="" coords="11,191,138,217"/>
+<area shape="rect" id="node13" title=" " alt="" coords="527,108,665,135"/>
+</map>

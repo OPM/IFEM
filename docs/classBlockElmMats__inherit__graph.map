@@ -1,0 +1,5 @@
+<map id="BlockElmMats" name="BlockElmMats">
+<area shape="rect" id="node1" title="Class representing the block element matrices for a FEM problem." alt="" coords="5,155,120,181"/>
+<area shape="rect" id="node2" href="$classElmMats.html" title="Class collecting the element matrices associated with a FEM problem." alt="" coords="23,80,102,107"/>
+<area shape="rect" id="node3" href="$classLocalIntegral.html" title="Abstract base class representing an element level integrated quantity." alt="" coords="9,5,116,32"/>
+</map>

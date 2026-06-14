@@ -1,0 +1,6 @@
+<map id="src/ASM/ASMsupel.h" name="src/ASM/ASMsupel.h">
+<area shape="rect" id="node1" title="Driver for assembly of general superelements." alt="" coords="168,5,323,32"/>
+<area shape="rect" id="node2" href="$ASM3D_8C.html" title="Abstract interface for 3D patches." alt="" coords="5,80,144,107"/>
+<area shape="rect" id="node3" href="$ASMsupel_8C.html" title="Driver for assembly of general superelements." alt="" coords="168,80,323,107"/>
+<area shape="rect" id="node4" href="$HDF5Writer_8C.html" title="Output of model and results to HDF5 file." alt="" coords="347,80,525,107"/>
+</map>

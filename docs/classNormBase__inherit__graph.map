@@ -1,0 +1,4 @@
+<map id="NormBase" name="NormBase">
+<area shape="rect" id="node1" title="Base class representing a system level norm quantity." alt="" coords="5,80,96,107"/>
+<area shape="rect" id="node2" href="$classIntegrand.html" title="Abstract base class representing a system level integrated quantity." alt="" coords="9,5,93,32"/>
+</map>

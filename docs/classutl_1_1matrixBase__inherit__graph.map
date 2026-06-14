@@ -1,0 +1,9 @@
+<map id="utl::matrixBase&lt; T &gt;" name="utl::matrixBase&lt; T &gt;">
+<area shape="rect" id="node1" title="Common base class for multi&#45;dimensional (2D and 3D) matrices." alt="" coords="5,132,165,159"/>
+<area shape="rect" id="node2" href="$classutl_1_1matrix.html" title=" " alt="" coords="221,5,371,32"/>
+<area shape="rect" id="node3" href="$classutl_1_1matrix3d.html" title=" " alt="" coords="213,56,379,83"/>
+<area shape="rect" id="node4" href="$classutl_1_1matrix4d.html" title=" " alt="" coords="213,107,379,133"/>
+<area shape="rect" id="node5" href="$classutl_1_1matrix.html" title="Two&#45;dimensional rectangular matrix with some algebraic operations." alt="" coords="232,157,360,184"/>
+<area shape="rect" id="node6" href="$classutl_1_1matrix3d.html" title="Three&#45;dimensional rectangular matrix with some algebraic operations." alt="" coords="224,208,368,235"/>
+<area shape="rect" id="node7" href="$classutl_1_1matrix4d.html" title="Four&#45;dimensional rectangular matrix with some algebraic operations." alt="" coords="224,259,368,285"/>
+</map>

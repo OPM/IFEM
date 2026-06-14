@@ -1,0 +1,5 @@
+<map id="src/ASM/LR/ASMu2Dmx.h" name="src/ASM/LR/ASMu2Dmx.h">
+<area shape="rect" id="node1" title="Driver for assembly of unstructured 2D spline mixed FE models." alt="" coords="113,5,300,32"/>
+<area shape="rect" id="node2" href="$ASMu2Dmx_8C.html" title="Driver for assembly of unstructured 2D spline mixed FE models." alt="" coords="5,87,192,114"/>
+<area shape="rect" id="node3" href="$LRSplineFields2Dmx_8C.html" title="Class for mixed LR spline&#45;based finite element vector fields in 2D." alt="" coords="216,80,416,121"/>
+</map>

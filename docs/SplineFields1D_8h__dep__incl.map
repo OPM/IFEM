@@ -1,0 +1,5 @@
+<map id="src/ASM/SplineFields1D.h" name="src/ASM/SplineFields1D.h">
+<area shape="rect" id="node1" title="Class for spline&#45;based finite element vector fields in 1D." alt="" coords="79,5,266,32"/>
+<area shape="rect" id="node2" href="$ASMs1D_8C.html" title="Driver for assembly of structured 1D spline FE models." alt="" coords="5,80,151,107"/>
+<area shape="rect" id="node3" href="$SplineFields1D_8C.html" title="Class for spline&#45;based finite element vector fields in 1D." alt="" coords="175,80,362,107"/>
+</map>

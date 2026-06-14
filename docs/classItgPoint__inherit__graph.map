@@ -1,0 +1,5 @@
+<map id="ItgPoint" name="ItgPoint">
+<area shape="rect" id="node1" title="Class representing an integration point." alt="" coords="35,5,107,32"/>
+<area shape="rect" id="node2" href="$classFiniteElement.html" title="Class representing a finite element." alt="" coords="15,80,127,107"/>
+<area shape="rect" id="node3" href="$classMxFiniteElement.html" title="Class representing a mixed finite element." alt="" coords="5,155,137,181"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="ASMs1D" name="ASMs1D">
+<area shape="rect" id="node1" title="Driver for assembly of structured 1D spline FE models." alt="" coords="131,155,207,181"/>
+<area shape="rect" id="node6" href="$classASMs1DC1.html" title="Driver for assembly of C1&#45;continuous structured 1D spline FE models." alt="" coords="63,229,156,256"/>
+<area shape="rect" id="node7" href="$classASMs1DLag.html" title="Driver for assembly of 1D Lagrange FE models." alt="" coords="180,229,279,256"/>
+<area shape="rect" id="node2" href="$classASMstruct.html" title="Base class for structured spline&#45;based FE assembly drivers." alt="" coords="5,80,93,107"/>
+<area shape="rect" id="node3" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="8,5,91,32"/>
+<area shape="rect" id="node4" href="$classASMunstruct.html" title="Abstract interface for unstructured spline patches." alt="" coords="117,80,221,107"/>
+<area shape="rect" id="node5" href="$classASM1D.html" title="Abstract interface for 1D spline patches." alt="" coords="245,80,315,107"/>
+<area shape="rect" id="node8" href="$classASMs1DSpec.html" title="Driver for assembly of structured 1D Spectral FE models." alt="" coords="112,304,219,331"/>
+<area shape="rect" id="node9" href="$classASMu1DLag.html" title="Driver for assembly of unstructured 1D Lagrange FE models." alt="" coords="243,304,343,331"/>
+</map>

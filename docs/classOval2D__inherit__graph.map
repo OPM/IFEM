@@ -1,0 +1,5 @@
+<map id="Oval2D" name="Oval2D">
+<area shape="rect" id="node1" title="Class representing a plate perforated by an oval hole." alt="" coords="51,155,121,181"/>
+<area shape="rect" id="node2" href="$classHole2D.html" title="Class representing the perforated plate benchmark." alt="" coords="51,80,121,107"/>
+<area shape="rect" id="node3" href="$classImmersed_1_1Geometry.html" title="Interface class representing a geometric object." alt="" coords="5,5,167,32"/>
+</map>

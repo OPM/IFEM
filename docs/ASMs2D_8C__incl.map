@@ -1,0 +1,71 @@
+<map id="src/ASM/ASMs2D.C" name="src/ASM/ASMs2D.C">
+<area shape="rect" id="node1" title="Driver for assembly of structured 2D spline FE models." alt="" coords="2107,5,2252,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,80,249,107"/>
+<area shape="rect" id="node3" title=" " alt="" coords="274,80,509,107"/>
+<area shape="rect" id="node4" title=" " alt="" coords="533,80,778,107"/>
+<area shape="rect" id="node5" title=" " alt="" coords="802,80,1071,107"/>
+<area shape="rect" id="node6" title=" " alt="" coords="1096,80,1332,107"/>
+<area shape="rect" id="node7" href="$ASMs2D_8h.html" title="Driver for assembly of structured 2D spline FE models." alt="" coords="1406,80,1494,107"/>
+<area shape="rect" id="node25" title=" " alt="" coords="2065,304,2121,331"/>
+<area shape="rect" id="node34" href="$TimeDomain_8h.html" title="Time domain representation for time&#45;dependent and nonlinear solvers." alt="" coords="1519,80,1637,107"/>
+<area shape="rect" id="node35" href="$FiniteElement_8h.html" title="Finite element quantities at an integration point." alt="" coords="2380,155,2504,181"/>
+<area shape="rect" id="node38" href="$Tensor_8h.html" title="Representation of second&#45;order tensors with some basic operations." alt="" coords="1449,304,1523,331"/>
+<area shape="rect" id="node39" href="$GlobalIntegral_8h.html" title="Abstract interface for classes representing integrated quantities." alt="" coords="649,229,776,256"/>
+<area shape="rect" id="node40" href="$LocalIntegral_8h.html" title="Abstract interface for classes representing integrated quantities." alt="" coords="3252,155,3371,181"/>
+<area shape="rect" id="node41" href="$IntegrandBase_8h.html" title="Base classes representing FEM integrands." alt="" coords="2531,155,2659,181"/>
+<area shape="rect" id="node45" href="$CoordinateMapping_8h.html" title="Utilities for coordinate mapping transformations." alt="" coords="3575,155,3736,181"/>
+<area shape="rect" id="node46" href="$GaussQuadrature_8h.html" title="Gaussian quadrature rules in one dimension." alt="" coords="2106,80,2253,107"/>
+<area shape="rect" id="node47" href="$ElementBlock_8h.html" title="Storage of a standard FE grid block." alt="" coords="2899,229,3023,256"/>
+<area shape="rect" id="node48" href="$Point_8h.html" title="Representation of points in 3D space with coordinates and parameters." alt="" coords="2927,304,2994,331"/>
+<area shape="rect" id="node49" href="$SplineField2D_8h.html" title="Class for spline&#45;based finite element scalar fields in 2D." alt="" coords="3002,80,3125,107"/>
+<area shape="rect" id="node52" href="$SplineFields2D_8h.html" title="Class for spline&#45;based finite element vector fields in 2D." alt="" coords="3149,80,3279,107"/>
+<area shape="rect" id="node54" href="$SplineUtils_8h.html" title="Various utility functions on spline objects &#45; GoTools extensions." alt="" coords="3395,155,3499,181"/>
+<area shape="rect" id="node55" href="$Utilities_8h.html" title="Various utility methods." alt="" coords="2443,229,2529,256"/>
+<area shape="rect" id="node56" href="$Profiler_8h.html" title="Simple profiling of computational tasks." alt="" coords="1763,229,1841,256"/>
+<area shape="rect" id="node58" href="$Function_8h.html" title="General functions with arbitrary argument and value type." alt="" coords="1547,229,1636,256"/>
+<area shape="rect" id="node59" href="$Vec3Oper_8h.html" title="Global algebraic operators involving Vec3 objects." alt="" coords="3435,379,3529,405"/>
+<area shape="rect" id="node60" href="$MPC_8h.html" title="Representation of multi&#45;point constraint (MPC) equations." alt="" coords="1865,229,1928,256"/>
+<area shape="rect" id="node61" href="$SAM_8h.html" title="Assembly of FE matrices into system matrices." alt="" coords="2355,229,2419,256"/>
+<area shape="rect" id="node62" href="$DiagMatrix_8h.html" title="Diagonal system matrix representation." alt="" coords="3445,80,3551,107"/>
+<area shape="rect" id="node64" href="$IFEM_8h.html" title="Initialization of the IFEM library." alt="" coords="1571,155,1638,181"/>
+<area shape="rect" id="node69" title=" " alt="" coords="3812,80,3872,107"/>
+<area shape="rect" id="node8" href="$ASMstruct_8h.html" title="Base class for structured spline&#45;based FE assembly drivers." alt="" coords="1331,155,1431,181"/>
+<area shape="rect" id="node27" href="$ThreadGroups_8h.html" title="Threading group partitioning." alt="" coords="801,229,926,256"/>
+<area shape="rect" id="node30" href="$ASM2D_8h.html" title="Abstract interface for 2D patches." alt="" coords="1059,229,1140,256"/>
+<area shape="rect" id="node31" href="$BasisFunctionCache_8h.html" title="Basis function cache." alt="" coords="1713,155,1877,181"/>
+<area shape="rect" id="node33" href="$Interface_8h.html" title="Representation of domain interfaces." alt="" coords="1455,155,1547,181"/>
+<area shape="rect" id="node9" href="$ASMbase_8h.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="2055,229,2149,256"/>
+<area shape="rect" id="node29" title=" " alt="" coords="1097,304,1174,331"/>
+<area shape="rect" id="node10" href="$ASMenums_8h.html" title="Various enums for assembly scope." alt="" coords="1649,304,1755,331"/>
+<area shape="rect" id="node11" href="$MatVec_8h.html" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="3126,304,3209,331"/>
+<area shape="rect" id="node22" href="$MPCLess_8h.html" title="Comparison of two MPC objects in a std::set&lt;MPC*,MPCLess&gt; object." alt="" coords="2145,304,2237,331"/>
+<area shape="rect" id="node23" title=" " alt="" coords="2262,304,2313,331"/>
+<area shape="rect" id="node24" title=" " alt="" coords="2337,304,2379,331"/>
+<area shape="rect" id="node26" title=" " alt="" coords="2454,304,2513,331"/>
+<area shape="rect" id="node12" href="$matrixnd_8h.html" title="Simple template classes for dense multi&#45;dimensional matrices." alt="" coords="3029,379,3122,405"/>
+<area shape="rect" id="node13" href="$matrix_8h.html" title="Simple template classes for dense rectangular matrices and vectors." alt="" coords="2374,453,2451,480"/>
+<area shape="rect" id="node14" title=" " alt="" coords="1467,528,1529,555"/>
+<area shape="rect" id="node15" title=" " alt="" coords="1886,528,1966,555"/>
+<area shape="rect" id="node16" title=" " alt="" coords="2179,528,2265,555"/>
+<area shape="rect" id="node17" title=" " alt="" coords="2289,528,2355,555"/>
+<area shape="rect" id="node18" title=" " alt="" coords="2380,528,2445,555"/>
+<area shape="rect" id="node19" title=" " alt="" coords="2077,528,2140,555"/>
+<area shape="rect" id="node20" href="$BLAS_8h.html" title="BLAS support for various platforms." alt="" coords="2469,528,2537,555"/>
+<area shape="rect" id="node21" href="$print__tol_8h.html" title="Global parameters for controlling the print of vectors and matrices." alt="" coords="2562,528,2650,555"/>
+<area shape="rect" id="node28" title=" " alt="" coords="951,304,1021,331"/>
+<area shape="rect" id="node32" href="$BasisFunctionVals_8h.html" title="Basis function values container." alt="" coords="2724,229,2875,256"/>
+<area shape="rect" id="node36" href="$ItgPoint_8h.html" title="Integration point representation." alt="" coords="951,229,1035,256"/>
+<area shape="rect" id="node37" href="$Vec3_8h.html" title="Representation of a point in 3D space with some basic operations." alt="" coords="2069,453,2135,480"/>
+<area shape="rect" id="node42" href="$Integrand_8h.html" title="Abstract interface for classes representing FEM integrands." alt="" coords="2553,229,2649,256"/>
+<area shape="rect" id="node44" href="$LinAlgenums_8h.html" title="Various enums for linear algebra scope." alt="" coords="3340,304,3459,331"/>
+<area shape="rect" id="node43" href="$SIMenums_8h.html" title="Various enums for simulation scope." alt="" coords="2588,304,2691,331"/>
+<area shape="rect" id="node50" href="$FieldBase_8h.html" title="Base class for scalar fields." alt="" coords="3060,155,3157,181"/>
+<area shape="rect" id="node51" href="$Field_8h.html" title="Base class for scalar fields." alt="" coords="3099,229,3164,256"/>
+<area shape="rect" id="node53" href="$Fields_8h.html" title="Base class for vector fields." alt="" coords="3239,229,3311,256"/>
+<area shape="rect" id="node57" title=" " alt="" coords="1830,304,1889,331"/>
+<area shape="rect" id="node63" href="$SystemMatrix_8h.html" title="General representation of system matrices and vectors." alt="" coords="3538,229,3663,256"/>
+<area shape="rect" id="node65" href="$SIMoptions_8h.html" title="Class for encapsulation of general simulation options." alt="" coords="2174,229,2281,256"/>
+<area shape="rect" id="node66" href="$LogStream_8h.html" title="Log stream class." alt="" coords="1266,229,1370,256"/>
+<area shape="rect" id="node68" href="$ScopedLogger_8h.html" title="Scoped logger." alt="" coords="1713,453,1837,480"/>
+<area shape="rect" id="node67" title=" " alt="" coords="1249,304,1323,331"/>
+</map>

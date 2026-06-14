@@ -1,0 +1,25 @@
+<map id="src/Utility/SplineUtils.C" name="src/Utility/SplineUtils.C">
+<area shape="rect" id="node1" title="Various utility functions on spline objects." alt="" coords="913,5,1085,32"/>
+<area shape="rect" id="node2" href="$SplineUtils_8h.html" title="Various utility functions on spline objects &#45; GoTools extensions." alt="" coords="376,87,480,114"/>
+<area shape="rect" id="node14" href="$Function_8h.html" title="General functions with arbitrary argument and value type." alt="" coords="555,169,645,196"/>
+<area shape="rect" id="node16" href="$Vec3_8h.html" title="Representation of a point in 3D space with some basic operations." alt="" coords="535,319,601,345"/>
+<area shape="rect" id="node18" title=" " alt="" coords="605,87,840,114"/>
+<area shape="rect" id="node19" title=" " alt="" coords="864,87,1133,114"/>
+<area shape="rect" id="node20" title=" " alt="" coords="1157,87,1403,114"/>
+<area shape="rect" id="node21" title=" " alt="" coords="1427,80,1621,121"/>
+<area shape="rect" id="node22" title=" " alt="" coords="1645,80,1782,121"/>
+<area shape="rect" id="node23" title=" " alt="" coords="1807,80,1969,121"/>
+<area shape="rect" id="node3" href="$MatVec_8h.html" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="388,169,471,196"/>
+<area shape="rect" id="node4" href="$matrixnd_8h.html" title="Simple template classes for dense multi&#45;dimensional matrices." alt="" coords="385,244,479,271"/>
+<area shape="rect" id="node5" href="$matrix_8h.html" title="Simple template classes for dense rectangular matrices and vectors." alt="" coords="393,319,471,345"/>
+<area shape="rect" id="node6" title=" " alt="" coords="587,393,650,420"/>
+<area shape="rect" id="node7" title=" " alt="" coords="675,393,755,420"/>
+<area shape="rect" id="node8" title=" " alt="" coords="391,393,476,420"/>
+<area shape="rect" id="node9" title=" " alt="" coords="5,393,72,420"/>
+<area shape="rect" id="node10" title=" " alt="" coords="97,393,162,420"/>
+<area shape="rect" id="node11" title=" " alt="" coords="501,393,563,420"/>
+<area shape="rect" id="node12" href="$BLAS_8h.html" title="BLAS support for various platforms." alt="" coords="186,393,254,420"/>
+<area shape="rect" id="node13" href="$print__tol_8h.html" title="Global parameters for controlling the print of vectors and matrices." alt="" coords="279,393,367,420"/>
+<area shape="rect" id="node15" href="$Tensor_8h.html" title="Representation of second&#45;order tensors with some basic operations." alt="" coords="677,319,752,345"/>
+<area shape="rect" id="node17" title=" " alt="" coords="606,244,677,271"/>
+</map>

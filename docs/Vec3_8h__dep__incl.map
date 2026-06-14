@@ -1,0 +1,102 @@
+<map id="src/Utility/Vec3.h" name="src/Utility/Vec3.h">
+<area shape="rect" id="node1" title="Representation of a point in 3D space with some basic operations." alt="" coords="8519,5,8651,32"/>
+<area shape="rect" id="node2" href="$ForceIntegrator_8C.html" title="Driver for integration of boundary and nodal forces." alt="" coords="1058,87,1242,114"/>
+<area shape="rect" id="node3" href="$ModelGenerator_8C.html" title="Base class for model generators for NURBS&#45;based FEM simulators." alt="" coords="1000,177,1191,203"/>
+<area shape="rect" id="node4" href="$SIMinput_8h.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="1368,87,1511,114"/>
+<area shape="rect" id="node6" href="$SIMoutput_8h.html" title="Sub&#45;class with functionality for result output to VTF and terminal." alt="" coords="1215,177,1365,203"/>
+<area shape="rect" id="node20" href="$MultiPatchModelGenerator_8C.html" title="Multi&#45;patch model generators for NURBS&#45;based FEM simulators." alt="" coords="1441,169,1670,211"/>
+<area shape="rect" id="node21" href="$ASMbase_8C.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="1745,177,1896,203"/>
+<area shape="rect" id="node22" href="$ASMLagBase_8h.html" title="Common base class for Lagrange FE models." alt="" coords="4600,87,4775,114"/>
+<area shape="rect" id="node30" href="$ASMs1DC1_8C.html" title="Driver for assembly of C1&#45;continuous structured 1D spline FE models." alt="" coords="7646,87,7809,114"/>
+<area shape="rect" id="node31" href="$ASMs2DC1_8C.html" title="Driver for assembly of C1&#45;continuous structured 2D spline FE models." alt="" coords="1921,177,2083,203"/>
+<area shape="rect" id="node32" href="$ASMsupel_8h.html" title="Driver for assembly of general superelements." alt="" coords="7833,87,7987,114"/>
+<area shape="rect" id="node35" href="$HDF5Writer_8C.html" title="Output of model and results to HDF5 file." alt="" coords="10169,177,10347,203"/>
+<area shape="rect" id="node36" href="$ASMutils_8C.html" title="Various utilities for assembly scope." alt="" coords="8063,87,8211,114"/>
+<area shape="rect" id="node37" href="$DomainDecomposition_8C.html" title="Domain decomposition partitioning for FE models." alt="" coords="8235,87,8475,114"/>
+<area shape="rect" id="node38" href="$FiniteElement_8h.html" title="Finite element quantities at an integration point." alt="" coords="7289,87,7469,114"/>
+<area shape="rect" id="node55" href="$ASMu2Dmx_8C.html" title="Driver for assembly of unstructured 2D spline mixed FE models." alt="" coords="6894,177,7081,203"/>
+<area shape="rect" id="node58" href="$ASMu3Dmx_8C.html" title="Driver for assembly of unstructured 3D spline mixed FE models." alt="" coords="7105,177,7291,203"/>
+<area shape="rect" id="node59" href="$CompatibleOperators_8C.html" title="Various weak, discrete div&#45;compatible operators." alt="" coords="9087,259,9360,285"/>
+<area shape="rect" id="node60" href="$EqualOrderOperators_8C.html" title="Various discrete equal&#45;ordered operators." alt="" coords="9384,259,9655,285"/>
+<area shape="rect" id="node62" href="$PiolaOperators_8C.html" title="Various weak, discrete Piola&#45;mapped operators." alt="" coords="9521,177,9752,203"/>
+<area shape="rect" id="node63" href="$GlbForceVec_8C.html" title="Storage of a global nodal force vector for a FEM problem." alt="" coords="8499,87,8670,114"/>
+<area shape="rect" id="node64" href="$HasGravityBase_8h.html" title="Base class representing FEM integrands with gravity terms." alt="" coords="8694,87,8889,114"/>
+<area shape="rect" id="node66" href="$SplineField2D_8C.html" title="Class for spline&#45;based finite element scalar field in 2D." alt="" coords="8913,87,9093,114"/>
+<area shape="rect" id="node67" href="$SplineField3D_8C.html" title="Class for spline&#45;based finite element scalar field in 3D." alt="" coords="9117,87,9297,114"/>
+<area shape="rect" id="node68" href="$SplineFields2D_8C.html" title="Class for spline&#45;based finite element vector fields in 2D." alt="" coords="9322,87,9509,114"/>
+<area shape="rect" id="node69" href="$SplineFields2Dmx_8C.html" title="Class for mixed spline&#45;based finite element vector fields in 2D." alt="" coords="9533,87,9741,114"/>
+<area shape="rect" id="node70" href="$SplineFields3D_8C.html" title="Class for spline&#45;based finite element vector fields in 3D." alt="" coords="9765,87,9951,114"/>
+<area shape="rect" id="node71" href="$SplineFields3Dmx_8C.html" title="Class for mixed spline&#45;based finite element vector fields in 3D." alt="" coords="9975,87,10183,114"/>
+<area shape="rect" id="node72" href="$ASMLRSpline_8C.html" title="Base class for unstructured spline&#45;based FE assembly drivers." alt="" coords="10208,87,10404,114"/>
+<area shape="rect" id="node73" href="$LRSplineField2D_8C.html" title="Class for LR spline&#45;based finite element scalar field in 2D." alt="" coords="10429,87,10645,114"/>
+<area shape="rect" id="node74" href="$LRSplineField3D_8C.html" title="Class for LR spline&#45;based finite element scalar field in 3D." alt="" coords="10669,87,10885,114"/>
+<area shape="rect" id="node75" href="$LRSplineFields2D_8C.html" title="Class for LR spline&#45;based finite element vector fields in 2D." alt="" coords="10909,87,11132,114"/>
+<area shape="rect" id="node76" href="$LRSplineFields2Dmx_8C.html" title="Class for mixed LR spline&#45;based finite element vector fields in 2D." alt="" coords="11155,80,11355,121"/>
+<area shape="rect" id="node77" href="$LRSplineFields3D_8C.html" title="Class for LR spline&#45;based finite element vector fields in 3D." alt="" coords="11379,87,11601,114"/>
+<area shape="rect" id="node78" href="$LRSplineFields3Dmx_8C.html" title="Class for LR spline&#45;based finite element mixed vector fields in 3D." alt="" coords="11625,80,11825,121"/>
+<area shape="rect" id="node79" href="$CoordinateMapping_8C.html" title="Utilities for coordinate mapping transformations." alt="" coords="11849,87,12078,114"/>
+<area shape="rect" id="node80" href="$ExprFunctions_8C.html" title="Expression function implementations." alt="" coords="2305,259,2499,285"/>
+<area shape="rect" id="node81" href="$FieldFunctions_8C.html" title="Field function implementations." alt="" coords="12102,87,12297,114"/>
+<area shape="rect" id="node82" href="$Function_8h.html" title="General functions with arbitrary argument and value type." alt="" coords="3664,87,3820,114"/>
+<area shape="rect" id="node92" href="$SplineUtils_8C.html" title="Various utility functions on spline objects." alt="" coords="3844,177,4016,203"/>
+<area shape="rect" id="node93" href="$Point_8h.html" title="Representation of points in 3D space with coordinates and parameters." alt="" coords="6219,87,6353,114"/>
+<area shape="rect" id="node94" href="$Tensor_8C.html" title="Representation of second&#45;order tensors with some basic operations." alt="" coords="12321,87,12464,114"/>
+<area shape="rect" id="node95" href="$TextureProperties_8C.html" title="Properties defined through a texture map." alt="" coords="12489,87,12705,114"/>
+<area shape="rect" id="node96" href="$Utilities_8C.html" title="Various utility methods." alt="" coords="12729,87,12883,114"/>
+<area shape="rect" id="node97" href="$Vec3Oper_8C.html" title="Global algebraic operations involving Vec3 objects." alt="" coords="12907,87,13070,114"/>
+<area shape="rect" id="node98" href="$MeshUtils_8C.html" title="Various mesh quality indicators." alt="" coords="13095,87,13293,114"/>
+<area shape="rect" id="node99" href="$SIMSemi3D_8h.html" title="Solution driver for plane&#45;decoupled solvers." alt="" coords="13318,87,13526,114"/>
+<area shape="rect" id="node100" href="$StabilizationUtils_8h.html" title="Various helpers for stabilized formulations." alt="" coords="13550,80,13753,121"/>
+<area shape="rect" id="node5" href="$SIMinput_8C.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="2524,259,2667,285"/>
+<area shape="rect" id="node7" href="$AdaptiveSetup_8C.html" title="Adaptive solution setup for linear and nonlinear FEM simulators." alt="" coords="2099,259,2281,285"/>
+<area shape="rect" id="node8" href="$AdaptiveSIM_8C.html" title="Adaptive solution driver for linear static FEM simulators." alt="" coords="1163,259,1331,285"/>
+<area shape="rect" id="node9" href="$EigenModeSIM_8C.html" title="Driver for computing a time history from a set of eigen modes." alt="" coords="1356,259,1539,285"/>
+<area shape="rect" id="node10" href="$GenAlphaSIM_8C.html" title="Generalized&#45;alpha driver for isogeometric dynamic FEM simulators." alt="" coords="1563,259,1737,285"/>
+<area shape="rect" id="node11" href="$HHTSIM_8C.html" title="Newmark solution driver for isogeometric dynamic FEM simulators." alt="" coords="1761,259,1899,285"/>
+<area shape="rect" id="node12" href="$MultiStepSIM_8C.html" title="Base class for multi&#45;step solution drivers." alt="" coords="5,259,177,285"/>
+<area shape="rect" id="node13" href="$NewmarkNLSIM_8C.html" title="Newmark solution driver for isogeometric dynamic FEM simulators." alt="" coords="201,259,392,285"/>
+<area shape="rect" id="node14" href="$NewmarkSIM_8C.html" title="Newmark solution driver for isogeometric dynamic FEM simulators." alt="" coords="417,259,590,285"/>
+<area shape="rect" id="node15" href="$NonLinSIM_8C.html" title="Nonlinear solution driver for isogeometric FEM simulators." alt="" coords="614,259,769,285"/>
+<area shape="rect" id="node16" href="$SIMgeneric_8h.html" title="Generic SIM class with some added functionalities." alt="" coords="982,259,1139,285"/>
+<area shape="rect" id="node18" href="$SIMmultiCpl_8C.html" title="Monolithic coupling of multiple simulators." alt="" coords="793,259,958,285"/>
+<area shape="rect" id="node19" href="$SIMoutput_8C.html" title="Sub&#45;class with functionality for result output to VTF and terminal." alt="" coords="1923,259,2075,285"/>
+<area shape="rect" id="node17" href="$SIMgeneric_8C.html" title="Generic SIM class with some added functionalities." alt="" coords="2353,333,2512,360"/>
+<area shape="rect" id="node23" href="$ASMLagBase_8C.html" title="Common base class for Lagrange FE models." alt="" coords="4040,177,4215,203"/>
+<area shape="rect" id="node24" href="$ASMs1DLag_8h.html" title="Driver for assembly of 1D Lagrange FE models." alt="" coords="5173,177,5340,203"/>
+<area shape="rect" id="node26" href="$ASMs2DLag_8h.html" title="Driver for assembly of structured 2D Lagrange FE models." alt="" coords="4413,177,4580,203"/>
+<area shape="rect" id="node28" href="$ASMs3DLag_8h.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="4604,177,4771,203"/>
+<area shape="rect" id="node25" href="$ASMs1DLag_8C.html" title="Driver for assembly of 1D Lagrange FE models." alt="" coords="6259,259,6427,285"/>
+<area shape="rect" id="node27" href="$ASMs2DLag_8C.html" title="Driver for assembly of structured 2D Lagrange FE models." alt="" coords="5050,259,5218,285"/>
+<area shape="rect" id="node29" href="$ASMs3DLag_8C.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="5879,259,6047,285"/>
+<area shape="rect" id="node33" href="$ASM3D_8C.html" title="Abstract interface for 3D patches." alt="" coords="9827,177,9966,203"/>
+<area shape="rect" id="node34" href="$ASMsupel_8C.html" title="Driver for assembly of general superelements." alt="" coords="9990,177,10145,203"/>
+<area shape="rect" id="node39" href="$ASMs1D_8C.html" title="Driver for assembly of structured 1D spline FE models." alt="" coords="5004,177,5149,203"/>
+<area shape="rect" id="node40" href="$ASMs1DSpec_8C.html" title="Driver for assembly of structured 1D Spectral FE models." alt="" coords="7955,177,8131,203"/>
+<area shape="rect" id="node41" href="$ASMs2D_8C.html" title="Driver for assembly of structured 2D spline FE models." alt="" coords="5364,177,5509,203"/>
+<area shape="rect" id="node42" href="$ASMs2Dmx_8C.html" title="Driver for assembly of structured 2D spline mixed FE models." alt="" coords="6512,177,6679,203"/>
+<area shape="rect" id="node43" href="$ASMs2DmxLag_8C.html" title="Driver for assembly of structured 2D Lagrange mixed FE models." alt="" coords="6085,177,6274,203"/>
+<area shape="rect" id="node44" href="$ASMs2DSpec_8C.html" title="Driver for assembly of structured 2D Spectral FE models." alt="" coords="8155,177,8331,203"/>
+<area shape="rect" id="node45" href="$ASMs2DTri_8C.html" title="Driver for assembly of structured 2D triangle&#45;based FE models." alt="" coords="8355,177,8515,203"/>
+<area shape="rect" id="node46" href="$ASMs3D_8C.html" title="Driver for assembly of structured 3D spline FE models." alt="" coords="5533,177,5679,203"/>
+<area shape="rect" id="node47" href="$ASMs3Dmx_8C.html" title="Driver for assembly of structured 3D spline mixed FE models." alt="" coords="6703,177,6869,203"/>
+<area shape="rect" id="node48" href="$ASMs3DmxLag_8C.html" title="Driver for assembly of structured 3D Lagrange mixed FE models." alt="" coords="6298,177,6487,203"/>
+<area shape="rect" id="node49" href="$ASMs3DSpec_8C.html" title="Driver for assembly of structured 3D Spectral FE models." alt="" coords="8539,177,8715,203"/>
+<area shape="rect" id="node50" href="$ASMstruct_8C.html" title="Base class for structured spline&#45;based FE assembly drivers." alt="" coords="8739,177,8897,203"/>
+<area shape="rect" id="node51" href="$FiniteElement_8C.html" title="Finite element quantities at an integration point." alt="" coords="8921,177,9102,203"/>
+<area shape="rect" id="node52" href="$GlbL2projector_8C.html" title="General integrand for L2&#45;projection of secondary solutions." alt="" coords="4795,177,4980,203"/>
+<area shape="rect" id="node53" href="$IntegrandBase_8C.html" title="Base classes representing FEM integrands." alt="" coords="7468,177,7653,203"/>
+<area shape="rect" id="node54" href="$ASMu2D_8C.html" title="Driver for assembly of unstructured 2D spline FE models." alt="" coords="5703,177,5869,203"/>
+<area shape="rect" id="node56" href="$ASMu2Dnurbs_8C.html" title="Driver for assembly of unstructured 2D NURBS FE models." alt="" coords="7678,177,7881,203"/>
+<area shape="rect" id="node57" href="$ASMu3D_8C.html" title="Driver for assembly of unstructured 3D spline FE models." alt="" coords="5893,177,6060,203"/>
+<area shape="rect" id="node61" href="$EqualOrderOperators_8h.html" title="Various equal&#45;ordered discrete operators." alt="" coords="9126,177,9395,203"/>
+<area shape="rect" id="node65" href="$HasGravityBase_8C.html" title="Base class representing FEM integrands with gravity terms." alt="" coords="10371,177,10567,203"/>
+<area shape="rect" id="node83" href="$FunctionSum_8h.html" title="Unary spatial function as a sum of other spatial functions." alt="" coords="2511,177,2680,203"/>
+<area shape="rect" id="node84" href="$NodeVecFunc_8h.html" title="Vector function wrapper for a nodal field." alt="" coords="3392,177,3564,203"/>
+<area shape="rect" id="node85" href="$DualField_8h.html" title="Representation of dual fields for goal&#45;oriented error estimation." alt="" coords="4239,177,4389,203"/>
+<area shape="rect" id="node86" href="$IBGeometries_8C.html" title="Physical geometries for immersed boundary simulations." alt="" coords="3588,177,3768,203"/>
+<area shape="rect" id="node87" href="$ASMu2Drecovery_8C.html" title="Recovery techniques for unstructured LR B&#45;splines." alt="" coords="2705,177,2926,203"/>
+<area shape="rect" id="node88" href="$ASMu3Drecovery_8C.html" title="Recovery techniques for unstructured LR B&#45;splines." alt="" coords="2950,177,3171,203"/>
+<area shape="rect" id="node89" href="$Chebyshev_8h.html" title="Evaluation of Chebyshev polynomials." alt="" coords="3196,177,3368,203"/>
+<area shape="rect" id="node90" href="$ExprFunctions_8h.html" title="Expression function implementations." alt="" coords="2294,177,2486,203"/>
+<area shape="rect" id="node91" href="$Functions_8h.html" title="Specific function implementations." alt="" coords="2107,177,2270,203"/>
+</map>

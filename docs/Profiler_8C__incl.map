@@ -1,0 +1,19 @@
+<map id="src/Utility/Profiler.C" name="src/Utility/Profiler.C">
+<area shape="rect" id="node1" title="Simple profiling of computational tasks." alt="" coords="413,5,560,32"/>
+<area shape="rect" id="node2" href="$Profiler_8h.html" title="Simple profiling of computational tasks." alt="" coords="419,155,498,181"/>
+<area shape="rect" id="node8" href="$IFEM_8h.html" title="Initialization of the IFEM library." alt="" coords="327,80,393,107"/>
+<area shape="rect" id="node16" href="$LinAlgInit_8h.html" title="Initializer for linear algebra packages." alt="" coords="482,80,577,107"/>
+<area shape="rect" id="node17" title=" " alt="" coords="601,80,692,107"/>
+<area shape="rect" id="node3" title=" " alt="" coords="293,229,373,256"/>
+<area shape="rect" id="node4" title=" " alt="" coords="555,229,613,256"/>
+<area shape="rect" id="node5" title=" " alt="" coords="206,229,269,256"/>
+<area shape="rect" id="node6" title=" " alt="" coords="480,229,531,256"/>
+<area shape="rect" id="node7" title=" " alt="" coords="397,229,456,256"/>
+<area shape="rect" id="node9" href="$SIMoptions_8h.html" title="Class for encapsulation of general simulation options." alt="" coords="531,155,637,181"/>
+<area shape="rect" id="node12" href="$LogStream_8h.html" title="Log stream class." alt="" coords="143,155,247,181"/>
+<area shape="rect" id="node15" href="$ScopedLogger_8h.html" title="Scoped logger." alt="" coords="271,155,395,181"/>
+<area shape="rect" id="node10" href="$ASMenums_8h.html" title="Various enums for assembly scope." alt="" coords="637,229,744,256"/>
+<area shape="rect" id="node11" href="$LinAlgenums_8h.html" title="Various enums for linear algebra scope." alt="" coords="769,229,887,256"/>
+<area shape="rect" id="node13" title=" " alt="" coords="107,229,181,256"/>
+<area shape="rect" id="node14" title=" " alt="" coords="5,229,83,256"/>
+</map>

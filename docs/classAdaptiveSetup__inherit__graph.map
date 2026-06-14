@@ -1,0 +1,5 @@
+<map id="AdaptiveSetup" name="AdaptiveSetup">
+<area shape="rect" id="node1" title="Adaptive solution setup for linear and nonlinear FEM simulators." alt="" coords="27,5,144,32"/>
+<area shape="rect" id="node2" href="$classAdaptiveSIM.html" title="Adaptive solution driver for linear static FEM simulators." alt="" coords="33,80,137,107"/>
+<area shape="rect" id="node3" href="$classAdaptiveISolver.html" title="Adaptive simulator driver using the ISolver interface." alt="" coords="5,155,165,196"/>
+</map>

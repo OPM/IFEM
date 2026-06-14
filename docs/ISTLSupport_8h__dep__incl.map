@@ -1,0 +1,7 @@
+<map id="src/LinAlg/ISTLSupport.h" name="src/LinAlg/ISTLSupport.h">
+<area shape="rect" id="node1" title="IFEM ISTL support." alt="" coords="105,5,284,32"/>
+<area shape="rect" id="node2" href="$ISTLSolParams_8h.html" title="Linear solver parameters for ISTL matrices." alt="" coords="97,80,293,107"/>
+<area shape="rect" id="node3" href="$ISTLMatrix_8h.html" title="Representation of the system matrix in ISTL format with interface to ISTL routines for solving linear..." alt="" coords="5,155,176,181"/>
+<area shape="rect" id="node5" href="$ISTLSolParams_8C.html" title="Linear solver parameters for ISTL." alt="" coords="200,155,397,181"/>
+<area shape="rect" id="node4" href="$ISTLMatrix_8C.html" title="Representation of the system matrix in ISTL format." alt="" coords="5,229,176,256"/>
+</map>

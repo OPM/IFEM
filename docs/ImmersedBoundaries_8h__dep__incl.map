@@ -1,0 +1,9 @@
+<map id="src/ASM/ImmersedBoundaries.h" name="src/ASM/ImmersedBoundaries.h">
+<area shape="rect" id="node1" title="Utilities for immersed boundary calculations." alt="" coords="163,5,393,32"/>
+<area shape="rect" id="node2" href="$SIM2D_8C.html" title="Solution driver for 2D NURBS&#45;based FEM analysis." alt="" coords="37,80,165,107"/>
+<area shape="rect" id="node3" href="$IBGeometries_8h.html" title="Physical geometries for immersed boundary simulations." alt="" coords="189,80,367,107"/>
+<area shape="rect" id="node7" href="$ImmersedBoundaries_8C.html" title="Utilities for immersed boundary calculations." alt="" coords="392,80,623,107"/>
+<area shape="rect" id="node4" href="$ASMs2DIB_8C.html" title="Assembly of structured 2D spline FE models with immersed boundaries." alt="" coords="5,155,164,181"/>
+<area shape="rect" id="node5" href="$IBGeometries_8C.html" title="Physical geometries for immersed boundary simulations." alt="" coords="188,155,368,181"/>
+<area shape="rect" id="node6" href="$ASMu2DIB_8C.html" title="Assembly of unstructured 2D spline FE models with immersed boundary." alt="" coords="393,155,571,181"/>
+</map>

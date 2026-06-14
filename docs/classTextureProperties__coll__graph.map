@@ -1,0 +1,9 @@
+<map id="TextureProperties" name="TextureProperties">
+<area shape="rect" id="node1" title="Class containing a set of properties defined through a texture map." alt="" coords="93,393,229,420"/>
+<area shape="rect" id="node2" title=" " alt="" coords="52,289,271,331"/>
+<area shape="rect" id="node3" title=" " alt="" coords="49,193,135,219"/>
+<area shape="rect" id="node4" title=" " alt="" coords="5,81,144,123"/>
+<area shape="rect" id="node5" href="$structTextureProperties_1_1Property.html" title="Struct holding information about a property." alt="" coords="169,185,313,227"/>
+<area shape="rect" id="node6" href="$classutl_1_1matrix3d.html" title=" " alt="" coords="168,89,333,115"/>
+<area shape="rect" id="node7" href="$classutl_1_1matrixBase.html" title="Common base class for multi&#45;dimensional (2D and 3D) matrices." alt="" coords="171,5,331,32"/>
+</map>

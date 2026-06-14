@@ -1,0 +1,11 @@
+<map id="ScalarFunc" name="ScalarFunc">
+<area shape="rect" id="node1" title="Scalar&#45;valued unary function of a scalar value." alt="" coords="465,95,557,121"/>
+<area shape="rect" id="node3" href="$classConstantFunc.html" title="A scalar&#45;valued constant function." alt="" coords="5,169,116,196"/>
+<area shape="rect" id="node4" href="$classDiracFunc.html" title="A scalar&#45;valued dirac function." alt="" coords="140,169,227,196"/>
+<area shape="rect" id="node5" href="$classEvalFuncScalar.html" title="A scalar&#45;valued function, general expression." alt="" coords="251,169,441,196"/>
+<area shape="rect" id="node6" href="$classLinearFunc.html" title="A scalar&#45;valued linear function." alt="" coords="465,169,557,196"/>
+<area shape="rect" id="node7" href="$classRampFunc.html" title="A scalar&#45;valued ramp function, linear up to xmax." alt="" coords="582,169,673,196"/>
+<area shape="rect" id="node8" href="$classSineFunc.html" title="A scalar&#45;valued sinusoidal function." alt="" coords="697,169,777,196"/>
+<area shape="rect" id="node9" href="$classStepFunc.html" title="A scalar&#45;valued step function." alt="" coords="801,169,883,196"/>
+<area shape="rect" id="node2" href="$classutl_1_1Function.html" title=" " alt="" coords="436,5,587,47"/>
+</map>

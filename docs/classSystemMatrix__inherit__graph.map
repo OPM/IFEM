@@ -1,0 +1,9 @@
+<map id="SystemMatrix" name="SystemMatrix">
+<area shape="rect" id="node1" title="Base class for representing a system matrix on different formats." alt="" coords="248,5,361,32"/>
+<area shape="rect" id="node2" href="$classDenseMatrix.html" title="Class for representing a dense system matrix." alt="" coords="5,80,111,107"/>
+<area shape="rect" id="node3" href="$classDiagMatrix.html" title="Class for representing a diagonal system matrix." alt="" coords="135,80,229,107"/>
+<area shape="rect" id="node4" href="$classPETScMatrix.html" title="Class for representing the system matrix in PETSc format." alt="" coords="253,80,356,107"/>
+<area shape="rect" id="node5" href="$classSPRMatrix.html" title="Class for representing the system matrix on the SPR&#45;format." alt="" coords="380,80,469,107"/>
+<area shape="rect" id="node6" href="$classSparseMatrix.html" title="Class for representing a system matrix on an unstructured sparse form." alt="" coords="493,80,601,107"/>
+<area shape="rect" id="node7" href="$classISTLMatrix.html" title="Class for representing the system matrix in ISTL format." alt="" coords="502,155,593,181"/>
+</map>

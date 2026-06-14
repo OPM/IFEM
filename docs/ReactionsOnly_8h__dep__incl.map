@@ -1,0 +1,5 @@
+<map id="src/ASM/ReactionsOnly.h" name="src/ASM/ReactionsOnly.h">
+<area shape="rect" id="node1" title="Global integral class for reaction&#45; and interface force calculation." alt="" coords="78,5,261,32"/>
+<area shape="rect" id="node2" href="$SIMbase_8C.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="5,80,147,107"/>
+<area shape="rect" id="node3" href="$ReactionsOnly_8C.html" title="Global integral sub&#45;class for reaction force integration." alt="" coords="171,80,354,107"/>
+</map>

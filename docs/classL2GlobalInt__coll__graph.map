@@ -1,0 +1,13 @@
+<map id="L2GlobalInt" name="L2GlobalInt">
+<area shape="rect" id="node1" title="Global integral container class for L2&#45;projections." alt="" coords="724,56,820,83"/>
+<area shape="rect" id="node2" href="$classGlobalIntegral.html" title="Abstract base class representing a system level integrated quantity." alt="" coords="548,5,663,32"/>
+<area shape="rect" id="node3" href="$classStdVector.html" title="Standard system vector stored as a single continuous array." alt="" coords="563,56,647,83"/>
+<area shape="rect" id="node4" href="$classSystemVector.html" title="Base class for representing a system vector on different formats." alt="" coords="317,5,429,32"/>
+<area shape="rect" id="node5" href="$classutl_1_1vector.html" title="A vector class with some added algebraic operations." alt="" coords="342,56,405,83"/>
+<area shape="rect" id="node6" href="$classSparseMatrix.html" title="Class for representing a system matrix on an unstructured sparse form." alt="" coords="551,152,659,179"/>
+<area shape="rect" id="node7" href="$classSystemMatrix.html" title="Base class for representing a system matrix on different formats." alt="" coords="317,107,430,133"/>
+<area shape="rect" id="node8" title=" " alt="" coords="5,107,155,133"/>
+<area shape="rect" id="node9" href="$structSuperLUdata.html" title="Data structures for the SuperLU equation solver." alt="" coords="321,157,426,184"/>
+<area shape="rect" id="node10" title=" " alt="" coords="304,212,443,239"/>
+<area shape="rect" id="node11" title=" " alt="" coords="284,263,463,289"/>
+</map>

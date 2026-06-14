@@ -1,0 +1,5 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" title=" " alt="" coords="5,46,55,73"/>
+<area shape="rect" id="node2" href="$classSIMMultiPatchModelGen.html" title="Inherit this class to equip your SIM with multi&#45;patch model generators." alt="" coords="103,5,283,47"/>
+<area shape="rect" id="node3" href="$classSIMNodalConstraint.html" title="Inherit this class to equip your SIM with nodal constraints." alt="" coords="117,71,268,112"/>
+</map>

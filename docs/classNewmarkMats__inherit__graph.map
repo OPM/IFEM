@@ -1,0 +1,6 @@
+<map id="NewmarkMats" name="NewmarkMats">
+<area shape="rect" id="node1" title="Class representing the element matrices for a dynamic FEM problem based on Newmark time integration." alt="" coords="5,155,123,181"/>
+<area shape="rect" id="node4" href="$classHHTMats.html" title="Class representing the element matrices for a dynamic FEM problem based on Hilber&#45;Hughes&#45;Taylor time ..." alt="" coords="23,229,105,256"/>
+<area shape="rect" id="node2" href="$classElmMats.html" title="Class collecting the element matrices associated with a FEM problem." alt="" coords="25,80,103,107"/>
+<area shape="rect" id="node3" href="$classLocalIntegral.html" title="Abstract base class representing an element level integrated quantity." alt="" coords="11,5,117,32"/>
+</map>

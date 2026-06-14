@@ -1,0 +1,12 @@
+<map id="src/SIM/ModelGenerator.h" name="src/SIM/ModelGenerator.h">
+<area shape="rect" id="node1" title="Base class for model generators for NURBS&#45;based FEM simulators." alt="" coords="494,5,683,32"/>
+<area shape="rect" id="node2" href="$ModelGenerator_8C.html" title="Base class for model generators for NURBS&#45;based FEM simulators." alt="" coords="5,87,196,114"/>
+<area shape="rect" id="node3" href="$SIM1D_8C.html" title="Solution driver for 1D NURBS&#45;based FEM analysis." alt="" coords="221,87,349,114"/>
+<area shape="rect" id="node4" href="$SIM2D_8C.html" title="Solution driver for 2D NURBS&#45;based FEM analysis." alt="" coords="373,87,501,114"/>
+<area shape="rect" id="node5" href="$SIM3D_8C.html" title="Solution driver for 3D NURBS&#45;based FEM analysis." alt="" coords="525,87,653,114"/>
+<area shape="rect" id="node6" href="$SIMgeneric_8C.html" title="Generic SIM class with some added functionalities." alt="" coords="677,87,836,114"/>
+<area shape="rect" id="node7" href="$SIMinput_8C.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="860,87,1003,114"/>
+<area shape="rect" id="node8" href="$MultiPatchModelGenerator_8h.html" title="Multi&#45;patch model generators for NURBS&#45;based FEM simulators." alt="" coords="1027,80,1257,121"/>
+<area shape="rect" id="node9" href="$MultiPatchModelGenerator_8C.html" title="Multi&#45;patch model generators for NURBS&#45;based FEM simulators." alt="" coords="905,169,1134,211"/>
+<area shape="rect" id="node10" href="$SIMMultiPatchModelGen_8C.html" title="Base class for simulators equipped with multi&#45;patch model generators." alt="" coords="1158,169,1371,211"/>
+</map>

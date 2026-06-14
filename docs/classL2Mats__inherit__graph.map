@@ -1,0 +1,5 @@
+<map id="L2Mats" name="L2Mats">
+<area shape="rect" id="node1" title="Local integral container class for L2&#45;projections." alt="" coords="24,155,93,181"/>
+<area shape="rect" id="node2" href="$classElmMats.html" title="Class collecting the element matrices associated with a FEM problem." alt="" coords="19,80,98,107"/>
+<area shape="rect" id="node3" href="$classLocalIntegral.html" title="Abstract base class representing an element level integrated quantity." alt="" coords="5,5,112,32"/>
+</map>

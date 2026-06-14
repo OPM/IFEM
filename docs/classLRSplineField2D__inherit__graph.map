@@ -1,0 +1,5 @@
+<map id="LRSplineField2D" name="LRSplineField2D">
+<area shape="rect" id="node1" title="Class for LR spline&#45;based finite element scalar fields in 2D." alt="" coords="5,155,132,181"/>
+<area shape="rect" id="node2" href="$classFieldBase.html" title="Base class for scalar fields." alt="" coords="26,80,111,107"/>
+<area shape="rect" id="node3" href="$classField.html" title="Interface class for scalar fields." alt="" coords="42,5,95,32"/>
+</map>

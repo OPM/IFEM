@@ -1,0 +1,6 @@
+<map id="src/LinAlg/ISTLSolParams.h" name="src/LinAlg/ISTLSolParams.h">
+<area shape="rect" id="node1" title="Linear solver parameters for ISTL matrices." alt="" coords="97,5,293,32"/>
+<area shape="rect" id="node2" href="$ISTLMatrix_8h.html" title="Representation of the system matrix in ISTL format with interface to ISTL routines for solving linear..." alt="" coords="5,80,176,107"/>
+<area shape="rect" id="node4" href="$ISTLSolParams_8C.html" title="Linear solver parameters for ISTL." alt="" coords="200,80,397,107"/>
+<area shape="rect" id="node3" href="$ISTLMatrix_8C.html" title="Representation of the system matrix in ISTL format." alt="" coords="5,155,176,181"/>
+</map>

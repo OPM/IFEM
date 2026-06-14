@@ -1,0 +1,7 @@
+<map id="AdaptiveISolver&lt; T1, SolutionTransfer &gt;" name="AdaptiveISolver&lt; T1, SolutionTransfer &gt;">
+<area shape="rect" id="node1" title="Adaptive simulator driver using the ISolver interface." alt="" coords="45,229,205,271"/>
+<area shape="rect" id="node2" href="$classAdaptiveSIM.html" title="Adaptive solution driver for linear static FEM simulators." alt="" coords="73,155,177,181"/>
+<area shape="rect" id="node3" href="$classSIMadmin.html" title="Administration base class for FEM simulators." alt="" coords="19,80,106,107"/>
+<area shape="rect" id="node4" href="$classXMLInputBase.html" title="Base class for XML based input file parsing." alt="" coords="5,5,120,32"/>
+<area shape="rect" id="node5" href="$classAdaptiveSetup.html" title="Adaptive solution setup for linear and nonlinear FEM simulators." alt="" coords="131,80,248,107"/>
+</map>

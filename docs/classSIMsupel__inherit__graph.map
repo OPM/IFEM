@@ -1,0 +1,11 @@
+<map id="SIMsupel" name="SIMsupel">
+<area shape="rect" id="node1" title="Solution driver for general superelement FEM analysis." alt="" coords="87,528,169,555"/>
+<area shape="rect" id="node2" href="$classSIMdummy.html" title=" " alt="" coords="29,453,227,480"/>
+<area shape="rect" id="node3" href="$classSIMgeneric.html" title="Generic SIM class with some added functionalities." alt="" coords="81,379,175,405"/>
+<area shape="rect" id="node4" href="$classSIMoutput.html" title="Sub&#45;class with additional functionality for result output." alt="" coords="84,304,172,331"/>
+<area shape="rect" id="node5" href="$classSIMinput.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="89,229,167,256"/>
+<area shape="rect" id="node6" href="$classSIMbase.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="89,155,167,181"/>
+<area shape="rect" id="node7" href="$classSIMadmin.html" title="Administration base class for FEM simulators." alt="" coords="19,80,106,107"/>
+<area shape="rect" id="node8" href="$classXMLInputBase.html" title="Base class for XML based input file parsing." alt="" coords="5,5,120,32"/>
+<area shape="rect" id="node9" href="$classSIMdependency.html" title="Class administering inter&#45;SIM field dependencies." alt="" coords="131,80,256,107"/>
+</map>

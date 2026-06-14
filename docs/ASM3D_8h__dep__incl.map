@@ -1,0 +1,38 @@
+<map id="src/ASM/ASM3D.h" name="src/ASM/ASM3D.h">
+<area shape="rect" id="node1" title="Abstract interface for 3D patches." alt="" coords="2433,5,2570,32"/>
+<area shape="rect" id="node2" href="$SIMsupel_8C.html" title="Solution driver for general superelement FEM analysis." alt="" coords="1181,80,1326,107"/>
+<area shape="rect" id="node3" href="$ASM3D_8C.html" title="Abstract interface for 3D patches." alt="" coords="1685,333,1824,360"/>
+<area shape="rect" id="node4" href="$ASMbase_8C.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="2426,80,2577,107"/>
+<area shape="rect" id="node5" href="$ASMs3D_8h.html" title="Driver for assembly of structured 3D spline FE models." alt="" coords="1351,80,1495,107"/>
+<area shape="rect" id="node27" href="$DomainDecomposition_8C.html" title="Domain decomposition partitioning for FE models." alt="" coords="2601,80,2841,107"/>
+<area shape="rect" id="node28" href="$ASMu3D_8h.html" title="Driver for assembly of unstructured 3D spline FE models." alt="" coords="2865,80,3031,107"/>
+<area shape="rect" id="node36" href="$FieldFunctions_8C.html" title="Field function implementations." alt="" coords="3055,80,3249,107"/>
+<area shape="rect" id="node6" href="$SIM3D_8C.html" title="Solution driver for 3D NURBS&#45;based FEM analysis." alt="" coords="495,162,623,189"/>
+<area shape="rect" id="node7" href="$ASMs3D_8C.html" title="Driver for assembly of structured 3D spline FE models." alt="" coords="647,162,793,189"/>
+<area shape="rect" id="node8" href="$ASMs3DLag_8h.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="303,162,470,189"/>
+<area shape="rect" id="node18" href="$ASMs3Dmx_8h.html" title="Driver for assembly of structured 3D spline mixed FE models." alt="" coords="2185,162,2351,189"/>
+<area shape="rect" id="node21" href="$ASMs3Drecovery_8C.html" title="Recovery of secondary solutions for structured 3D spline FE models." alt="" coords="817,162,1017,189"/>
+<area shape="rect" id="node22" href="$SplineField_8C.html" title="Utility class for spline&#45;based finite element fields." alt="" coords="1041,162,1204,189"/>
+<area shape="rect" id="node23" href="$SplineField3D_8C.html" title="Class for spline&#45;based finite element scalar field in 3D." alt="" coords="1229,162,1409,189"/>
+<area shape="rect" id="node24" href="$SplineFields3D_8C.html" title="Class for spline&#45;based finite element vector fields in 3D." alt="" coords="1433,162,1620,189"/>
+<area shape="rect" id="node25" href="$MultiPatchModelGenerator_8C.html" title="Multi&#45;patch model generators for NURBS&#45;based FEM simulators." alt="" coords="1644,155,1873,196"/>
+<area shape="rect" id="node26" href="$SIMNodalConstraint_8C.html" title="Base class for simulators constraining a topologyset to a given node." alt="" coords="1898,162,2161,189"/>
+<area shape="rect" id="node9" href="$ASMs3DLag_8C.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="219,251,387,278"/>
+<area shape="rect" id="node10" href="$ASMs3DmxLag_8h.html" title="Driver for assembly of structured 3D Lagrange mixed FE models." alt="" coords="6,251,194,278"/>
+<area shape="rect" id="node12" href="$ASMs3DSpec_8h.html" title="Driver for assembly of structured 3D Spectral FE models." alt="" coords="1170,251,1345,278"/>
+<area shape="rect" id="node14" href="$Field_8C.html" title="Base class for scalar fields." alt="" coords="411,251,533,278"/>
+<area shape="rect" id="node15" href="$Fields_8C.html" title="Base class for vector fields." alt="" coords="1479,251,1609,278"/>
+<area shape="rect" id="node16" href="$LagrangeField3D_8C.html" title="Class for Lagrange&#45;based finite element scalar field in 3D." alt="" coords="557,251,757,278"/>
+<area shape="rect" id="node17" href="$LagrangeFields3D_8C.html" title="Class for Lagrange&#45;based finite element vector fields in 3D." alt="" coords="782,251,989,278"/>
+<area shape="rect" id="node11" href="$ASMs3DmxLag_8C.html" title="Driver for assembly of structured 3D Lagrange mixed FE models." alt="" coords="5,333,195,360"/>
+<area shape="rect" id="node13" href="$ASMs3DSpec_8C.html" title="Driver for assembly of structured 3D Spectral FE models." alt="" coords="1169,333,1345,360"/>
+<area shape="rect" id="node19" href="$ASMs3Dmx_8C.html" title="Driver for assembly of structured 3D spline mixed FE models." alt="" coords="1951,251,2118,278"/>
+<area shape="rect" id="node20" href="$SplineFields3Dmx_8C.html" title="Class for mixed spline&#45;based finite element vector fields in 3D." alt="" coords="2143,251,2351,278"/>
+<area shape="rect" id="node29" href="$ASMu3D_8C.html" title="Driver for assembly of unstructured 3D spline FE models." alt="" coords="3158,162,3325,189"/>
+<area shape="rect" id="node30" href="$ASMu3Dmx_8h.html" title="Driver for assembly of unstructured 3D spline mixed FE models." alt="" coords="3349,162,3536,189"/>
+<area shape="rect" id="node33" href="$ASMu3Drecovery_8C.html" title="Recovery techniques for unstructured LR B&#45;splines." alt="" coords="2425,162,2647,189"/>
+<area shape="rect" id="node34" href="$LRSplineField3D_8C.html" title="Class for LR spline&#45;based finite element scalar field in 3D." alt="" coords="2671,162,2887,189"/>
+<area shape="rect" id="node35" href="$LRSplineFields3D_8C.html" title="Class for LR spline&#45;based finite element vector fields in 3D." alt="" coords="2911,162,3134,189"/>
+<area shape="rect" id="node31" href="$ASMu3Dmx_8C.html" title="Driver for assembly of unstructured 3D spline mixed FE models." alt="" coords="3240,251,3427,278"/>
+<area shape="rect" id="node32" href="$LRSplineFields3Dmx_8C.html" title="Class for LR spline&#45;based finite element mixed vector fields in 3D." alt="" coords="3451,244,3651,285"/>
+</map>

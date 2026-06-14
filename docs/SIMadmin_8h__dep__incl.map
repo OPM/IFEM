@@ -1,0 +1,55 @@
+<map id="src/SIM/SIMadmin.h" name="src/SIM/SIMadmin.h">
+<area shape="rect" id="node1" title="Administration base class for FEM simulators." alt="" coords="1155,5,1306,32"/>
+<area shape="rect" id="node2" href="$AdaptiveSIM_8h.html" title="Adaptive solution driver for linear static FEM simulators." alt="" coords="218,80,385,107"/>
+<area shape="rect" id="node5" href="$MultiStepSIM_8h.html" title="Base class for multi&#45;step solution drivers." alt="" coords="1145,80,1316,107"/>
+<area shape="rect" id="node20" href="$SIMadmin_8C.html" title="Administration base class for FEM simulators." alt="" coords="970,80,1121,107"/>
+<area shape="rect" id="node21" href="$SIMbase_8h.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="1871,80,2011,107"/>
+<area shape="rect" id="node50" href="$SIMmultiCpl_8h.html" title="Monolithic coupling of multiple simulators." alt="" coords="2638,80,2802,107"/>
+<area shape="rect" id="node51" href="$SIMSemi3D_8h.html" title="Solution driver for plane&#45;decoupled solvers." alt="" coords="2036,80,2244,107"/>
+<area shape="rect" id="node52" href="$SIMSolver_8h.html" title="SIM solver class template." alt="" coords="449,80,647,107"/>
+<area shape="rect" id="node3" href="$AdaptiveSIM_8C.html" title="Adaptive solution driver for linear static FEM simulators." alt="" coords="5,319,173,345"/>
+<area shape="rect" id="node4" href="$SIMSolverAdap_8h.html" title="Stationary, adaptive SIM solver class template." alt="" coords="186,155,417,181"/>
+<area shape="rect" id="node6" href="$EigenModeSIM_8h.html" title="Driver for computing a time history from a set of eigen modes." alt="" coords="1268,155,1449,181"/>
+<area shape="rect" id="node8" href="$MultiStepSIM_8C.html" title="Base class for multi&#45;step solution drivers." alt="" coords="1713,319,1885,345"/>
+<area shape="rect" id="node9" href="$NewmarkSIM_8h.html" title="Newmark solution driver for isogeometric dynamic FEM simulators." alt="" coords="679,155,851,181"/>
+<area shape="rect" id="node17" href="$NonLinSIM_8h.html" title="Nonlinear solution driver for isogeometric FEM simulators." alt="" coords="916,155,1071,181"/>
+<area shape="rect" id="node7" href="$EigenModeSIM_8C.html" title="Driver for computing a time history from a set of eigen modes." alt="" coords="1909,319,2091,345"/>
+<area shape="rect" id="node10" href="$GenAlphaSIM_8h.html" title="Generalized&#45;alpha driver for isogeometric dynamic FEM simulators." alt="" coords="414,237,586,263"/>
+<area shape="rect" id="node12" href="$HHTSIM_8h.html" title="Nonlinear solution driver for isogeometric dynamic FEM simulators." alt="" coords="611,237,749,263"/>
+<area shape="rect" id="node14" href="$NewmarkNLSIM_8h.html" title="Nonlinear solution driver for isogeometric dynamic FEM simulators." alt="" coords="199,237,388,263"/>
+<area shape="rect" id="node16" href="$NewmarkSIM_8C.html" title="Newmark solution driver for isogeometric dynamic FEM simulators." alt="" coords="773,319,947,345"/>
+<area shape="rect" id="node11" href="$GenAlphaSIM_8C.html" title="Generalized&#45;alpha driver for isogeometric dynamic FEM simulators." alt="" coords="413,319,587,345"/>
+<area shape="rect" id="node13" href="$HHTSIM_8C.html" title="Newmark solution driver for isogeometric dynamic FEM simulators." alt="" coords="611,319,749,345"/>
+<area shape="rect" id="node15" href="$NewmarkNLSIM_8C.html" title="Newmark solution driver for isogeometric dynamic FEM simulators." alt="" coords="198,319,389,345"/>
+<area shape="rect" id="node18" href="$NonLinSIM_8C.html" title="Nonlinear solution driver for isogeometric FEM simulators." alt="" coords="971,319,1125,345"/>
+<area shape="rect" id="node19" href="$SIMImplicitLMM_8h.html" title="Implicit multi&#45;step time integration for SIM classes." alt="" coords="875,237,1112,263"/>
+<area shape="rect" id="node22" href="$ForceIntegrator_8C.html" title="Driver for integration of boundary and nodal forces." alt="" coords="2065,155,2249,181"/>
+<area shape="rect" id="node23" href="$NodeVecFunc_8C.html" title="Vector function wrapper for a nodal field." alt="" coords="2273,155,2447,181"/>
+<area shape="rect" id="node24" href="$SIMbase_8C.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="2471,155,2612,181"/>
+<area shape="rect" id="node25" href="$SIMinput_8h.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="1474,155,1617,181"/>
+<area shape="rect" id="node45" href="$SIMmodal_8h.html" title="Assembly of modal FEM system." alt="" coords="2637,155,2787,181"/>
+<area shape="rect" id="node47" href="$DomainDecomposition_8C.html" title="Domain decomposition partitioning for FE models." alt="" coords="2812,155,3052,181"/>
+<area shape="rect" id="node48" href="$HDF5Writer_8C.html" title="Output of model and results to HDF5 file." alt="" coords="1641,155,1818,181"/>
+<area shape="rect" id="node49" href="$MeshUtils_8C.html" title="Various mesh quality indicators." alt="" coords="1842,155,2041,181"/>
+<area shape="rect" id="node26" href="$ModelGenerator_8C.html" title="Base class for model generators for NURBS&#45;based FEM simulators." alt="" coords="1667,237,1858,263"/>
+<area shape="rect" id="node27" href="$SIMinput_8C.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="1882,237,2025,263"/>
+<area shape="rect" id="node28" href="$SIMoutput_8h.html" title="Sub&#45;class with functionality for result output to VTF and terminal." alt="" coords="1137,237,1287,263"/>
+<area shape="rect" id="node44" href="$MultiPatchModelGenerator_8C.html" title="Multi&#45;patch model generators for NURBS&#45;based FEM simulators." alt="" coords="1413,229,1643,271"/>
+<area shape="rect" id="node29" href="$AdaptiveSetup_8C.html" title="Adaptive solution setup for linear and nonlinear FEM simulators." alt="" coords="1149,319,1331,345"/>
+<area shape="rect" id="node30" href="$SIMgeneric_8h.html" title="Generic SIM class with some added functionalities." alt="" coords="1355,319,1512,345"/>
+<area shape="rect" id="node42" href="$SIMmultiCpl_8C.html" title="Monolithic coupling of multiple simulators." alt="" coords="2561,319,2727,345"/>
+<area shape="rect" id="node43" href="$SIMoutput_8C.html" title="Sub&#45;class with functionality for result output to VTF and terminal." alt="" coords="1536,319,1688,345"/>
+<area shape="rect" id="node31" href="$SIM1D_8h.html" title="Solution driver for 1D NURBS&#45;based FEM analysis." alt="" coords="1013,393,1139,420"/>
+<area shape="rect" id="node35" href="$SIM2D_8h.html" title="Solution driver for 2D NURBS&#45;based FEM analysis." alt="" coords="1198,393,1325,420"/>
+<area shape="rect" id="node37" href="$SIM3D_8h.html" title="Solution driver for 3D NURBS&#45;based FEM analysis." alt="" coords="1370,393,1497,420"/>
+<area shape="rect" id="node39" href="$SIMgeneric_8C.html" title="Generic SIM class with some added functionalities." alt="" coords="1521,393,1679,420"/>
+<area shape="rect" id="node40" href="$SIMsupel_8h.html" title="Solution driver for general superelement FEM analysis." alt="" coords="1721,393,1865,420"/>
+<area shape="rect" id="node32" href="$SIM1D_8C.html" title="Solution driver for 1D NURBS&#45;based FEM analysis." alt="" coords="748,475,876,502"/>
+<area shape="rect" id="node33" href="$SIMMultiPatchModelGen_8C.html" title="Base class for simulators equipped with multi&#45;patch model generators." alt="" coords="1340,468,1553,509"/>
+<area shape="rect" id="node34" href="$SIMNodalConstraint_8C.html" title="Base class for simulators constraining a topologyset to a given node." alt="" coords="901,475,1163,502"/>
+<area shape="rect" id="node36" href="$SIM2D_8C.html" title="Solution driver for 2D NURBS&#45;based FEM analysis." alt="" coords="1188,475,1316,502"/>
+<area shape="rect" id="node38" href="$SIM3D_8C.html" title="Solution driver for 3D NURBS&#45;based FEM analysis." alt="" coords="1577,475,1705,502"/>
+<area shape="rect" id="node41" href="$SIMsupel_8C.html" title="Solution driver for general superelement FEM analysis." alt="" coords="1730,475,1875,502"/>
+<area shape="rect" id="node46" href="$SIMmodal_8C.html" title="Assembly of modal FEM system." alt="" coords="2637,237,2787,263"/>
+<area shape="rect" id="node53" href="$SIMSolverTS_8h.html" title="Time&#45;slab adaptive SIM solver class template." alt="" coords="441,155,655,181"/>
+</map>

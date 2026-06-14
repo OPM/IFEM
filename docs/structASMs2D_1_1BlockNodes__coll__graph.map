@@ -1,0 +1,4 @@
+<map id="ASMs2D::BlockNodes" name="ASMs2D::BlockNodes">
+<area shape="rect" id="node1" title="Struct with data for definition of global node numbers of a patch." alt="" coords="5,95,167,121"/>
+<area shape="rect" id="node2" href="$structASMs2D_1_1Edge.html" title="Struct for edge node definitions." alt="" coords="28,5,144,32"/>
+</map>

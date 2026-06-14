@@ -1,0 +1,6 @@
+<map id="src/LinAlg/LAPack.h" name="src/LinAlg/LAPack.h">
+<area shape="rect" id="node1" title="LAPack support for various platforms." alt="" coords="216,5,364,32"/>
+<area shape="rect" id="node2" href="$DenseMatrix_8C.html" title="Dense system matrix representation." alt="" coords="5,80,191,107"/>
+<area shape="rect" id="node3" href="$MatVec_8C.html" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="215,80,365,107"/>
+<area shape="rect" id="node4" href="$Tensor_8C.html" title="Representation of second&#45;order tensors with some basic operations." alt="" coords="389,80,532,107"/>
+</map>

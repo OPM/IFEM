@@ -1,0 +1,7 @@
+<map id="ControlFIFO" name="ControlFIFO">
+<area shape="rect" id="node1" title="This class enables simple application control over a FIFO." alt="" coords="24,289,123,316"/>
+<area shape="rect" id="node2" title=" " alt="" coords="145,185,308,227"/>
+<area shape="rect" id="node3" title=" " alt="" coords="31,96,118,123"/>
+<area shape="rect" id="node4" title=" " alt="" coords="5,5,144,47"/>
+<area shape="rect" id="node5" href="$classControlCallback.html" title="Callback for FIFO option handling." alt="" coords="164,96,289,123"/>
+</map>

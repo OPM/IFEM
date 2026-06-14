@@ -1,0 +1,6 @@
+<map id="src/ASM/AlgEqSystem.h" name="src/ASM/AlgEqSystem.h">
+<area shape="rect" id="node1" title="Storage of an algebraic equation system for a FEM problem." alt="" coords="159,5,335,32"/>
+<area shape="rect" id="node2" href="$SIMbase_8C.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="5,80,147,107"/>
+<area shape="rect" id="node3" href="$SIMmodal_8C.html" title="Assembly of modal FEM system." alt="" coords="171,80,322,107"/>
+<area shape="rect" id="node4" href="$AlgEqSystem_8C.html" title="Storage of an algebraic equation system for a FEM problem." alt="" coords="346,80,523,107"/>
+</map>

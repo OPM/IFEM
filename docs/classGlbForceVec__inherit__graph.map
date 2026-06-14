@@ -1,0 +1,4 @@
+<map id="GlbForceVec" name="GlbForceVec">
+<area shape="rect" id="node1" title="Class for storage of a global nodal force vector with assembly methods." alt="" coords="11,80,114,107"/>
+<area shape="rect" id="node2" href="$classGlobalIntegral.html" title="Abstract base class representing a system level integrated quantity." alt="" coords="5,5,120,32"/>
+</map>

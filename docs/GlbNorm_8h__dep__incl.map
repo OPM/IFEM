@@ -1,0 +1,5 @@
+<map id="src/ASM/GlbNorm.h" name="src/ASM/GlbNorm.h">
+<area shape="rect" id="node1" title="Representation of integrated global norm quantities." alt="" coords="86,5,234,32"/>
+<area shape="rect" id="node2" href="$SIMbase_8C.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="5,80,147,107"/>
+<area shape="rect" id="node3" href="$GlbNorm_8C.html" title="Representation of integrated norm quantities over an element." alt="" coords="171,80,320,107"/>
+</map>

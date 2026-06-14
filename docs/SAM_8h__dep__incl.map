@@ -1,0 +1,24 @@
+<map id="src/LinAlg/SAM.h" name="src/LinAlg/SAM.h">
+<area shape="rect" id="node1" title="Assembly of FE matrices into system matrices." alt="" coords="1398,5,1529,32"/>
+<area shape="rect" id="node2" href="$SIMgeneric_8C.html" title="Generic SIM class with some added functionalities." alt="" coords="5,80,164,107"/>
+<area shape="rect" id="node3" href="$SIMmodal_8C.html" title="Assembly of modal FEM system." alt="" coords="188,80,339,107"/>
+<area shape="rect" id="node4" href="$SIMoutput_8C.html" title="Sub&#45;class with functionality for result output to VTF and terminal." alt="" coords="363,80,515,107"/>
+<area shape="rect" id="node5" href="$SIMsupel_8C.html" title="Solution driver for general superelement FEM analysis." alt="" coords="540,80,685,107"/>
+<area shape="rect" id="node6" href="$AlgEqSystem_8C.html" title="Storage of an algebraic equation system for a FEM problem." alt="" coords="709,80,887,107"/>
+<area shape="rect" id="node7" href="$ASMs2D_8C.html" title="Driver for assembly of structured 2D spline FE models." alt="" coords="911,80,1056,107"/>
+<area shape="rect" id="node8" href="$GlbForceVec_8C.html" title="Storage of a global nodal force vector for a FEM problem." alt="" coords="1081,80,1251,107"/>
+<area shape="rect" id="node9" href="$ReactionsOnly_8C.html" title="Global integral sub&#45;class for reaction force integration." alt="" coords="1276,80,1459,107"/>
+<area shape="rect" id="node10" href="$SAMpatch_8h.html" title="Assembly of FE matrices into system matrices for multi&#45;patch models." alt="" coords="1483,80,1639,107"/>
+<area shape="rect" id="node16" href="$DenseMatrix_8C.html" title="Dense system matrix representation." alt="" coords="1663,80,1848,107"/>
+<area shape="rect" id="node17" href="$DiagMatrix_8C.html" title="Diagonal system matrix representation." alt="" coords="1872,80,2047,107"/>
+<area shape="rect" id="node18" href="$ISTLMatrix_8C.html" title="Representation of the system matrix in ISTL format." alt="" coords="2071,80,2242,107"/>
+<area shape="rect" id="node19" href="$PETScMatrix_8C.html" title="Representation of the system matrix in PETSc format." alt="" coords="2267,80,2449,107"/>
+<area shape="rect" id="node20" href="$SAM_8C.html" title="Assembly of FE matrices into system matrices." alt="" coords="2473,80,2605,107"/>
+<area shape="rect" id="node21" href="$SparseMatrix_8C.html" title="Representation of the system matrix on an unstructured sparse format." alt="" coords="2629,80,2817,107"/>
+<area shape="rect" id="node22" href="$SPRMatrix_8C.html" title="Representation of the system matrix on the SPR&#45;format." alt="" coords="2841,80,3011,107"/>
+<area shape="rect" id="node11" href="$SIMbase_8C.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="1165,155,1306,181"/>
+<area shape="rect" id="node12" href="$DomainDecomposition_8C.html" title="Domain decomposition partitioning for FE models." alt="" coords="1330,155,1570,181"/>
+<area shape="rect" id="node13" href="$SAMpatch_8C.html" title="Assembly of FE matrices into system matrices for multi&#45;patch models." alt="" coords="1594,155,1751,181"/>
+<area shape="rect" id="node14" href="$SAMpatchPETSc_8h.html" title="Evaluation of global norms for distributed models." alt="" coords="1775,155,1970,181"/>
+<area shape="rect" id="node15" href="$SAMpatchPETSc_8C.html" title="Evaluation of global norms for distributed models." alt="" coords="1775,229,1971,256"/>
+</map>

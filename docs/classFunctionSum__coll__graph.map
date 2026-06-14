@@ -1,0 +1,5 @@
+<map id="FunctionSum" name="FunctionSum">
+<area shape="rect" id="node1" title="Unary spatial function as a sum of other spatial functions." alt="" coords="99,95,205,121"/>
+<area shape="rect" id="node2" href="$classFunctionBase.html" title="Base class for unary spatial functions of arbitrary result type." alt="" coords="5,5,115,32"/>
+<area shape="rect" id="node3" title=" " alt="" coords="139,5,351,32"/>
+</map>

@@ -1,0 +1,19 @@
+<map id="src/IFEM&#45;test.C" name="src/IFEM&#45;test.C">
+<area shape="rect" id="node1" title="Main testing application function." alt="" coords="435,5,555,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="290,80,422,107"/>
+<area shape="rect" id="node3" href="$IFEM_8h.html" title="Initialization of the IFEM library." alt="" coords="497,80,564,107"/>
+<area shape="rect" id="node15" href="$Profiler_8h.html" title="Simple profiling of computational tasks." alt="" coords="394,155,473,181"/>
+<area shape="rect" id="node17" title=" " alt="" coords="588,80,673,107"/>
+<area shape="rect" id="node4" href="$SIMoptions_8h.html" title="Class for encapsulation of general simulation options." alt="" coords="255,155,361,181"/>
+<area shape="rect" id="node9" href="$LogStream_8h.html" title="Log stream class." alt="" coords="645,155,749,181"/>
+<area shape="rect" id="node14" href="$ScopedLogger_8h.html" title="Scoped logger." alt="" coords="497,155,621,181"/>
+<area shape="rect" id="node5" href="$ASMenums_8h.html" title="Various enums for assembly scope." alt="" coords="5,229,112,256"/>
+<area shape="rect" id="node6" href="$LinAlgenums_8h.html" title="Various enums for linear algebra scope." alt="" coords="137,229,255,256"/>
+<area shape="rect" id="node7" title=" " alt="" coords="279,229,337,256"/>
+<area shape="rect" id="node8" title=" " alt="" coords="361,229,412,256"/>
+<area shape="rect" id="node10" title=" " alt="" coords="519,229,599,256"/>
+<area shape="rect" id="node11" title=" " alt="" coords="711,229,785,256"/>
+<area shape="rect" id="node12" title=" " alt="" coords="809,229,887,256"/>
+<area shape="rect" id="node13" title=" " alt="" coords="623,229,686,256"/>
+<area shape="rect" id="node16" title=" " alt="" coords="436,229,495,256"/>
+</map>

@@ -1,0 +1,4 @@
+<map id="PlaneBlock" name="PlaneBlock">
+<area shape="rect" id="node1" title="Class for single&#45;element plane geometries." alt="" coords="14,80,109,107"/>
+<area shape="rect" id="node2" href="$classElementBlock.html" title="Class for storage of a standard FE grid block." alt="" coords="5,5,117,32"/>
+</map>

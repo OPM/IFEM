@@ -1,0 +1,34 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classAdaptiveSetup.html" title="Adaptive solution setup for linear and nonlinear FEM simulators." alt="" coords="172,31,289,57"/>
+<area shape="rect" id="node2" href="$classAdaptiveSIM.html" title="Adaptive solution driver for linear static FEM simulators." alt="" coords="391,31,495,57"/>
+<area shape="rect" id="node3" href="$classAdaptiveISolver.html" title="Adaptive simulator driver using the ISolver interface." alt="" coords="599,15,759,57"/>
+<area shape="rect" id="node4" href="$classSIMdependency.html" title="Class administering inter&#45;SIM field dependencies." alt="" coords="168,81,293,108"/>
+<area shape="rect" id="node5" href="$classSIMSemi3D.html" title="Driver class for plane&#45;decoupled 3D problems." alt="" coords="341,81,545,108"/>
+<area shape="rect" id="node6" href="$classSIMbase.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="405,132,482,159"/>
+<area shape="rect" id="node7" href="$classSIMinput.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="639,81,718,108"/>
+<area shape="rect" id="node8" href="$classSIMoutput.html" title="Sub&#45;class with additional functionality for result output." alt="" coords="884,81,972,108"/>
+<area shape="rect" id="node9" href="$classSIMgeneric.html" title="Generic SIM class with some added functionalities." alt="" coords="1092,81,1187,108"/>
+<area shape="rect" id="node10" href="$classSIMdummy.html" title=" " alt="" coords="1235,5,1433,32"/>
+<area shape="rect" id="node12" href="$classSIM1D.html" title="Driver class for 1D NURBS&#45;based FEM solver." alt="" coords="1302,56,1366,83"/>
+<area shape="rect" id="node13" href="$classSIM2D.html" title="Driver class for 2D NURBS&#45;based FEM solver." alt="" coords="1302,107,1366,133"/>
+<area shape="rect" id="node14" href="$classSIM3D.html" title="Driver class for 3D NURBS&#45;based FEM solver." alt="" coords="1302,157,1366,184"/>
+<area shape="rect" id="node11" href="$classSIMsupel.html" title="Solution driver for general superelement FEM analysis." alt="" coords="1481,5,1563,32"/>
+<area shape="rect" id="node15" href="$classSIMsolution.html" title="Solution vector container with serialization support." alt="" coords="181,340,280,367"/>
+<area shape="rect" id="node16" href="$classMultiStepSIM.html" title="Base class for multi&#45;step solution drivers." alt="" coords="389,340,497,367"/>
+<area shape="rect" id="node17" href="$classEigenModeSIM.html" title="Driver for computing a time history from a set of eigen mode shapes." alt="" coords="619,315,738,341"/>
+<area shape="rect" id="node18" href="$classNewmarkSIM.html" title="Newmark&#45;based solution driver for dynamic isogeometric FEM simulators." alt="" coords="624,365,733,392"/>
+<area shape="rect" id="node22" href="$classNonLinSIM.html" title="Nonlinear quasi&#45;static solution driver for isogeometric FEM simulators." alt="" coords="633,420,724,447"/>
+<area shape="rect" id="node19" href="$classGenAlphaSIM.html" title="Generalized&#45;alpha driver for dynamic isogeometric FEM simulators." alt="" coords="873,391,983,417"/>
+<area shape="rect" id="node20" href="$classHHTSIM.html" title="Newmark&#45;based solution driver for dynamic isogeometric FEM simulators." alt="" coords="891,289,965,316"/>
+<area shape="rect" id="node21" href="$classNewmarkNLSIM.html" title="Newmark&#45;based solution driver for dynamic isogeometric FEM simulators." alt="" coords="865,340,991,367"/>
+<area shape="rect" id="node23" href="$classTimeIntegration_1_1SIMImplicitLMM_1_1LMMNonLinSIM.html" title="Specialized nonlinear solver for implicit LMM methods." alt="" coords="812,442,1044,483"/>
+<area shape="rect" id="node24" href="$classXMLInputBase.html" title="Base class for XML based input file parsing." alt="" coords="5,157,120,184"/>
+<area shape="rect" id="node25" href="$classSIMadmin.html" title="Administration base class for FEM simulators." alt="" coords="187,183,274,209"/>
+<area shape="rect" id="node32" href="$classSIMargsBase.html" title="Base class for input file pre&#45;parsing in applications." alt="" coords="177,132,284,159"/>
+<area shape="rect" id="node26" href="$classSIMSolverStat.html" title="Template class for stationary simulator drivers." alt="" coords="364,183,523,209"/>
+<area shape="rect" id="node31" href="$classSIMmultiCpl.html" title="Class for monolithic coupled simulators." alt="" coords="393,233,494,260"/>
+<area shape="rect" id="node27" href="$classSIMSolver.html" title="Template class for transient simulator drivers." alt="" coords="612,132,745,159"/>
+<area shape="rect" id="node29" href="$classSIMSolverAdapImpl.html" title="Template class for stationary adaptive simulator drivers." alt="" coords="599,183,759,225"/>
+<area shape="rect" id="node30" href="$classSIMSolverAdapInternal.html" title="Template class for adaptive simulator drivers which handle adaptation internally." alt="" coords="593,249,764,290"/>
+<area shape="rect" id="node28" href="$classSIMSolverTS.html" title="Template class for time&#45;slab adaptive simulator drivers." alt="" coords="853,132,1003,159"/>
+</map>

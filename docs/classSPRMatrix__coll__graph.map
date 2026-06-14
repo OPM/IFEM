@@ -1,0 +1,9 @@
+<map id="SPRMatrix" name="SPRMatrix">
+<area shape="rect" id="node1" title="Class for representing the system matrix on the SPR&#45;format." alt="" coords="277,213,366,240"/>
+<area shape="rect" id="node2" href="$classSystemMatrix.html" title="Base class for representing a system matrix on different formats." alt="" coords="23,109,137,136"/>
+<area shape="rect" id="node3" title=" " alt="" coords="5,5,155,32"/>
+<area shape="rect" id="node4" title=" " alt="" coords="161,109,311,136"/>
+<area shape="rect" id="node5" title=" " alt="" coords="335,109,481,136"/>
+<area shape="rect" id="node6" href="$classSAM.html" title="This class contains data and functions for the assembly of FE matrices." alt="" coords="505,109,557,136"/>
+<area shape="rect" id="node7" title=" " alt="" coords="456,5,605,32"/>
+</map>

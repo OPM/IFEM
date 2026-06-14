@@ -1,0 +1,5 @@
+<map id="utl::Point" name="utl::Point">
+<area shape="rect" id="node1" title="Class for representing points in 3D space." alt="" coords="5,155,85,181"/>
+<area shape="rect" id="node2" href="$classVec4.html" title="Simple class for representing a point in 3D space and time." alt="" coords="19,80,72,107"/>
+<area shape="rect" id="node3" href="$classVec3.html" title="Simple class for representing a point in 3D space." alt="" coords="19,5,72,32"/>
+</map>

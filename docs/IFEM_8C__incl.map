@@ -1,0 +1,18 @@
+<map id="src/IFEM.C" name="src/IFEM.C">
+<area shape="rect" id="node1" title="Initialization of the IFEM library." alt="" coords="740,5,831,32"/>
+<area shape="rect" id="node2" href="$IFEM_8h.html" title="Initialization of the IFEM library." alt="" coords="583,80,649,107"/>
+<area shape="rect" id="node9" title=" " alt="" coords="724,229,804,256"/>
+<area shape="rect" id="node14" href="$LinAlgInit_8h.html" title="Initializer for linear algebra packages." alt="" coords="823,80,918,107"/>
+<area shape="rect" id="node15" href="$ControlFIFO_8h.html" title="Application control over a FIFO." alt="" coords="42,155,153,181"/>
+<area shape="rect" id="node16" title=" " alt="" coords="943,80,1009,107"/>
+<area shape="rect" id="node3" href="$SIMoptions_8h.html" title="Class for encapsulation of general simulation options." alt="" coords="177,155,284,181"/>
+<area shape="rect" id="node8" href="$LogStream_8h.html" title="Log stream class." alt="" coords="495,155,599,181"/>
+<area shape="rect" id="node13" href="$ScopedLogger_8h.html" title="Scoped logger." alt="" coords="623,155,747,181"/>
+<area shape="rect" id="node4" href="$ASMenums_8h.html" title="Various enums for assembly scope." alt="" coords="163,229,269,256"/>
+<area shape="rect" id="node5" href="$LinAlgenums_8h.html" title="Various enums for linear algebra scope." alt="" coords="294,229,413,256"/>
+<area shape="rect" id="node6" title=" " alt="" coords="5,229,64,256"/>
+<area shape="rect" id="node7" title=" " alt="" coords="88,229,139,256"/>
+<area shape="rect" id="node10" title=" " alt="" coords="625,229,700,256"/>
+<area shape="rect" id="node11" title=" " alt="" coords="436,229,513,256"/>
+<area shape="rect" id="node12" title=" " alt="" coords="538,229,601,256"/>
+</map>

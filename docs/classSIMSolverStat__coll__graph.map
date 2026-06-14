@@ -1,0 +1,52 @@
+<map id="SIMSolverStat&lt; T1 &gt;" name="SIMSolverStat&lt; T1 &gt;">
+<area shape="rect" id="node1" title="Template class for stationary simulator drivers." alt="" coords="2851,893,3009,920"/>
+<area shape="rect" id="node2" href="$classSIMadmin.html" title="Administration base class for FEM simulators." alt="" coords="2645,799,2732,825"/>
+<area shape="rect" id="node3" href="$classXMLInputBase.html" title="Base class for XML based input file parsing." alt="" coords="2359,849,2473,876"/>
+<area shape="rect" id="node4" href="$classSIMoptions.html" title="Class for encapsulation of general simulation options." alt="" coords="2369,799,2463,825"/>
+<area shape="rect" id="node5" title=" " alt="" coords="1627,868,1713,895"/>
+<area shape="rect" id="node7" title=" " alt="" coords="1975,861,2187,902"/>
+<area shape="rect" id="node16" href="$classDomainDecomposition.html" title="Class containing domain decomposition related partitioning." alt="" coords="1995,451,2166,477"/>
+<area shape="rect" id="node47" href="$classDataWriter.html" title="Stores and reads data from a file." alt="" coords="2034,1040,2127,1067"/>
+<area shape="rect" id="node48" title=" " alt="" coords="2320,921,2512,962"/>
+<area shape="rect" id="node49" href="$structDataExporter_1_1FileEntry.html" title="A structure holding information about registered fields." alt="" coords="1994,989,2167,1016"/>
+<area shape="rect" id="node6" title=" " alt="" coords="1067,861,1205,902"/>
+<area shape="rect" id="node8" href="$classProcessAdm.html" title="Class for administration of MPI processes in IFEM library." alt="" coords="2365,611,2467,637"/>
+<area shape="rect" id="node9" href="$classutl_1_1LogStream.html" title="Logging stream class." alt="" coords="2022,611,2139,637"/>
+<area shape="rect" id="node10" title=" " alt="" coords="1581,579,1759,621"/>
+<area shape="rect" id="node11" title=" " alt="" coords="1059,585,1213,626"/>
+<area shape="rect" id="node12" title=" " alt="" coords="1618,677,1722,704"/>
+<area shape="rect" id="node13" title=" " alt="" coords="1063,729,1209,770"/>
+<area shape="rect" id="node14" title=" " alt="" coords="744,957,915,984"/>
+<area shape="rect" id="node15" title=" " alt="" coords="450,972,557,999"/>
+<area shape="rect" id="node17" title=" " alt="" coords="428,199,579,225"/>
+<area shape="rect" id="node22" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="788,477,871,504"/>
+<area shape="rect" id="node40" href="$structDomainDecomposition_1_1BlockInfo.html" title="Struct with information per matrix block." alt="" coords="744,121,915,162"/>
+<area shape="rect" id="node18" href="$classSAMpatch.html" title="This is a sub&#45;class of SAM with added functionality for spline models." alt="" coords="1626,451,1714,477"/>
+<area shape="rect" id="node19" href="$classSAM.html" title="This class contains data and functions for the assembly of FE matrices." alt="" coords="955,705,1007,732"/>
+<area shape="rect" id="node20" title=" " alt="" coords="429,808,578,835"/>
+<area shape="rect" id="node21" title=" " alt="" coords="1040,432,1232,459"/>
+<area shape="rect" id="node23" title=" " alt="" coords="413,640,594,667"/>
+<area shape="rect" id="node24" title=" " alt="" coords="161,615,283,641"/>
+<area shape="rect" id="node25" title=" " alt="" coords="5,547,44,573"/>
+<area shape="rect" id="node27" title=" " alt="" coords="157,477,287,504"/>
+<area shape="rect" id="node26" title=" " alt="" coords="423,367,584,393"/>
+<area shape="rect" id="node28" title=" " alt="" coords="434,589,573,616"/>
+<area shape="rect" id="node29" title=" " alt="" coords="422,691,585,733"/>
+<area shape="rect" id="node30" href="$classMPC.html" title="A class representing a general multi&#45;point constraint equation." alt="" coords="197,813,247,840"/>
+<area shape="rect" id="node32" href="$structMPC_1_1DOF.html" title="A struct representing one term in a multi&#45;point constraint equation." alt="" coords="460,859,547,885"/>
+<area shape="rect" id="node37" title=" " alt="" coords="400,757,607,784"/>
+<area shape="rect" id="node31" title=" " alt="" coords="736,876,923,903"/>
+<area shape="rect" id="node33" title=" " alt="" coords="434,539,573,565"/>
+<area shape="rect" id="node34" href="$structASMbase_1_1BC.html" title="Struct for boundary condition codes." alt="" coords="168,539,276,565"/>
+<area shape="rect" id="node35" href="$classutl_1_1Function.html" title="Base class for unary functions of arbitrary result and argument type." alt="" coords="432,250,575,291"/>
+<area shape="rect" id="node36" title=" " alt="" coords="434,84,573,111"/>
+<area shape="rect" id="node38" title=" " alt="" coords="412,316,595,343"/>
+<area shape="rect" id="node39" title=" " alt="" coords="1256,150,1511,191"/>
+<area shape="rect" id="node41" title=" " alt="" coords="445,5,562,32"/>
+<area shape="rect" id="node42" title=" " alt="" coords="1535,506,1805,547"/>
+<area shape="rect" id="node43" href="$structASM_1_1Interface.html" title="Struct for representing a domain interface." alt="" coords="1077,533,1195,560"/>
+<area shape="rect" id="node44" href="$classDataExporter.html" title="Administer and write data using DataWriters." alt="" coords="2635,961,2743,988"/>
+<area shape="rect" id="node45" href="$classControlCallback.html" title="Callback for FIFO option handling." alt="" coords="2353,987,2479,1013"/>
+<area shape="rect" id="node46" title=" " alt="" coords="2315,1037,2517,1064"/>
+<area shape="rect" id="node50" title=" " alt="" coords="1599,1061,1741,1102"/>
+</map>

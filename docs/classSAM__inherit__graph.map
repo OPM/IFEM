@@ -1,0 +1,6 @@
+<map id="SAM" name="SAM">
+<area shape="rect" id="node1" title="This class contains data and functions for the assembly of FE matrices." alt="" coords="83,5,135,32"/>
+<area shape="rect" id="node2" href="$classSAMmodal.html" title="A simple SAM class for diagonal systems." alt="" coords="5,80,99,107"/>
+<area shape="rect" id="node3" href="$classSAMpatch.html" title="This is a sub&#45;class of SAM with added functionality for spline models." alt="" coords="123,80,211,107"/>
+<area shape="rect" id="node4" href="$classSAMpatchPETSc.html" title="This is a sub&#45;class of SAMpatch with support for parallel processing." alt="" coords="103,155,230,181"/>
+</map>

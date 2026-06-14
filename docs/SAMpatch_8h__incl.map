@@ -1,0 +1,17 @@
+<map id="src/ASM/SAMpatch.h" name="src/ASM/SAMpatch.h">
+<area shape="rect" id="node1" title="Assembly of FE matrices into system matrices for multi&#45;patch models." alt="" coords="393,5,549,32"/>
+<area shape="rect" id="node2" href="$SAM_8h.html" title="Assembly of FE matrices into system matrices." alt="" coords="439,80,503,107"/>
+<area shape="rect" id="node3" href="$MatVec_8h.html" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="343,155,426,181"/>
+<area shape="rect" id="node14" title=" " alt="" coords="450,155,493,181"/>
+<area shape="rect" id="node15" title=" " alt="" coords="517,155,567,181"/>
+<area shape="rect" id="node4" href="$matrixnd_8h.html" title="Simple template classes for dense multi&#45;dimensional matrices." alt="" coords="338,229,431,256"/>
+<area shape="rect" id="node5" href="$matrix_8h.html" title="Simple template classes for dense rectangular matrices and vectors." alt="" coords="346,304,423,331"/>
+<area shape="rect" id="node6" title=" " alt="" coords="5,379,68,405"/>
+<area shape="rect" id="node7" title=" " alt="" coords="93,379,173,405"/>
+<area shape="rect" id="node8" title=" " alt="" coords="197,379,282,405"/>
+<area shape="rect" id="node9" title=" " alt="" coords="306,379,373,405"/>
+<area shape="rect" id="node10" title=" " alt="" coords="397,379,463,405"/>
+<area shape="rect" id="node11" title=" " alt="" coords="487,379,549,405"/>
+<area shape="rect" id="node12" href="$BLAS_8h.html" title="BLAS support for various platforms." alt="" coords="573,379,641,405"/>
+<area shape="rect" id="node13" href="$print__tol_8h.html" title="Global parameters for controlling the print of vectors and matrices." alt="" coords="666,379,754,405"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="src/LinAlg/LinAlgInit.h" name="src/LinAlg/LinAlgInit.h">
+<area shape="rect" id="node1" title="Initializer for linear algebra packages." alt="" coords="536,5,699,32"/>
+<area shape="rect" id="node2" href="$IFEM_8C.html" title="Initialization of the IFEM library." alt="" coords="5,80,96,107"/>
+<area shape="rect" id="node3" href="$SAMpatchPETSc_8C.html" title="Evaluation of global norms for distributed models." alt="" coords="121,80,317,107"/>
+<area shape="rect" id="node4" href="$ISTLMatrix_8C.html" title="Representation of the system matrix in ISTL format." alt="" coords="341,80,512,107"/>
+<area shape="rect" id="node5" href="$LinAlgInit_8C.html" title="Initializer for linear algebra packages." alt="" coords="536,80,699,107"/>
+<area shape="rect" id="node6" href="$PETScMatrix_8C.html" title="Representation of the system matrix in PETSc format." alt="" coords="723,80,906,107"/>
+<area shape="rect" id="node7" href="$ProcessAdm_8C.html" title="Class for administration MPI processes used by the IFEM library, in particular parallel linear algebr..." alt="" coords="930,80,1113,107"/>
+<area shape="rect" id="node8" href="$Profiler_8C.html" title="Simple profiling of computational tasks." alt="" coords="1137,80,1284,107"/>
+</map>

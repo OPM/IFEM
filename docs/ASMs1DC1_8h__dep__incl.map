@@ -1,0 +1,5 @@
+<map id="src/ASM/ASMs1DC1.h" name="src/ASM/ASMs1DC1.h">
+<area shape="rect" id="node1" title="Driver for assembly of C1&#45;continuous structured 1D spline FE models." alt="" coords="81,5,242,32"/>
+<area shape="rect" id="node2" href="$ASM1D_8C.html" title="Abstract interface for 1D patches." alt="" coords="5,80,144,107"/>
+<area shape="rect" id="node3" href="$ASMs1DC1_8C.html" title="Driver for assembly of C1&#45;continuous structured 1D spline FE models." alt="" coords="168,80,331,107"/>
+</map>

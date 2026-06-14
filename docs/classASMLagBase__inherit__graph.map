@@ -1,0 +1,14 @@
+<map id="ASMLagBase" name="ASMLagBase">
+<area shape="rect" id="node1" title="Common base class for Lagrange FE models." alt="" coords="448,5,555,32"/>
+<area shape="rect" id="node2" href="$classASMs1DLag.html" title="Driver for assembly of 1D Lagrange FE models." alt="" coords="137,80,236,107"/>
+<area shape="rect" id="node5" href="$classASMs2DLag.html" title="Driver for assembly of structured 2D Lagrange FE models." alt="" coords="452,80,551,107"/>
+<area shape="rect" id="node10" href="$classASMs3DLag.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="780,80,879,107"/>
+<area shape="rect" id="node3" href="$classASMs1DSpec.html" title="Driver for assembly of structured 1D Spectral FE models." alt="" coords="5,155,112,181"/>
+<area shape="rect" id="node4" href="$classASMu1DLag.html" title="Driver for assembly of unstructured 1D Lagrange FE models." alt="" coords="137,155,237,181"/>
+<area shape="rect" id="node6" href="$classASMs2DSpec.html" title="Driver for assembly of structured 2D Spectral FE models." alt="" coords="261,155,368,181"/>
+<area shape="rect" id="node7" href="$classASMs2DTri.html" title="Driver for assembly of structured 2D triangle&#45;based FE models." alt="" coords="392,155,483,181"/>
+<area shape="rect" id="node8" href="$classASMs2DmxLag.html" title="Driver for assembly of structured 2D Lagrange mixed FE models." alt="" coords="507,155,627,181"/>
+<area shape="rect" id="node9" href="$classASMu2DLag.html" title="Driver for assembly of unstructured 2D Lagrange FE models." alt="" coords="651,155,751,181"/>
+<area shape="rect" id="node11" href="$classASMs3DSpec.html" title="Driver for assembly of structured 3D Spectral FE models." alt="" coords="776,155,883,181"/>
+<area shape="rect" id="node12" href="$classASMs3DmxLag.html" title="Driver for assembly of structured 3D Lagrange mixed FE models." alt="" coords="907,155,1027,181"/>
+</map>

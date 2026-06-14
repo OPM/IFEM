@@ -1,0 +1,6 @@
+<map id="HDF5Reader" name="HDF5Reader">
+<area shape="rect" id="node1" title="Read data from a HDF5 file." alt="" coords="23,261,127,288"/>
+<area shape="rect" id="node2" href="$classHDF5Base.html" title="Base class for interacting with HDF5 files." alt="" coords="29,185,120,212"/>
+<area shape="rect" id="node3" title=" " alt="" coords="31,96,118,123"/>
+<area shape="rect" id="node4" title=" " alt="" coords="5,5,144,47"/>
+</map>

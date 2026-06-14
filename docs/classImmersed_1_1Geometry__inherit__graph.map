@@ -1,0 +1,7 @@
+<map id="Immersed::Geometry" name="Immersed::Geometry">
+<area shape="rect" id="node1" title="Interface class representing a geometric object." alt="" coords="81,5,242,32"/>
+<area shape="rect" id="node2" href="$classGeoFunc2D.html" title="Class describing the immersed boundary as a scalar function." alt="" coords="5,80,101,107"/>
+<area shape="rect" id="node3" href="$classHole2D.html" title="Class representing the perforated plate benchmark." alt="" coords="126,80,197,107"/>
+<area shape="rect" id="node5" href="$classPerforatedPlate2D.html" title="Class representing a plate perforated by multiple holes." alt="" coords="221,80,363,107"/>
+<area shape="rect" id="node4" href="$classOval2D.html" title="Class representing a plate perforated by an oval hole." alt="" coords="126,155,197,181"/>
+</map>

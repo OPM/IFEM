@@ -1,0 +1,34 @@
+<map id="src/ASM/ASMu2DLag.h" name="src/ASM/ASMu2DLag.h">
+<area shape="rect" id="node1" title="Assembly of unstructured 2D Lagrange FE models." alt="" coords="690,5,858,32"/>
+<area shape="rect" id="node2" href="$ASMs2DLag_8h.html" title="Driver for assembly of structured 2D Lagrange FE models." alt="" coords="609,80,720,107"/>
+<area shape="rect" id="node32" href="$ASMutils_8h.html" title="Various utilities for assembly scope." alt="" coords="930,304,1021,331"/>
+<area shape="rect" id="node3" href="$ASMs2D_8h.html" title="Driver for assembly of structured 2D spline FE models." alt="" coords="621,155,709,181"/>
+<area shape="rect" id="node30" href="$ASMLagBase_8h.html" title="Common base class for Lagrange FE models." alt="" coords="5,304,124,331"/>
+<area shape="rect" id="node4" href="$ASMstruct_8h.html" title="Base class for structured spline&#45;based FE assembly drivers." alt="" coords="524,229,624,256"/>
+<area shape="rect" id="node23" href="$ThreadGroups_8h.html" title="Threading group partitioning." alt="" coords="771,304,897,331"/>
+<area shape="rect" id="node26" href="$ASM2D_8h.html" title="Abstract interface for 2D patches." alt="" coords="661,304,743,331"/>
+<area shape="rect" id="node27" href="$BasisFunctionCache_8h.html" title="Basis function cache." alt="" coords="331,229,495,256"/>
+<area shape="rect" id="node29" href="$Interface_8h.html" title="Representation of domain interfaces." alt="" coords="703,229,795,256"/>
+<area shape="rect" id="node5" href="$ASMbase_8h.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="476,304,571,331"/>
+<area shape="rect" id="node25" title=" " alt="" coords="374,304,451,331"/>
+<area shape="rect" id="node6" href="$ASMenums_8h.html" title="Various enums for assembly scope." alt="" coords="553,379,659,405"/>
+<area shape="rect" id="node7" href="$MatVec_8h.html" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="107,379,190,405"/>
+<area shape="rect" id="node18" href="$MPCLess_8h.html" title="Comparison of two MPC objects in a std::set&lt;MPC*,MPCLess&gt; object." alt="" coords="436,379,528,405"/>
+<area shape="rect" id="node19" title=" " alt="" coords="294,379,345,405"/>
+<area shape="rect" id="node20" title=" " alt="" coords="369,379,411,405"/>
+<area shape="rect" id="node21" title=" " alt="" coords="214,379,270,405"/>
+<area shape="rect" id="node22" title=" " alt="" coords="683,379,742,405"/>
+<area shape="rect" id="node8" href="$matrixnd_8h.html" title="Simple template classes for dense multi&#45;dimensional matrices." alt="" coords="281,453,374,480"/>
+<area shape="rect" id="node9" href="$matrix_8h.html" title="Simple template classes for dense rectangular matrices and vectors." alt="" coords="445,528,522,555"/>
+<area shape="rect" id="node10" title=" " alt="" coords="824,603,887,629"/>
+<area shape="rect" id="node11" title=" " alt="" coords="719,603,799,629"/>
+<area shape="rect" id="node12" title=" " alt="" coords="250,603,335,629"/>
+<area shape="rect" id="node13" title=" " alt="" coords="359,603,426,629"/>
+<area shape="rect" id="node14" title=" " alt="" coords="451,603,516,629"/>
+<area shape="rect" id="node15" title=" " alt="" coords="632,603,695,629"/>
+<area shape="rect" id="node16" href="$BLAS_8h.html" title="BLAS support for various platforms." alt="" coords="540,603,608,629"/>
+<area shape="rect" id="node17" href="$print__tol_8h.html" title="Global parameters for controlling the print of vectors and matrices." alt="" coords="138,603,226,629"/>
+<area shape="rect" id="node24" title=" " alt="" coords="817,379,888,405"/>
+<area shape="rect" id="node28" href="$BasisFunctionVals_8h.html" title="Basis function values container." alt="" coords="148,304,299,331"/>
+<area shape="rect" id="node31" href="$Vec3_8h.html" title="Representation of a point in 3D space with some basic operations." alt="" coords="643,528,708,555"/>
+</map>

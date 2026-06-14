@@ -1,0 +1,7 @@
+<map id="DenseMatrix" name="DenseMatrix">
+<area shape="rect" id="node1" title="Class for representing a dense system matrix." alt="" coords="111,184,217,211"/>
+<area shape="rect" id="node2" href="$classSystemMatrix.html" title="Base class for representing a system matrix on different formats." alt="" coords="30,95,143,121"/>
+<area shape="rect" id="node3" title=" " alt="" coords="5,5,155,32"/>
+<area shape="rect" id="node4" href="$classutl_1_1matrix.html" title=" " alt="" coords="179,95,328,121"/>
+<area shape="rect" id="node5" href="$classutl_1_1matrixBase.html" title="Common base class for multi&#45;dimensional (2D and 3D) matrices." alt="" coords="179,5,339,32"/>
+</map>

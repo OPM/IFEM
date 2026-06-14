@@ -1,0 +1,41 @@
+<map id="SAMpatchPETSc" name="SAMpatchPETSc">
+<area shape="rect" id="node1" title="This is a sub&#45;class of SAMpatch with support for parallel processing." alt="" coords="2411,331,2537,357"/>
+<area shape="rect" id="node2" href="$classSAMpatch.html" title="This is a sub&#45;class of SAM with added functionality for spline models." alt="" coords="1626,457,1714,484"/>
+<area shape="rect" id="node32" href="$classDomainDecomposition.html" title="Class containing domain decomposition related partitioning." alt="" coords="1975,299,2145,325"/>
+<area shape="rect" id="node3" href="$classSAM.html" title="This class contains data and functions for the assembly of FE matrices." alt="" coords="955,727,1007,753"/>
+<area shape="rect" id="node4" title=" " alt="" coords="429,908,578,935"/>
+<area shape="rect" id="node6" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="788,515,871,541"/>
+<area shape="rect" id="node5" title=" " alt="" coords="1040,469,1232,496"/>
+<area shape="rect" id="node7" title=" " alt="" coords="413,451,594,477"/>
+<area shape="rect" id="node8" title=" " alt="" coords="161,451,283,477"/>
+<area shape="rect" id="node9" title=" " alt="" coords="5,476,44,503"/>
+<area shape="rect" id="node12" title=" " alt="" coords="157,501,287,528"/>
+<area shape="rect" id="node10" title=" " alt="" coords="428,299,579,325"/>
+<area shape="rect" id="node36" href="$structDomainDecomposition_1_1BlockInfo.html" title="Struct with information per matrix block." alt="" coords="744,154,915,195"/>
+<area shape="rect" id="node11" title=" " alt="" coords="423,501,584,528"/>
+<area shape="rect" id="node13" title=" " alt="" coords="434,349,573,376"/>
+<area shape="rect" id="node14" title=" " alt="" coords="422,842,585,883"/>
+<area shape="rect" id="node15" href="$classMPC.html" title="A class representing a general multi&#45;point constraint equation." alt="" coords="197,960,247,987"/>
+<area shape="rect" id="node17" href="$structMPC_1_1DOF.html" title="A struct representing one term in a multi&#45;point constraint equation." alt="" coords="460,1021,547,1048"/>
+<area shape="rect" id="node22" title=" " alt="" coords="400,791,607,817"/>
+<area shape="rect" id="node16" title=" " alt="" coords="736,979,923,1005"/>
+<area shape="rect" id="node18" title=" " alt="" coords="434,400,573,427"/>
+<area shape="rect" id="node19" href="$structASMbase_1_1BC.html" title="Struct for boundary condition codes." alt="" coords="168,400,276,427"/>
+<area shape="rect" id="node20" href="$classutl_1_1Function.html" title="Base class for unary functions of arbitrary result and argument type." alt="" coords="432,553,575,594"/>
+<area shape="rect" id="node21" title=" " alt="" coords="434,121,573,148"/>
+<area shape="rect" id="node23" title=" " alt="" coords="412,619,595,645"/>
+<area shape="rect" id="node24" href="$classProcessAdm.html" title="Class for administration of MPI processes in IFEM library." alt="" coords="2227,331,2329,357"/>
+<area shape="rect" id="node25" href="$classutl_1_1LogStream.html" title="Logging stream class." alt="" coords="2001,635,2119,661"/>
+<area shape="rect" id="node26" title=" " alt="" coords="1581,627,1759,669"/>
+<area shape="rect" id="node27" title=" " alt="" coords="1059,627,1213,669"/>
+<area shape="rect" id="node28" title=" " alt="" coords="1618,696,1722,723"/>
+<area shape="rect" id="node29" title=" " alt="" coords="1063,769,1209,810"/>
+<area shape="rect" id="node30" title=" " alt="" coords="744,1057,915,1084"/>
+<area shape="rect" id="node31" title=" " alt="" coords="450,1072,557,1099"/>
+<area shape="rect" id="node33" title=" " alt="" coords="1627,243,1713,269"/>
+<area shape="rect" id="node34" title=" " alt="" coords="1067,231,1205,273"/>
+<area shape="rect" id="node35" title=" " alt="" coords="1256,166,1511,207"/>
+<area shape="rect" id="node37" title=" " alt="" coords="445,56,562,83"/>
+<area shape="rect" id="node38" title=" " alt="" coords="1535,351,1805,393"/>
+<area shape="rect" id="node39" href="$structASM_1_1Interface.html" title="Struct for representing a domain interface." alt="" coords="1077,360,1195,387"/>
+</map>

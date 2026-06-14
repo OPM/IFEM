@@ -1,0 +1,5 @@
+<map id="ASMs2D::InterfaceChecker" name="ASMs2D::InterfaceChecker">
+<area shape="rect" id="node1" title="Base class that checks if an element has interface contributions." alt="" coords="5,80,200,107"/>
+<area shape="rect" id="node3" href="$classASMs2DIB_1_1Intersected.html" title="Class that checks if an element has interface contributions." alt="" coords="17,155,188,181"/>
+<area shape="rect" id="node2" href="$classASM_1_1InterfaceChecker.html" title="Base class to check for internal boundary integrand contributions." alt="" coords="18,5,187,32"/>
+</map>

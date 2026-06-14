@@ -1,0 +1,13 @@
+<map id="src/ASM/ASMs3DLag.h" name="src/ASM/ASMs3DLag.h">
+<area shape="rect" id="node1" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="587,5,754,32"/>
+<area shape="rect" id="node2" href="$ASMs3DLag_8C.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="5,80,173,107"/>
+<area shape="rect" id="node3" href="$ASMs3DmxLag_8h.html" title="Driver for assembly of structured 3D Lagrange mixed FE models." alt="" coords="198,80,386,107"/>
+<area shape="rect" id="node6" href="$ASMs3DSpec_8h.html" title="Driver for assembly of structured 3D Spectral FE models." alt="" coords="410,80,585,107"/>
+<area shape="rect" id="node8" href="$Field_8C.html" title="Base class for scalar fields." alt="" coords="609,80,732,107"/>
+<area shape="rect" id="node9" href="$Fields_8C.html" title="Base class for vector fields." alt="" coords="757,80,886,107"/>
+<area shape="rect" id="node10" href="$LagrangeField3D_8C.html" title="Class for Lagrange&#45;based finite element scalar field in 3D." alt="" coords="911,80,1111,107"/>
+<area shape="rect" id="node11" href="$LagrangeFields3D_8C.html" title="Class for Lagrange&#45;based finite element vector fields in 3D." alt="" coords="1135,80,1342,107"/>
+<area shape="rect" id="node4" href="$ASM3D_8C.html" title="Abstract interface for 3D patches." alt="" coords="328,155,467,181"/>
+<area shape="rect" id="node5" href="$ASMs3DmxLag_8C.html" title="Driver for assembly of structured 3D Lagrange mixed FE models." alt="" coords="115,155,304,181"/>
+<area shape="rect" id="node7" href="$ASMs3DSpec_8C.html" title="Driver for assembly of structured 3D Spectral FE models." alt="" coords="491,155,667,181"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="src/LinAlg/DenseMatrix.h" name="src/LinAlg/DenseMatrix.h">
+<area shape="rect" id="node1" title="Dense system matrix representation." alt="" coords="828,5,1012,32"/>
+<area shape="rect" id="node2" href="$ASMs2Drecovery_8C.html" title="Recovery of secondary solutions for structured 2D spline FE models." alt="" coords="5,80,205,107"/>
+<area shape="rect" id="node3" href="$SplineInterpolator_8C.html" title="Implementation of interpolation/projection schemes for B&#45;splines." alt="" coords="230,80,437,107"/>
+<area shape="rect" id="node4" href="$ASMu2Drecovery_8C.html" title="Recovery techniques for unstructured LR B&#45;splines." alt="" coords="461,80,683,107"/>
+<area shape="rect" id="node5" href="$ASMu3Drecovery_8C.html" title="Recovery techniques for unstructured LR B&#45;splines." alt="" coords="707,80,928,107"/>
+<area shape="rect" id="node6" href="$EigSolver_8C.html" title="Interface to LAPack and ARPack eigenvalue solvers." alt="" coords="953,80,1095,107"/>
+<area shape="rect" id="node7" href="$DenseMatrix_8C.html" title="Dense system matrix representation." alt="" coords="1119,80,1305,107"/>
+<area shape="rect" id="node8" href="$SystemMatrix_8C.html" title="General representation of the system matrix on different forms." alt="" coords="1329,80,1522,107"/>
+<area shape="rect" id="node9" href="$Legendre_8C.html" title="Various utility methods for Spectral elements." alt="" coords="1547,80,1709,107"/>
+</map>

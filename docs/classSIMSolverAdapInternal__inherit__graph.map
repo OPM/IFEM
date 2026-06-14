@@ -1,0 +1,6 @@
+<map id="SIMSolverAdapInternal&lt; T1 &gt;" name="SIMSolverAdapInternal&lt; T1 &gt;">
+<area shape="rect" id="node1" title="Template class for adaptive simulator drivers which handle adaptation internally." alt="" coords="5,229,176,271"/>
+<area shape="rect" id="node2" href="$classSIMSolverStat.html" title="Template class for stationary simulator drivers." alt="" coords="11,155,170,181"/>
+<area shape="rect" id="node3" href="$classSIMadmin.html" title="Administration base class for FEM simulators." alt="" coords="47,80,134,107"/>
+<area shape="rect" id="node4" href="$classXMLInputBase.html" title="Base class for XML based input file parsing." alt="" coords="33,5,148,32"/>
+</map>

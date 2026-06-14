@@ -1,0 +1,14 @@
+<map id="src/ASM/GlbL2projector.h" name="src/ASM/GlbL2projector.h">
+<area shape="rect" id="node1" title="General integrand for L2&#45;projection of secondary solutions." alt="" coords="891,5,1075,32"/>
+<area shape="rect" id="node2" href="$SIMbase_8C.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="5,80,147,107"/>
+<area shape="rect" id="node3" href="$SIMinput_8C.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="171,80,314,107"/>
+<area shape="rect" id="node4" href="$SIMoptions_8C.html" title="Class for encapsulation of general simulation options." alt="" coords="338,80,497,107"/>
+<area shape="rect" id="node5" href="$ASMs1D_8C.html" title="Driver for assembly of structured 1D spline FE models." alt="" coords="521,80,666,107"/>
+<area shape="rect" id="node6" href="$ASMs2DLag_8C.html" title="Driver for assembly of structured 2D Lagrange FE models." alt="" coords="691,80,859,107"/>
+<area shape="rect" id="node7" href="$ASMs2Drecovery_8C.html" title="Recovery of secondary solutions for structured 2D spline FE models." alt="" coords="883,80,1083,107"/>
+<area shape="rect" id="node8" href="$ASMs3DLag_8C.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="1107,80,1275,107"/>
+<area shape="rect" id="node9" href="$ASMs3Drecovery_8C.html" title="Recovery of secondary solutions for structured 3D spline FE models." alt="" coords="1299,80,1499,107"/>
+<area shape="rect" id="node10" href="$GlbL2projector_8C.html" title="General integrand for L2&#45;projection of secondary solutions." alt="" coords="1523,80,1709,107"/>
+<area shape="rect" id="node11" href="$ASMu2Drecovery_8C.html" title="Recovery techniques for unstructured LR B&#45;splines." alt="" coords="1733,80,1955,107"/>
+<area shape="rect" id="node12" href="$ASMu3Drecovery_8C.html" title="Recovery techniques for unstructured LR B&#45;splines." alt="" coords="1979,80,2200,107"/>
+</map>

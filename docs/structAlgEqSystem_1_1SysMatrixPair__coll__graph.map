@@ -1,0 +1,6 @@
+<map id="AlgEqSystem::SysMatrixPair" name="AlgEqSystem::SysMatrixPair">
+<area shape="rect" id="node1" title="Struct defining a coefficient matrix and an associated RHS&#45;vector." alt="" coords="45,184,251,211"/>
+<area shape="rect" id="node2" href="$classSystemMatrix.html" title="Base class for representing a system matrix on different formats." alt="" coords="23,95,137,121"/>
+<area shape="rect" id="node3" title=" " alt="" coords="5,5,155,32"/>
+<area shape="rect" id="node4" href="$classSystemVector.html" title="Base class for representing a system vector on different formats." alt="" coords="161,95,273,121"/>
+</map>

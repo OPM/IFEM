@@ -1,0 +1,6 @@
+<map id="src/ASM/IBGeometries.h" name="src/ASM/IBGeometries.h">
+<area shape="rect" id="node1" title="Physical geometries for immersed boundary simulations." alt="" coords="189,5,367,32"/>
+<area shape="rect" id="node2" href="$ASMs2DIB_8C.html" title="Assembly of structured 2D spline FE models with immersed boundaries." alt="" coords="5,80,164,107"/>
+<area shape="rect" id="node3" href="$IBGeometries_8C.html" title="Physical geometries for immersed boundary simulations." alt="" coords="188,80,368,107"/>
+<area shape="rect" id="node4" href="$ASMu2DIB_8C.html" title="Assembly of unstructured 2D spline FE models with immersed boundary." alt="" coords="393,80,571,107"/>
+</map>

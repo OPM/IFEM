@@ -1,0 +1,9 @@
+<map id="src/LinAlg/PETScSolParams.h" name="src/LinAlg/PETScSolParams.h">
+<area shape="rect" id="node1" title="Linear solver parameters for PETSc matrices." alt="" coords="245,5,453,32"/>
+<area shape="rect" id="node2" href="$PETScMatrix_8h.html" title="Representation of the system matrix in PETSc format with interface to PETSc routines for assembling a..." alt="" coords="148,80,331,107"/>
+<area shape="rect" id="node7" href="$PETScSolParams_8C.html" title="Linear solver parameters for PETSc." alt="" coords="355,80,564,107"/>
+<area shape="rect" id="node3" href="$SAMpatchPETSc_8C.html" title="Evaluation of global norms for distributed models." alt="" coords="5,155,201,181"/>
+<area shape="rect" id="node4" href="$PETScMatrix_8C.html" title="Representation of the system matrix in PETSc format." alt="" coords="148,229,331,256"/>
+<area shape="rect" id="node5" href="$PETScSchurPC_8h.html" title="Schur&#45;complement preconditioner using PETSc." alt="" coords="277,155,471,181"/>
+<area shape="rect" id="node6" href="$PETScSchurPC_8C.html" title="Schur&#45;complement preconditioner using PETSc." alt="" coords="355,229,550,256"/>
+</map>

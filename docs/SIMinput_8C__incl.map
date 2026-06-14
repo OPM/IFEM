@@ -1,0 +1,64 @@
+<map id="src/SIM/SIMinput.C" name="src/SIM/SIMinput.C">
+<area shape="rect" id="node1" title="Sub&#45;class with functionality for model input and setup." alt="" coords="2089,5,2231,32"/>
+<area shape="rect" id="node2" href="$SIMinput_8h.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="1283,80,1373,107"/>
+<area shape="rect" id="node7" href="$SIMoptions_8h.html" title="Class for encapsulation of general simulation options." alt="" coords="1803,304,1909,331"/>
+<area shape="rect" id="node36" href="$ModelGenerator_8h.html" title="Base class for model generators for NURBS&#45;based FEM simulators." alt="" coords="2416,80,2555,107"/>
+<area shape="rect" id="node37" href="$ASMbase_8h.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="2611,155,2706,181"/>
+<area shape="rect" id="node40" href="$ASMunstruct_8h.html" title="Abstract interface for unstructured FE assembly drivers." alt="" coords="1593,155,1709,181"/>
+<area shape="rect" id="node41" href="$IntegrandBase_8h.html" title="Base classes representing FEM integrands." alt="" coords="2153,155,2281,181"/>
+<area shape="rect" id="node44" href="$GlbL2projector_8h.html" title="General integrand for L2&#45;projection of secondary solutions." alt="" coords="1996,155,2124,181"/>
+<area shape="rect" id="node45" href="$LinSolParams_8h.html" title="Linear solver parameters for PETSc matrices." alt="" coords="2366,304,2487,331"/>
+<area shape="rect" id="node46" href="$DualField_8h.html" title="Representation of dual fields for goal&#45;oriented error estimation." alt="" coords="531,155,626,181"/>
+<area shape="rect" id="node50" href="$Functions_8h.html" title="Specific function implementations." alt="" coords="809,80,905,107"/>
+<area shape="rect" id="node51" href="$FunctionSum_8h.html" title="Unary spatial function as a sum of other spatial functions." alt="" coords="457,80,575,107"/>
+<area shape="rect" id="node52" href="$Utilities_8h.html" title="Various utility methods." alt="" coords="2715,304,2800,331"/>
+<area shape="rect" id="node53" href="$Vec3Oper_8h.html" title="Global algebraic operators involving Vec3 objects." alt="" coords="1137,80,1231,107"/>
+<area shape="rect" id="node54" href="$HDF5Reader_8h.html" title="Read data from HDF5 file." alt="" coords="1733,155,1848,181"/>
+<area shape="rect" id="node56" href="$HDF5Restart_8h.html" title="Output of restart data to HDF5." alt="" coords="2365,155,2483,181"/>
+<area shape="rect" id="node57" href="$IFEM_8h.html" title="Initialization of the IFEM library." alt="" coords="267,229,333,256"/>
+<area shape="rect" id="node59" title=" " alt="" coords="2681,80,2773,107"/>
+<area shape="rect" id="node60" title=" " alt="" coords="2797,80,2870,107"/>
+<area shape="rect" id="node61" title=" " alt="" coords="2895,80,2969,107"/>
+<area shape="rect" id="node62" title=" " alt="" coords="2993,80,3068,107"/>
+<area shape="rect" id="node3" href="$SIMbase_8h.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="1182,155,1271,181"/>
+<area shape="rect" id="node14" href="$Interface_8h.html" title="Representation of domain interfaces." alt="" coords="1166,453,1258,480"/>
+<area shape="rect" id="node33" href="$TopologySet_8h.html" title="Representation of topological entities." alt="" coords="1417,379,1530,405"/>
+<area shape="rect" id="node35" href="$Vec3_8h.html" title="Representation of a point in 3D space with some basic operations." alt="" coords="418,304,483,331"/>
+<area shape="rect" id="node4" href="$SIMadmin_8h.html" title="Administration base class for FEM simulators." alt="" coords="947,229,1045,256"/>
+<area shape="rect" id="node15" title=" " alt="" coords="1357,453,1400,480"/>
+<area shape="rect" id="node21" href="$SIMdependency_8h.html" title="Administration of simulators with dependencies to other simulators." alt="" coords="1606,379,1741,405"/>
+<area shape="rect" id="node22" href="$TimeDomain_8h.html" title="Time domain representation for time&#45;dependent and nonlinear solvers." alt="" coords="1070,229,1189,256"/>
+<area shape="rect" id="node23" href="$Property_8h.html" title="Representation of a distributed physical property." alt="" coords="641,379,727,405"/>
+<area shape="rect" id="node24" href="$MatVec_8h.html" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="1757,229,1840,256"/>
+<area shape="rect" id="node5" href="$XMLInputBase_8h.html" title="Base class for XML input parsing functionality." alt="" coords="905,304,1031,331"/>
+<area shape="rect" id="node10" title=" " alt="" coords="1851,453,1909,480"/>
+<area shape="rect" id="node12" href="$ProcessAdm_8h.html" title="Class for administration MPI processes used by the IFEM library, in particular parallel linear algebr..." alt="" coords="1056,304,1171,331"/>
+<area shape="rect" id="node18" title=" " alt="" coords="205,453,285,480"/>
+<area shape="rect" id="node6" title=" " alt="" coords="987,453,1050,480"/>
+<area shape="rect" id="node8" href="$ASMenums_8h.html" title="Various enums for assembly scope." alt="" coords="2213,379,2320,405"/>
+<area shape="rect" id="node9" href="$LinAlgenums_8h.html" title="Various enums for linear algebra scope." alt="" coords="2019,379,2138,405"/>
+<area shape="rect" id="node11" title=" " alt="" coords="2636,453,2687,480"/>
+<area shape="rect" id="node13" href="$DomainDecomposition_8h.html" title="Domain decomposition related partitioning for FE models." alt="" coords="1057,379,1239,405"/>
+<area shape="rect" id="node17" href="$LogStream_8h.html" title="Log stream class." alt="" coords="109,379,213,405"/>
+<area shape="rect" id="node16" title=" " alt="" coords="893,453,963,480"/>
+<area shape="rect" id="node19" title=" " alt="" coords="5,453,80,480"/>
+<area shape="rect" id="node20" title=" " alt="" coords="104,453,181,480"/>
+<area shape="rect" id="node25" href="$matrixnd_8h.html" title="Simple template classes for dense multi&#45;dimensional matrices." alt="" coords="559,304,652,331"/>
+<area shape="rect" id="node26" href="$matrix_8h.html" title="Simple template classes for dense rectangular matrices and vectors." alt="" coords="488,379,565,405"/>
+<area shape="rect" id="node27" title=" " alt="" coords="783,453,868,480"/>
+<area shape="rect" id="node28" title=" " alt="" coords="397,453,464,480"/>
+<area shape="rect" id="node29" title=" " alt="" coords="489,453,554,480"/>
+<area shape="rect" id="node30" title=" " alt="" coords="310,453,373,480"/>
+<area shape="rect" id="node31" href="$BLAS_8h.html" title="BLAS support for various platforms." alt="" coords="578,453,646,480"/>
+<area shape="rect" id="node32" href="$print__tol_8h.html" title="Global parameters for controlling the print of vectors and matrices." alt="" coords="671,453,759,480"/>
+<area shape="rect" id="node34" title=" " alt="" coords="1441,453,1506,480"/>
+<area shape="rect" id="node38" href="$MPCLess_8h.html" title="Comparison of two MPC objects in a std::set&lt;MPC*,MPCLess&gt; object." alt="" coords="2705,229,2797,256"/>
+<area shape="rect" id="node39" title=" " alt="" coords="2821,229,2877,256"/>
+<area shape="rect" id="node42" href="$Integrand_8h.html" title="Abstract interface for classes representing FEM integrands." alt="" coords="2093,229,2189,256"/>
+<area shape="rect" id="node43" href="$SIMenums_8h.html" title="Various enums for simulation scope." alt="" coords="2035,304,2138,331"/>
+<area shape="rect" id="node47" href="$Function_8h.html" title="General functions with arbitrary argument and value type." alt="" coords="406,229,495,256"/>
+<area shape="rect" id="node49" href="$Point_8h.html" title="Representation of points in 3D space with coordinates and parameters." alt="" coords="532,229,599,256"/>
+<area shape="rect" id="node48" href="$Tensor_8h.html" title="Representation of second&#45;order tensors with some basic operations." alt="" coords="339,379,413,405"/>
+<area shape="rect" id="node55" href="$HDF5Base_8h.html" title="Base class for interacting with HDF5 files." alt="" coords="1915,229,2018,256"/>
+<area shape="rect" id="node58" href="$ScopedLogger_8h.html" title="Scoped logger." alt="" coords="37,304,161,331"/>
+</map>

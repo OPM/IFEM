@@ -1,0 +1,34 @@
+<map id="src/ASM/Fields.h" name="src/ASM/Fields.h">
+<area shape="rect" id="node1" title="Base class for vector fields." alt="" coords="1541,5,1669,32"/>
+<area shape="rect" id="node2" href="$SIMdependency_8C.html" title="Administration of simulators with dependencies to other simulators." alt="" coords="81,87,267,114"/>
+<area shape="rect" id="node3" href="$IntegrandBase_8C.html" title="Base classes representing FEM integrands." alt="" coords="292,87,477,114"/>
+<area shape="rect" id="node4" href="$LagrangeFields2D_8h.html" title="Class for Lagrange&#45;based finite element vector fields in 2D." alt="" coords="1617,87,1824,114"/>
+<area shape="rect" id="node7" href="$LagrangeFields3D_8h.html" title="Class for Lagrange&#45;based finite element vector fields in 3D." alt="" coords="501,87,708,114"/>
+<area shape="rect" id="node9" href="$SplineFields1D_8h.html" title="Class for spline&#45;based finite element vector fields in 1D." alt="" coords="1850,87,2037,114"/>
+<area shape="rect" id="node12" href="$SplineFields2D_8h.html" title="Class for spline&#45;based finite element vector fields in 2D." alt="" coords="733,87,919,114"/>
+<area shape="rect" id="node15" href="$SplineFields2Dmx_8h.html" title="Class for mixed spline&#45;based finite element vector fields in 2D." alt="" coords="944,87,1151,114"/>
+<area shape="rect" id="node17" href="$SplineFields3D_8h.html" title="Class for spline&#45;based finite element vector fields in 3D." alt="" coords="1175,87,1362,114"/>
+<area shape="rect" id="node20" href="$SplineFields3Dmx_8h.html" title="Class for mixed spline&#45;based finite element vector fields in 3D." alt="" coords="1387,87,1593,114"/>
+<area shape="rect" id="node22" href="$LRSplineFields2D_8h.html" title="Class for LR spline&#45;based finite element vector fields in 2D." alt="" coords="2231,87,2453,114"/>
+<area shape="rect" id="node25" href="$LRSplineFields2Dmx_8h.html" title="Class for mixed LR spline&#45;based finite element vector fields in 2D." alt="" coords="2573,80,2773,121"/>
+<area shape="rect" id="node27" href="$LRSplineFields3D_8h.html" title="Class for LR spline&#45;based finite element vector fields in 3D." alt="" coords="2844,87,3067,114"/>
+<area shape="rect" id="node30" href="$LRSplineFields3Dmx_8h_source.html" title=" " alt="" coords="3090,80,3290,121"/>
+<area shape="rect" id="node32" href="$FieldFunctions_8C.html" title="Field function implementations." alt="" coords="3314,87,3509,114"/>
+<area shape="rect" id="node5" href="$Fields_8C.html" title="Base class for vector fields." alt="" coords="851,177,980,203"/>
+<area shape="rect" id="node6" href="$LagrangeFields2D_8C.html" title="Class for Lagrange&#45;based finite element vector fields in 2D." alt="" coords="1619,177,1825,203"/>
+<area shape="rect" id="node8" href="$LagrangeFields3D_8C.html" title="Class for Lagrange&#45;based finite element vector fields in 3D." alt="" coords="5,177,212,203"/>
+<area shape="rect" id="node10" href="$ASMs1D_8C.html" title="Driver for assembly of structured 1D spline FE models." alt="" coords="2061,177,2207,203"/>
+<area shape="rect" id="node11" href="$SplineFields1D_8C.html" title="Class for spline&#45;based finite element vector fields in 1D." alt="" coords="1850,177,2037,203"/>
+<area shape="rect" id="node13" href="$ASMs2D_8C.html" title="Driver for assembly of structured 2D spline FE models." alt="" coords="448,177,593,203"/>
+<area shape="rect" id="node14" href="$SplineFields2D_8C.html" title="Class for spline&#45;based finite element vector fields in 2D." alt="" coords="237,177,423,203"/>
+<area shape="rect" id="node16" href="$SplineFields2Dmx_8C.html" title="Class for mixed spline&#45;based finite element vector fields in 2D." alt="" coords="618,177,826,203"/>
+<area shape="rect" id="node18" href="$ASMs3D_8C.html" title="Driver for assembly of structured 3D spline FE models." alt="" coords="1216,177,1361,203"/>
+<area shape="rect" id="node19" href="$SplineFields3D_8C.html" title="Class for spline&#45;based finite element vector fields in 3D." alt="" coords="1005,177,1191,203"/>
+<area shape="rect" id="node21" href="$SplineFields3Dmx_8C.html" title="Class for mixed spline&#45;based finite element vector fields in 3D." alt="" coords="1386,177,1594,203"/>
+<area shape="rect" id="node23" href="$ASMu2D_8C.html" title="Driver for assembly of unstructured 2D spline FE models." alt="" coords="2477,177,2644,203"/>
+<area shape="rect" id="node24" href="$LRSplineFields2D_8C.html" title="Class for LR spline&#45;based finite element vector fields in 2D." alt="" coords="2231,177,2453,203"/>
+<area shape="rect" id="node26" href="$LRSplineFields2Dmx_8C.html" title="Class for mixed LR spline&#45;based finite element vector fields in 2D." alt="" coords="2669,169,2869,211"/>
+<area shape="rect" id="node28" href="$ASMu3D_8C.html" title="Driver for assembly of unstructured 3D spline FE models." alt="" coords="3139,177,3305,203"/>
+<area shape="rect" id="node29" href="$LRSplineFields3D_8C.html" title="Class for LR spline&#45;based finite element vector fields in 3D." alt="" coords="2892,177,3115,203"/>
+<area shape="rect" id="node31" href="$LRSplineFields3Dmx_8C.html" title="Class for LR spline&#45;based finite element mixed vector fields in 3D." alt="" coords="3330,169,3530,211"/>
+</map>

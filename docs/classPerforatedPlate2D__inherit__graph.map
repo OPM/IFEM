@@ -1,0 +1,4 @@
+<map id="PerforatedPlate2D" name="PerforatedPlate2D">
+<area shape="rect" id="node1" title="Class representing a plate perforated by multiple holes." alt="" coords="15,80,157,107"/>
+<area shape="rect" id="node2" href="$classImmersed_1_1Geometry.html" title="Interface class representing a geometric object." alt="" coords="5,5,167,32"/>
+</map>

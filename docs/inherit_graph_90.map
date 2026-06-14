@@ -1,0 +1,6 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classSAM.html" title="This class contains data and functions for the assembly of FE matrices." alt="" coords="5,31,57,57"/>
+<area shape="rect" id="node2" href="$classSAMmodal.html" title="A simple SAM class for diagonal systems." alt="" coords="105,5,199,32"/>
+<area shape="rect" id="node3" href="$classSAMpatch.html" title="This is a sub&#45;class of SAM with added functionality for spline models." alt="" coords="108,56,196,83"/>
+<area shape="rect" id="node4" href="$classSAMpatchPETSc.html" title="This is a sub&#45;class of SAMpatch with support for parallel processing." alt="" coords="247,56,373,83"/>
+</map>

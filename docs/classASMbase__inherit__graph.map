@@ -1,0 +1,31 @@
+<map id="ASMbase" name="ASMbase">
+<area shape="rect" id="node1" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="5,309,88,336"/>
+<area shape="rect" id="node2" href="$classASMLRSpline.html" title="Base class for LR B&#45;spline FE assembly drivers." alt="" coords="136,157,243,184"/>
+<area shape="rect" id="node9" href="$classASMstruct.html" title="Base class for structured spline&#45;based FE assembly drivers." alt="" coords="145,309,233,336"/>
+<area shape="rect" id="node29" href="$classASMsupel.html" title="Driver for assembly of general superelements." alt="" coords="146,360,233,387"/>
+<area shape="rect" id="node3" href="$classASMu2D.html" title="Driver for assembly of unstructured 2D spline FE models." alt="" coords="291,81,368,108"/>
+<area shape="rect" id="node7" href="$classASMu3D.html" title="Driver for assembly of unstructured 3D spline FE models." alt="" coords="291,157,368,184"/>
+<area shape="rect" id="node4" href="$classASMu2DC1.html" title="Driver for assembly of C1&#45;continuous 2D LR&#45;spline FE models." alt="" coords="418,5,513,32"/>
+<area shape="rect" id="node5" href="$classASMu2DIB.html" title="Assembly of unstructured 2D spline FE models with immersed boundaries." alt="" coords="420,56,511,83"/>
+<area shape="rect" id="node6" href="$classASMu2Dmx.html" title="Driver for assembly of unstructured 2D spline mixed FE models." alt="" coords="416,107,515,133"/>
+<area shape="rect" id="node8" href="$classASMu3Dmx.html" title="Driver for assembly of unstructured 3D spline mixed FE models." alt="" coords="416,157,515,184"/>
+<area shape="rect" id="node10" href="$classASMs1D.html" title="Driver for assembly of structured 1D spline FE models." alt="" coords="291,259,367,285"/>
+<area shape="rect" id="node15" href="$classASMs2D.html" title="Driver for assembly of structured 2D spline FE models." alt="" coords="291,360,367,387"/>
+<area shape="rect" id="node24" href="$classASMs3D.html" title="Driver for assembly of structured 3D spline FE models." alt="" coords="291,512,367,539"/>
+<area shape="rect" id="node11" href="$classASMs1DC1.html" title="Driver for assembly of C1&#45;continuous structured 1D spline FE models." alt="" coords="419,208,512,235"/>
+<area shape="rect" id="node12" href="$classASMs1DLag.html" title="Driver for assembly of 1D Lagrange FE models." alt="" coords="416,259,515,285"/>
+<area shape="rect" id="node13" href="$classASMs1DSpec.html" title="Driver for assembly of structured 1D Spectral FE models." alt="" coords="569,208,676,235"/>
+<area shape="rect" id="node14" href="$classASMu1DLag.html" title="Driver for assembly of unstructured 1D Lagrange FE models." alt="" coords="573,259,673,285"/>
+<area shape="rect" id="node16" href="$classASMs2DC1.html" title="Driver for assembly of C1&#45;continuous structured 2D spline FE models." alt="" coords="419,309,512,336"/>
+<area shape="rect" id="node17" href="$classASMs2DIB.html" title="Assembly of structured 2D spline FE models with immersed boundaries." alt="" coords="421,360,510,387"/>
+<area shape="rect" id="node18" href="$classASMs2DLag.html" title="Driver for assembly of structured 2D Lagrange FE models." alt="" coords="416,411,515,437"/>
+<area shape="rect" id="node23" href="$classASMs2Dmx.html" title="Driver for assembly of structured 2D spline mixed FE models." alt="" coords="417,461,514,488"/>
+<area shape="rect" id="node19" href="$classASMs2DSpec.html" title="Driver for assembly of structured 2D Spectral FE models." alt="" coords="569,309,676,336"/>
+<area shape="rect" id="node20" href="$classASMs2DTri.html" title="Driver for assembly of structured 2D triangle&#45;based FE models." alt="" coords="577,360,668,387"/>
+<area shape="rect" id="node21" href="$classASMs2DmxLag.html" title="Driver for assembly of structured 2D Lagrange mixed FE models." alt="" coords="563,411,683,437"/>
+<area shape="rect" id="node22" href="$classASMu2DLag.html" title="Driver for assembly of unstructured 2D Lagrange FE models." alt="" coords="573,461,673,488"/>
+<area shape="rect" id="node25" href="$classASMs3DLag.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="416,512,515,539"/>
+<area shape="rect" id="node28" href="$classASMs3Dmx.html" title="Driver for assembly of structured 3D spline mixed FE models." alt="" coords="417,563,514,589"/>
+<area shape="rect" id="node26" href="$classASMs3DSpec.html" title="Driver for assembly of structured 3D Spectral FE models." alt="" coords="569,512,676,539"/>
+<area shape="rect" id="node27" href="$classASMs3DmxLag.html" title="Driver for assembly of structured 3D Lagrange mixed FE models." alt="" coords="563,563,683,589"/>
+</map>

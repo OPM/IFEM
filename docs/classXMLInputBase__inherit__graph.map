@@ -1,0 +1,31 @@
+<map id="XMLInputBase" name="XMLInputBase">
+<area shape="rect" id="node1" title="Base class for XML based input file parsing." alt="" coords="5,266,120,293"/>
+<area shape="rect" id="node2" href="$classSIMadmin.html" title="Administration base class for FEM simulators." alt="" coords="178,241,265,267"/>
+<area shape="rect" id="node29" href="$classSIMargsBase.html" title="Base class for input file pre&#45;parsing in applications." alt="" coords="168,291,275,318"/>
+<area shape="rect" id="node3" href="$classAdaptiveSIM.html" title="Adaptive solution driver for linear static FEM simulators." alt="" coords="373,42,477,69"/>
+<area shape="rect" id="node5" href="$classMultiStepSIM.html" title="Base class for multi&#45;step solution drivers." alt="" coords="371,147,479,174"/>
+<area shape="rect" id="node13" href="$classSIMSemi3D.html" title="Driver class for plane&#45;decoupled 3D problems." alt="" coords="323,215,527,242"/>
+<area shape="rect" id="node14" href="$classSIMSolverStat.html" title="Template class for stationary simulator drivers." alt="" coords="345,266,504,293"/>
+<area shape="rect" id="node19" href="$classSIMbase.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="386,317,463,343"/>
+<area shape="rect" id="node28" href="$classSIMmultiCpl.html" title="Class for monolithic coupled simulators." alt="" coords="374,367,475,394"/>
+<area shape="rect" id="node4" href="$classAdaptiveISolver.html" title="Adaptive simulator driver using the ISolver interface." alt="" coords="580,5,740,47"/>
+<area shape="rect" id="node6" href="$classEigenModeSIM.html" title="Driver for computing a time history from a set of eigen mode shapes." alt="" coords="601,71,719,98"/>
+<area shape="rect" id="node7" href="$classNewmarkSIM.html" title="Newmark&#45;based solution driver for dynamic isogeometric FEM simulators." alt="" coords="605,122,715,149"/>
+<area shape="rect" id="node11" href="$classNonLinSIM.html" title="Nonlinear quasi&#45;static solution driver for isogeometric FEM simulators." alt="" coords="615,173,705,199"/>
+<area shape="rect" id="node8" href="$classGenAlphaSIM.html" title="Generalized&#45;alpha driver for dynamic isogeometric FEM simulators." alt="" coords="855,21,964,47"/>
+<area shape="rect" id="node9" href="$classHHTSIM.html" title="Newmark&#45;based solution driver for dynamic isogeometric FEM simulators." alt="" coords="872,71,947,98"/>
+<area shape="rect" id="node10" href="$classNewmarkNLSIM.html" title="Newmark&#45;based solution driver for dynamic isogeometric FEM simulators." alt="" coords="846,122,973,149"/>
+<area shape="rect" id="node12" href="$classTimeIntegration_1_1SIMImplicitLMM_1_1LMMNonLinSIM.html" title="Specialized nonlinear solver for implicit LMM methods." alt="" coords="793,173,1025,215"/>
+<area shape="rect" id="node15" href="$classSIMSolver.html" title="Template class for transient simulator drivers." alt="" coords="593,223,727,250"/>
+<area shape="rect" id="node17" href="$classSIMSolverAdapImpl.html" title="Template class for stationary adaptive simulator drivers." alt="" coords="580,275,740,316"/>
+<area shape="rect" id="node18" href="$classSIMSolverAdapInternal.html" title="Template class for adaptive simulator drivers which handle adaptation internally." alt="" coords="575,340,745,381"/>
+<area shape="rect" id="node16" href="$classSIMSolverTS.html" title="Template class for time&#45;slab adaptive simulator drivers." alt="" coords="835,239,984,266"/>
+<area shape="rect" id="node20" href="$classSIMinput.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="621,406,699,433"/>
+<area shape="rect" id="node21" href="$classSIMoutput.html" title="Sub&#45;class with additional functionality for result output." alt="" coords="865,406,953,433"/>
+<area shape="rect" id="node22" href="$classSIMgeneric.html" title="Generic SIM class with some added functionalities." alt="" coords="1073,406,1168,433"/>
+<area shape="rect" id="node23" href="$classSIMdummy.html" title=" " alt="" coords="1216,330,1415,357"/>
+<area shape="rect" id="node25" href="$classSIM1D.html" title="Driver class for 1D NURBS&#45;based FEM solver." alt="" coords="1283,381,1347,407"/>
+<area shape="rect" id="node26" href="$classSIM2D.html" title="Driver class for 2D NURBS&#45;based FEM solver." alt="" coords="1283,431,1347,458"/>
+<area shape="rect" id="node27" href="$classSIM3D.html" title="Driver class for 3D NURBS&#45;based FEM solver." alt="" coords="1283,482,1347,509"/>
+<area shape="rect" id="node24" href="$classSIMsupel.html" title="Solution driver for general superelement FEM analysis." alt="" coords="1463,330,1544,357"/>
+</map>

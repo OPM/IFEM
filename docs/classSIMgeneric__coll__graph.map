@@ -1,0 +1,102 @@
+<map id="SIMgeneric" name="SIMgeneric">
+<area shape="rect" id="node1" title="Generic SIM class with some added functionalities." alt="" coords="5228,1137,5323,1164"/>
+<area shape="rect" id="node2" href="$classSIMoutput.html" title="Sub&#45;class with additional functionality for result output." alt="" coords="5231,1061,5319,1088"/>
+<area shape="rect" id="node3" href="$classSIMinput.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="4843,972,4921,999"/>
+<area shape="rect" id="node4" href="$classSIMbase.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="3190,875,3267,902"/>
+<area shape="rect" id="node5" href="$classSIMadmin.html" title="Administration base class for FEM simulators." alt="" coords="3128,764,3215,791"/>
+<area shape="rect" id="node6" href="$classXMLInputBase.html" title="Base class for XML based input file parsing." alt="" coords="3181,638,3295,665"/>
+<area shape="rect" id="node7" href="$classSIMoptions.html" title="Class for encapsulation of general simulation options." alt="" coords="3263,371,3357,398"/>
+<area shape="rect" id="node8" title=" " alt="" coords="3407,109,3493,136"/>
+<area shape="rect" id="node10" title=" " alt="" coords="3139,229,3351,271"/>
+<area shape="rect" id="node18" href="$classDomainDecomposition.html" title="Class containing domain decomposition related partitioning." alt="" coords="2210,506,2381,533"/>
+<area shape="rect" id="node37" title=" " alt="" coords="2727,229,2962,271"/>
+<area shape="rect" id="node40" href="$structSIMdependency_1_1Dependency.html" title="Struct holding information about an inter&#45;SIM dependency." alt="" coords="2871,506,3085,533"/>
+<area shape="rect" id="node52" href="$structSIMbase_1_1DumpData.html" title="A struct with data for system matrix/vector dumps." alt="" coords="2549,237,2703,263"/>
+<area shape="rect" id="node55" title=" " alt="" coords="3835,229,3998,271"/>
+<area shape="rect" id="node59" href="$structLinSolParams_1_1BlockParams_1_1DirSmoother.html" title="Settings for a directional smoother." alt="" coords="4209,229,4411,271"/>
+<area shape="rect" id="node73" title=" " alt="" coords="3649,229,3811,271"/>
+<area shape="rect" id="node86" title=" " alt="" coords="4910,229,5073,271"/>
+<area shape="rect" id="node91" title=" " alt="" coords="46,229,209,271"/>
+<area shape="rect" id="node99" title=" " alt="" coords="5143,631,5306,672"/>
+<area shape="rect" id="node100" title=" " alt="" coords="5195,438,5361,465"/>
+<area shape="rect" id="node9" title=" " alt="" coords="3381,5,3519,47"/>
+<area shape="rect" id="node11" href="$classProcessAdm.html" title="Class for administration of MPI processes in IFEM library." alt="" coords="2060,638,2163,665"/>
+<area shape="rect" id="node76" href="$classAlgEqSystem.html" title="Class for storage of general algebraic system of equations." alt="" coords="1112,764,1220,791"/>
+<area shape="rect" id="node12" href="$classutl_1_1LogStream.html" title="Logging stream class." alt="" coords="1929,506,2046,533"/>
+<area shape="rect" id="node13" title=" " alt="" coords="1914,364,2093,405"/>
+<area shape="rect" id="node14" title=" " alt="" coords="2021,229,2175,271"/>
+<area shape="rect" id="node15" title=" " alt="" coords="1674,371,1778,398"/>
+<area shape="rect" id="node16" title=" " alt="" coords="1475,229,1620,271"/>
+<area shape="rect" id="node17" title=" " alt="" coords="1407,109,1578,136"/>
+<area shape="rect" id="node19" title=" " alt="" coords="1021,109,1172,136"/>
+<area shape="rect" id="node24" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="1318,371,1401,398"/>
+<area shape="rect" id="node32" href="$structDomainDecomposition_1_1BlockInfo.html" title="Struct with information per matrix block." alt="" coords="2250,229,2421,271"/>
+<area shape="rect" id="node20" href="$classSAMpatch.html" title="This is a sub&#45;class of SAM with added functionality for spline models." alt="" coords="1802,371,1890,398"/>
+<area shape="rect" id="node21" href="$classSAM.html" title="This class contains data and functions for the assembly of FE matrices." alt="" coords="377,237,429,263"/>
+<area shape="rect" id="node22" title=" " alt="" coords="458,109,607,136"/>
+<area shape="rect" id="node23" title=" " alt="" coords="1805,237,1997,263"/>
+<area shape="rect" id="node25" title=" " alt="" coords="1269,237,1450,263"/>
+<area shape="rect" id="node26" title=" " alt="" coords="757,237,919,263"/>
+<area shape="rect" id="node27" title=" " alt="" coords="244,109,373,136"/>
+<area shape="rect" id="node70" title=" " alt="" coords="148,312,323,339"/>
+<area shape="rect" id="node28" title=" " alt="" coords="289,13,328,39"/>
+<area shape="rect" id="node29" href="$classutl_1_1Function.html" title="Base class for unary functions of arbitrary result and argument type." alt="" coords="4576,229,4719,271"/>
+<area shape="rect" id="node43" href="$classutl_1_1SpatialFunction.html" title=" " alt="" coords="4865,364,5011,405"/>
+<area shape="rect" id="node63" href="$classutl_1_1SpatialFunction.html" title=" " alt="" coords="4169,364,4315,405"/>
+<area shape="rect" id="node65" href="$classutl_1_1SpatialFunction.html" title=" " alt="" coords="4523,364,4670,405"/>
+<area shape="rect" id="node67" href="$classutl_1_1SpatialFunction.html" title=" " alt="" coords="4694,364,4841,405"/>
+<area shape="rect" id="node30" title=" " alt="" coords="2221,109,2359,136"/>
+<area shape="rect" id="node71" href="$classIntegrandBase.html" title="Base class representing a system level integrated quantity." alt="" coords="3555,371,3671,398"/>
+<area shape="rect" id="node31" title=" " alt="" coords="2168,364,2423,405"/>
+<area shape="rect" id="node33" title=" " alt="" coords="1602,109,1719,136"/>
+<area shape="rect" id="node34" title=" " alt="" coords="2767,364,3037,405"/>
+<area shape="rect" id="node35" href="$structASM_1_1Interface.html" title="Struct for representing a domain interface." alt="" coords="4435,237,4553,263"/>
+<area shape="rect" id="node85" title=" " alt="" coords="4875,705,5091,731"/>
+<area shape="rect" id="node36" href="$classSIMdependency.html" title="Class administering inter&#45;SIM field dependencies." alt="" coords="3062,371,3187,398"/>
+<area shape="rect" id="node38" title=" " alt="" coords="1885,109,2050,136"/>
+<area shape="rect" id="node39" title=" " alt="" coords="2903,638,3106,665"/>
+<area shape="rect" id="node41" title=" " alt="" coords="4669,705,4868,731"/>
+<area shape="rect" id="node42" href="$classVecFunc.html" title="Vector&#45;valued unary function of a spatial point." alt="" coords="4669,506,4743,533"/>
+<area shape="rect" id="node60" href="$classAnaSol.html" title="Class for analytical solution fields (primary and secondary solution)." alt="" coords="4422,764,4489,791"/>
+<area shape="rect" id="node68" title=" " alt="" coords="4703,638,4888,665"/>
+<area shape="rect" id="node44" href="$classFunctionBase.html" title="Base class for unary spatial functions of arbitrary result type." alt="" coords="4339,371,4449,398"/>
+<area shape="rect" id="node50" title=" " alt="" coords="3782,705,4001,731"/>
+<area shape="rect" id="node62" href="$classRealFunc.html" title="Scalar&#45;valued unary function of a spatial point." alt="" coords="4215,506,4296,533"/>
+<area shape="rect" id="node64" href="$classSTensorFunc.html" title="Symmetric tensor&#45;valued unary function of a spatial point." alt="" coords="4347,506,4449,533"/>
+<area shape="rect" id="node66" href="$classTensorFunc.html" title="Tensor&#45;valued unary function of a spatial point." alt="" coords="4473,506,4568,533"/>
+<area shape="rect" id="node45" title=" " alt="" coords="2865,764,3041,791"/>
+<area shape="rect" id="node46" href="$structProperty.html" title="Struct for representing a distributed physical property." alt="" coords="2802,638,2879,665"/>
+<area shape="rect" id="node47" title=" " alt="" coords="3239,764,3466,791"/>
+<area shape="rect" id="node48" href="$classTractionFunc.html" title="Vector&#45;valued binary function of a spatial point and normal vector." alt="" coords="3371,638,3473,665"/>
+<area shape="rect" id="node49" href="$classutl_1_1Function2.html" title=" " alt="" coords="3370,499,3530,540"/>
+<area shape="rect" id="node51" title=" " alt="" coords="2599,565,2760,607"/>
+<area shape="rect" id="node53" href="$classLinSolParams.html" title="Class for linear solver parameters." alt="" coords="3641,764,3750,791"/>
+<area shape="rect" id="node54" href="$classSettingMap.html" title="A key&#45;value store for settings." alt="" coords="3806,371,3902,398"/>
+<area shape="rect" id="node57" href="$classLinSolParams_1_1BlockParams.html" title="Linear solver settings for a block of the linear system." alt="" coords="3669,506,3871,533"/>
+<area shape="rect" id="node56" title=" " alt="" coords="3677,631,3871,672"/>
+<area shape="rect" id="node58" title=" " alt="" coords="3926,364,4145,405"/>
+<area shape="rect" id="node61" title=" " alt="" coords="4160,638,4351,665"/>
+<area shape="rect" id="node69" title=" " alt="" coords="4041,705,4245,731"/>
+<area shape="rect" id="node84" title=" " alt="" coords="3462,565,3611,607"/>
+<area shape="rect" id="node72" href="$classIntegrand.html" title="Abstract base class representing a system level integrated quantity." alt="" coords="3540,237,3624,263"/>
+<area shape="rect" id="node74" href="$classutl_1_1vector.html" title="A vector class with some added algebraic operations." alt="" coords="4573,109,4700,136"/>
+<area shape="rect" id="node75" title=" " alt="" coords="4022,237,4185,263"/>
+<area shape="rect" id="node77" href="$classGlobalIntegral.html" title="Abstract base class representing a system level integrated quantity." alt="" coords="1109,638,1223,665"/>
+<area shape="rect" id="node78" title=" " alt="" coords="960,573,1183,599"/>
+<area shape="rect" id="node79" href="$classSystemVector.html" title="Base class for representing a system vector on different formats." alt="" coords="957,371,1069,398"/>
+<area shape="rect" id="node81" href="$structAlgEqSystem_1_1SysMatrixPair.html" title="Struct defining a coefficient matrix and an associated RHS&#45;vector." alt="" coords="785,506,990,533"/>
+<area shape="rect" id="node80" title=" " alt="" coords="811,631,1003,672"/>
+<area shape="rect" id="node82" href="$classSystemMatrix.html" title="Base class for representing a system matrix on different formats." alt="" coords="753,371,867,398"/>
+<area shape="rect" id="node83" title=" " alt="" coords="454,237,603,263"/>
+<area shape="rect" id="node87" title=" " alt="" coords="4997,109,5106,136"/>
+<area shape="rect" id="node88" title=" " alt="" coords="5032,13,5071,39"/>
+<area shape="rect" id="node89" title=" " alt="" coords="4623,875,4795,902"/>
+<area shape="rect" id="node90" href="$classModelGenerator.html" title="Base class for model generators for FEM simulators." alt="" coords="4819,875,4945,902"/>
+<area shape="rect" id="node92" title=" " alt="" coords="5381,972,5564,999"/>
+<area shape="rect" id="node93" href="$classVTF.html" title="Class for output of FE model and results to VTF file." alt="" coords="5865,972,5912,999"/>
+<area shape="rect" id="node94" title=" " alt="" coords="5898,875,6138,902"/>
+<area shape="rect" id="node95" title=" " alt="" coords="6162,868,6397,909"/>
+<area shape="rect" id="node96" title=" " alt="" coords="6421,875,6605,902"/>
+<area shape="rect" id="node97" title=" " alt="" coords="5381,875,5621,902"/>
+<area shape="rect" id="node98" title=" " alt="" coords="5645,868,5873,909"/>
+</map>

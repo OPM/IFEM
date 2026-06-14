@@ -1,0 +1,17 @@
+<map id="src/LinAlg/SparseMatrix.h" name="src/LinAlg/SparseMatrix.h">
+<area shape="rect" id="node1" title="Representation of the system matrix on an unstructured sparse format." alt="" coords="1209,5,1395,32"/>
+<area shape="rect" id="node2" href="$AlgEqSystem_8C.html" title="Storage of an algebraic equation system for a FEM problem." alt="" coords="5,80,183,107"/>
+<area shape="rect" id="node3" href="$ASMs1D_8C.html" title="Driver for assembly of structured 1D spline FE models." alt="" coords="207,80,352,107"/>
+<area shape="rect" id="node4" href="$ASMs2DLag_8C.html" title="Driver for assembly of structured 2D Lagrange FE models." alt="" coords="377,80,545,107"/>
+<area shape="rect" id="node5" href="$ASMs2Drecovery_8C.html" title="Recovery of secondary solutions for structured 2D spline FE models." alt="" coords="569,80,769,107"/>
+<area shape="rect" id="node6" href="$ASMs3DLag_8C.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="793,80,961,107"/>
+<area shape="rect" id="node7" href="$ASMs3Drecovery_8C.html" title="Recovery of secondary solutions for structured 3D spline FE models." alt="" coords="985,80,1185,107"/>
+<area shape="rect" id="node8" href="$GlbL2projector_8C.html" title="General integrand for L2&#45;projection of secondary solutions." alt="" coords="1209,80,1395,107"/>
+<area shape="rect" id="node9" href="$ASMu2Drecovery_8C.html" title="Recovery techniques for unstructured LR B&#45;splines." alt="" coords="1419,80,1641,107"/>
+<area shape="rect" id="node10" href="$ASMu3Drecovery_8C.html" title="Recovery techniques for unstructured LR B&#45;splines." alt="" coords="1665,80,1886,107"/>
+<area shape="rect" id="node11" href="$DenseMatrix_8C.html" title="Dense system matrix representation." alt="" coords="1911,80,2096,107"/>
+<area shape="rect" id="node12" href="$ISTLMatrix_8h.html" title="Representation of the system matrix in ISTL format with interface to ISTL routines for solving linear..." alt="" coords="2121,80,2291,107"/>
+<area shape="rect" id="node14" href="$SparseMatrix_8C.html" title="Representation of the system matrix on an unstructured sparse format." alt="" coords="2316,80,2504,107"/>
+<area shape="rect" id="node15" href="$SystemMatrix_8C.html" title="General representation of the system matrix on different forms." alt="" coords="2528,80,2721,107"/>
+<area shape="rect" id="node13" href="$ISTLMatrix_8C.html" title="Representation of the system matrix in ISTL format." alt="" coords="2121,155,2291,181"/>
+</map>

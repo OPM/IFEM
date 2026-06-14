@@ -1,0 +1,10 @@
+<map id="ASMs3D" name="ASMs3D">
+<area shape="rect" id="node1" title="Driver for assembly of structured 3D spline FE models." alt="" coords="150,155,226,181"/>
+<area shape="rect" id="node5" href="$classASMs3DLag.html" title="Driver for assembly of structured 3D Lagrange FE models." alt="" coords="77,229,176,256"/>
+<area shape="rect" id="node8" href="$classASMs3Dmx.html" title="Driver for assembly of structured 3D spline mixed FE models." alt="" coords="201,229,298,256"/>
+<area shape="rect" id="node2" href="$classASMstruct.html" title="Base class for structured spline&#45;based FE assembly drivers." alt="" coords="93,80,181,107"/>
+<area shape="rect" id="node3" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="96,5,179,32"/>
+<area shape="rect" id="node4" href="$classASM3D.html" title="Abstract interface for 3D spline patches." alt="" coords="205,80,275,107"/>
+<area shape="rect" id="node6" href="$classASMs3DSpec.html" title="Driver for assembly of structured 3D Spectral FE models." alt="" coords="5,304,112,331"/>
+<area shape="rect" id="node7" href="$classASMs3DmxLag.html" title="Driver for assembly of structured 3D Lagrange mixed FE models." alt="" coords="136,304,256,331"/>
+</map>

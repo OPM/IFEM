@@ -1,0 +1,18 @@
+<map id="IFEM" name="IFEM">
+<area shape="rect" id="node1" title="Class holding global IFEM configuration." alt="" coords="1260,176,1315,203"/>
+<area shape="rect" id="node2" href="$classSIMoptions.html" title="Class for encapsulation of general simulation options." alt="" coords="1005,91,1099,117"/>
+<area shape="rect" id="node3" title=" " alt="" coords="415,121,502,148"/>
+<area shape="rect" id="node5" title=" " alt="" coords="649,83,861,125"/>
+<area shape="rect" id="node7" href="$classControlFIFO.html" title="This class enables simple application control over a FIFO." alt="" coords="1003,212,1101,239"/>
+<area shape="rect" id="node8" title=" " alt="" coords="674,213,837,254"/>
+<area shape="rect" id="node4" title=" " alt="" coords="177,114,316,155"/>
+<area shape="rect" id="node6" title=" " alt="" coords="975,146,1129,187"/>
+<area shape="rect" id="node9" href="$classControlCallback.html" title="Callback for FIFO option handling." alt="" coords="396,231,521,257"/>
+<area shape="rect" id="node10" href="$classutl_1_1LogStream.html" title="Logging stream class." alt="" coords="993,289,1111,316"/>
+<area shape="rect" id="node11" title=" " alt="" coords="666,282,845,323"/>
+<area shape="rect" id="node12" title=" " alt="" coords="381,282,536,323"/>
+<area shape="rect" id="node13" title=" " alt="" coords="703,349,807,376"/>
+<area shape="rect" id="node14" title=" " alt="" coords="386,347,531,389"/>
+<area shape="rect" id="node15" title=" " alt="" coords="161,355,332,381"/>
+<area shape="rect" id="node16" title=" " alt="" coords="5,355,112,381"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="ASMLRSpline" name="ASMLRSpline">
+<area shape="rect" id="node1" title="Base class for LR B&#45;spline FE assembly drivers." alt="" coords="226,80,333,107"/>
+<area shape="rect" id="node4" href="$classASMu2D.html" title="Driver for assembly of unstructured 2D spline FE models." alt="" coords="190,155,267,181"/>
+<area shape="rect" id="node8" href="$classASMu3D.html" title="Driver for assembly of unstructured 3D spline FE models." alt="" coords="331,155,409,181"/>
+<area shape="rect" id="node2" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="179,5,262,32"/>
+<area shape="rect" id="node3" href="$classASMunstruct.html" title="Abstract interface for unstructured spline patches." alt="" coords="286,5,390,32"/>
+<area shape="rect" id="node5" href="$classASMu2DC1.html" title="Driver for assembly of C1&#45;continuous 2D LR&#45;spline FE models." alt="" coords="5,229,100,256"/>
+<area shape="rect" id="node6" href="$classASMu2DIB.html" title="Assembly of unstructured 2D spline FE models with immersed boundaries." alt="" coords="125,229,215,256"/>
+<area shape="rect" id="node7" href="$classASMu2Dmx.html" title="Driver for assembly of unstructured 2D spline mixed FE models." alt="" coords="239,229,338,256"/>
+<area shape="rect" id="node9" href="$classASMu3Dmx.html" title="Driver for assembly of unstructured 3D spline mixed FE models." alt="" coords="362,229,461,256"/>
+</map>

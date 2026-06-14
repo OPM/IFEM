@@ -1,0 +1,4 @@
+<map id="ASMsupel" name="ASMsupel">
+<area shape="rect" id="node1" title="Driver for assembly of general superelements." alt="" coords="5,80,92,107"/>
+<area shape="rect" id="node2" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="7,5,90,32"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="LinearRotZFunc" name="LinearRotZFunc">
+<area shape="rect" id="node1" title="A scalar&#45;valued spatial function, defining a rotation about the Z&#45;axis." alt="" coords="93,259,216,285"/>
+<area shape="rect" id="node2" href="$classRealFunc.html" title="Scalar&#45;valued unary function of a spatial point." alt="" coords="114,184,195,211"/>
+<area shape="rect" id="node3" href="$classutl_1_1SpatialFunction.html" title=" " alt="" coords="5,95,152,136"/>
+<area shape="rect" id="node4" href="$classutl_1_1Function.html" title="Base class for unary functions of arbitrary result and argument type." alt="" coords="7,5,150,47"/>
+<area shape="rect" id="node5" href="$classFunctionBase.html" title="Base class for unary spatial functions of arbitrary result type." alt="" coords="176,102,285,129"/>
+</map>

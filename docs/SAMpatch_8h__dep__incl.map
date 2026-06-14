@@ -1,0 +1,8 @@
+<map id="src/ASM/SAMpatch.h" name="src/ASM/SAMpatch.h">
+<area shape="rect" id="node1" title="Assembly of FE matrices into system matrices for multi&#45;patch models." alt="" coords="323,5,479,32"/>
+<area shape="rect" id="node2" href="$SIMbase_8C.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="5,80,147,107"/>
+<area shape="rect" id="node3" href="$DomainDecomposition_8C.html" title="Domain decomposition partitioning for FE models." alt="" coords="171,80,411,107"/>
+<area shape="rect" id="node4" href="$SAMpatch_8C.html" title="Assembly of FE matrices into system matrices for multi&#45;patch models." alt="" coords="435,80,592,107"/>
+<area shape="rect" id="node5" href="$SAMpatchPETSc_8h.html" title="Evaluation of global norms for distributed models." alt="" coords="616,80,811,107"/>
+<area shape="rect" id="node6" href="$SAMpatchPETSc_8C.html" title="Evaluation of global norms for distributed models." alt="" coords="615,155,811,181"/>
+</map>

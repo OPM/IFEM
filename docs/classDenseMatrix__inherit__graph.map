@@ -1,0 +1,4 @@
+<map id="DenseMatrix" name="DenseMatrix">
+<area shape="rect" id="node1" title="Class for representing a dense system matrix." alt="" coords="9,80,115,107"/>
+<area shape="rect" id="node2" href="$classSystemMatrix.html" title="Base class for representing a system matrix on different formats." alt="" coords="5,5,119,32"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="Apps/Common/SIMSolver.h" name="Apps/Common/SIMSolver.h">
+<area shape="rect" id="node1" title="SIM solver class template." alt="" coords="145,5,342,32"/>
+<area shape="rect" id="node2" href="$SIMSolverAdap_8h.html" title="Stationary, adaptive SIM solver class template." alt="" coords="5,80,236,107"/>
+<area shape="rect" id="node3" href="$SIMSolverTS_8h.html" title="Time&#45;slab adaptive SIM solver class template." alt="" coords="260,80,475,107"/>
+</map>

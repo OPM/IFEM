@@ -1,0 +1,13 @@
+<map id="src/LinAlg/MatVec.h" name="src/LinAlg/MatVec.h">
+<area shape="rect" id="node1" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="310,5,459,32"/>
+<area shape="rect" id="node2" href="$matrixnd_8h.html" title="Simple template classes for dense multi&#45;dimensional matrices." alt="" coords="338,80,431,107"/>
+<area shape="rect" id="node3" href="$matrix_8h.html" title="Simple template classes for dense rectangular matrices and vectors." alt="" coords="346,155,423,181"/>
+<area shape="rect" id="node4" title=" " alt="" coords="5,229,68,256"/>
+<area shape="rect" id="node5" title=" " alt="" coords="93,229,173,256"/>
+<area shape="rect" id="node6" title=" " alt="" coords="197,229,282,256"/>
+<area shape="rect" id="node7" title=" " alt="" coords="306,229,373,256"/>
+<area shape="rect" id="node8" title=" " alt="" coords="397,229,463,256"/>
+<area shape="rect" id="node9" title=" " alt="" coords="487,229,549,256"/>
+<area shape="rect" id="node10" href="$BLAS_8h.html" title="BLAS support for various platforms." alt="" coords="573,229,641,256"/>
+<area shape="rect" id="node11" href="$print__tol_8h.html" title="Global parameters for controlling the print of vectors and matrices." alt="" coords="666,229,754,256"/>
+</map>

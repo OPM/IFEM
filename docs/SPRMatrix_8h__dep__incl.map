@@ -1,0 +1,6 @@
+<map id="src/LinAlg/SPRMatrix.h" name="src/LinAlg/SPRMatrix.h">
+<area shape="rect" id="node1" title="Representation of the system matrix on the SPR&#45;format with interface to a Fortran module for assembli..." alt="" coords="173,5,341,32"/>
+<area shape="rect" id="node2" href="$EigSolver_8C.html" title="Interface to LAPack and ARPack eigenvalue solvers." alt="" coords="5,80,148,107"/>
+<area shape="rect" id="node3" href="$SPRMatrix_8C.html" title="Representation of the system matrix on the SPR&#45;format." alt="" coords="172,80,341,107"/>
+<area shape="rect" id="node4" href="$SystemMatrix_8C.html" title="General representation of the system matrix on different forms." alt="" coords="365,80,559,107"/>
+</map>

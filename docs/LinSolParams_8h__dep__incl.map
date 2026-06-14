@@ -1,0 +1,17 @@
+<map id="src/LinAlg/LinSolParams.h" name="src/LinAlg/LinSolParams.h">
+<area shape="rect" id="node1" title="Linear solver parameters for PETSc matrices." alt="" coords="910,5,1098,32"/>
+<area shape="rect" id="node2" href="$SIMbase_8C.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="5,80,147,107"/>
+<area shape="rect" id="node3" href="$SIMinput_8C.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="171,80,314,107"/>
+<area shape="rect" id="node4" href="$DomainDecomposition_8C.html" title="Domain decomposition partitioning for FE models." alt="" coords="339,80,579,107"/>
+<area shape="rect" id="node5" href="$ISTLMatrix_8C.html" title="Representation of the system matrix in ISTL format." alt="" coords="603,80,773,107"/>
+<area shape="rect" id="node6" href="$ISTLSolParams_8C.html" title="Linear solver parameters for ISTL." alt="" coords="797,80,995,107"/>
+<area shape="rect" id="node7" href="$LinSolParams_8C.html" title="Linear solver parameters for PETSc matrices." alt="" coords="1019,80,1208,107"/>
+<area shape="rect" id="node8" href="$PETScSchurPC_8C.html" title="Schur&#45;complement preconditioner using PETSc." alt="" coords="1288,304,1483,331"/>
+<area shape="rect" id="node9" href="$PETScSolParams_8C.html" title="Linear solver parameters for PETSc." alt="" coords="1283,155,1493,181"/>
+<area shape="rect" id="node10" href="$PETScSolParams_8h.html" title="Linear solver parameters for PETSc matrices." alt="" coords="1333,80,1541,107"/>
+<area shape="rect" id="node15" href="$SystemMatrix_8C.html" title="General representation of the system matrix on different forms." alt="" coords="1566,80,1759,107"/>
+<area shape="rect" id="node11" href="$PETScMatrix_8h.html" title="Representation of the system matrix in PETSc format with interface to PETSc routines for assembling a..." alt="" coords="1517,155,1699,181"/>
+<area shape="rect" id="node12" href="$SAMpatchPETSc_8C.html" title="Evaluation of global norms for distributed models." alt="" coords="1287,229,1483,256"/>
+<area shape="rect" id="node13" href="$PETScMatrix_8C.html" title="Representation of the system matrix in PETSc format." alt="" coords="1579,304,1762,331"/>
+<area shape="rect" id="node14" href="$PETScSchurPC_8h.html" title="Schur&#45;complement preconditioner using PETSc." alt="" coords="1507,229,1701,256"/>
+</map>

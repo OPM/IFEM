@@ -1,0 +1,30 @@
+<map id="DualRealFunc" name="DualRealFunc">
+<area shape="rect" id="node1" title="Class representing a dual field for goal&#45;oriented error estimation." alt="" coords="1094,124,1205,151"/>
+<area shape="rect" id="node2" href="$classRealFunc.html" title="Scalar&#45;valued unary function of a spatial point." alt="" coords="802,124,883,151"/>
+<area shape="rect" id="node3" href="$classutl_1_1SpatialFunction.html" title=" " alt="" coords="443,175,590,217"/>
+<area shape="rect" id="node4" href="$classutl_1_1Function.html" title="Base class for unary functions of arbitrary result and argument type." alt="" coords="157,250,300,291"/>
+<area shape="rect" id="node10" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="801,507,884,533"/>
+<area shape="rect" id="node5" href="$classFunctionBase.html" title="Base class for unary spatial functions of arbitrary result type." alt="" coords="462,124,571,151"/>
+<area shape="rect" id="node6" href="$classVec3.html" title="Simple class for representing a point in 3D space." alt="" coords="202,45,255,72"/>
+<area shape="rect" id="node9" href="$classVec4.html" title="Simple class for representing a point in 3D space and time." alt="" coords="490,5,543,32"/>
+<area shape="rect" id="node7" title=" " alt="" coords="784,175,901,201"/>
+<area shape="rect" id="node8" href="$classutl_1_1Point.html" title="Class for representing points in 3D space." alt="" coords="803,9,883,36"/>
+<area shape="rect" id="node27" title=" " alt="" coords="1053,507,1245,533"/>
+<area shape="rect" id="node11" title=" " alt="" coords="426,456,607,483"/>
+<area shape="rect" id="node12" title=" " alt="" coords="167,519,290,545"/>
+<area shape="rect" id="node13" title=" " alt="" coords="5,564,44,591"/>
+<area shape="rect" id="node17" title=" " alt="" coords="164,617,293,644"/>
+<area shape="rect" id="node14" title=" " alt="" coords="442,729,591,756"/>
+<area shape="rect" id="node15" title=" " alt="" coords="441,780,592,807"/>
+<area shape="rect" id="node16" title=" " alt="" coords="436,679,597,705"/>
+<area shape="rect" id="node18" title=" " alt="" coords="447,241,586,268"/>
+<area shape="rect" id="node19" title=" " alt="" coords="435,831,598,873"/>
+<area shape="rect" id="node20" href="$classMPC.html" title="A class representing a general multi&#45;point constraint equation." alt="" coords="203,949,254,976"/>
+<area shape="rect" id="node22" href="$structMPC_1_1DOF.html" title="A struct representing one term in a multi&#45;point constraint equation." alt="" coords="473,1011,560,1037"/>
+<area shape="rect" id="node26" title=" " alt="" coords="413,897,620,924"/>
+<area shape="rect" id="node21" title=" " alt="" coords="749,973,936,1000"/>
+<area shape="rect" id="node23" title=" " alt="" coords="447,355,586,381"/>
+<area shape="rect" id="node24" href="$structASMbase_1_1BC.html" title="Struct for boundary condition codes." alt="" coords="175,355,283,381"/>
+<area shape="rect" id="node25" title=" " alt="" coords="447,405,586,432"/>
+<area shape="rect" id="node28" title=" " alt="" coords="425,507,608,533"/>
+</map>

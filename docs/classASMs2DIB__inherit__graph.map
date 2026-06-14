@@ -1,0 +1,7 @@
+<map id="ASMs2DIB" name="ASMs2DIB">
+<area shape="rect" id="node1" title="Assembly of structured 2D spline FE models with immersed boundaries." alt="" coords="55,229,145,256"/>
+<area shape="rect" id="node2" href="$classASMs2D.html" title="Driver for assembly of structured 2D spline FE models." alt="" coords="62,155,138,181"/>
+<area shape="rect" id="node3" href="$classASMstruct.html" title="Base class for structured spline&#45;based FE assembly drivers." alt="" coords="5,80,93,107"/>
+<area shape="rect" id="node4" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="8,5,91,32"/>
+<area shape="rect" id="node5" href="$classASM2D.html" title="Abstract interface for 2D spline patches." alt="" coords="117,80,187,107"/>
+</map>

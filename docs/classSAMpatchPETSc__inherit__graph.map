@@ -1,0 +1,5 @@
+<map id="SAMpatchPETSc" name="SAMpatchPETSc">
+<area shape="rect" id="node1" title="This is a sub&#45;class of SAMpatch with support for parallel processing." alt="" coords="5,155,132,181"/>
+<area shape="rect" id="node2" href="$classSAMpatch.html" title="This is a sub&#45;class of SAM with added functionality for spline models." alt="" coords="25,80,113,107"/>
+<area shape="rect" id="node3" href="$classSAM.html" title="This class contains data and functions for the assembly of FE matrices." alt="" coords="43,5,95,32"/>
+</map>

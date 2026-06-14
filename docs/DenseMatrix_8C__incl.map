@@ -1,0 +1,25 @@
+<map id="src/LinAlg/DenseMatrix.C" name="src/LinAlg/DenseMatrix.C">
+<area shape="rect" id="node1" title="Dense system matrix representation." alt="" coords="586,5,771,32"/>
+<area shape="rect" id="node2" href="$DenseMatrix_8h.html" title="Dense system matrix representation." alt="" coords="305,80,423,107"/>
+<area shape="rect" id="node16" href="$SparseMatrix_8h.html" title="Representation of the system matrix on an unstructured sparse format." alt="" coords="468,80,588,107"/>
+<area shape="rect" id="node20" href="$SAM_8h.html" title="Assembly of FE matrices into system matrices." alt="" coords="612,80,676,107"/>
+<area shape="rect" id="node21" href="$LAPack_8h.html" title="LAPack support for various platforms." alt="" coords="674,304,755,331"/>
+<area shape="rect" id="node22" title=" " alt="" coords="751,80,825,107"/>
+<area shape="rect" id="node23" title=" " alt="" coords="849,80,924,107"/>
+<area shape="rect" id="node3" href="$SystemMatrix_8h.html" title="General representation of system matrices and vectors." alt="" coords="279,155,404,181"/>
+<area shape="rect" id="node4" href="$MatVec_8h.html" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="396,229,479,256"/>
+<area shape="rect" id="node15" href="$LinAlgenums_8h.html" title="Various enums for linear algebra scope." alt="" coords="254,229,373,256"/>
+<area shape="rect" id="node5" href="$matrixnd_8h.html" title="Simple template classes for dense multi&#45;dimensional matrices." alt="" coords="377,304,471,331"/>
+<area shape="rect" id="node6" href="$matrix_8h.html" title="Simple template classes for dense rectangular matrices and vectors." alt="" coords="379,379,456,405"/>
+<area shape="rect" id="node7" title=" " alt="" coords="386,453,449,480"/>
+<area shape="rect" id="node8" title=" " alt="" coords="473,453,553,480"/>
+<area shape="rect" id="node9" title=" " alt="" coords="577,453,663,480"/>
+<area shape="rect" id="node10" title=" " alt="" coords="5,453,72,480"/>
+<area shape="rect" id="node11" title=" " alt="" coords="97,453,162,480"/>
+<area shape="rect" id="node12" title=" " alt="" coords="186,453,249,480"/>
+<area shape="rect" id="node13" href="$BLAS_8h.html" title="BLAS support for various platforms." alt="" coords="687,453,755,480"/>
+<area shape="rect" id="node14" href="$print__tol_8h.html" title="Global parameters for controlling the print of vectors and matrices." alt="" coords="273,453,361,480"/>
+<area shape="rect" id="node17" title=" " alt="" coords="508,155,559,181"/>
+<area shape="rect" id="node18" title=" " alt="" coords="583,155,625,181"/>
+<area shape="rect" id="node19" title=" " alt="" coords="428,155,484,181"/>
+</map>

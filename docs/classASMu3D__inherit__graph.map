@@ -1,0 +1,8 @@
+<map id="ASMu3D" name="ASMu3D">
+<area shape="rect" id="node1" title="Driver for assembly of unstructured 3D spline FE models." alt="" coords="123,155,200,181"/>
+<area shape="rect" id="node6" href="$classASMu3Dmx.html" title="Driver for assembly of unstructured 3D spline mixed FE models." alt="" coords="112,229,211,256"/>
+<area shape="rect" id="node2" href="$classASMLRSpline.html" title="Base class for LR B&#45;spline FE assembly drivers." alt="" coords="52,80,159,107"/>
+<area shape="rect" id="node3" href="$classASMbase.html" title="Base class for spline&#45;based finite element (FE) assembly drivers." alt="" coords="5,5,88,32"/>
+<area shape="rect" id="node4" href="$classASMunstruct.html" title="Abstract interface for unstructured spline patches." alt="" coords="112,5,216,32"/>
+<area shape="rect" id="node5" href="$classASM3D.html" title="Abstract interface for 3D spline patches." alt="" coords="183,80,252,107"/>
+</map>

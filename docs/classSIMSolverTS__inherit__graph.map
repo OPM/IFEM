@@ -1,0 +1,7 @@
+<map id="SIMSolverTS&lt; T1 &gt;" name="SIMSolverTS&lt; T1 &gt;">
+<area shape="rect" id="node1" title="Template class for time&#45;slab adaptive simulator drivers." alt="" coords="10,304,159,331"/>
+<area shape="rect" id="node2" href="$classSIMSolver.html" title="Template class for transient simulator drivers." alt="" coords="18,229,151,256"/>
+<area shape="rect" id="node3" href="$classSIMSolverStat.html" title="Template class for stationary simulator drivers." alt="" coords="5,155,164,181"/>
+<area shape="rect" id="node4" href="$classSIMadmin.html" title="Administration base class for FEM simulators." alt="" coords="41,80,128,107"/>
+<area shape="rect" id="node5" href="$classXMLInputBase.html" title="Base class for XML based input file parsing." alt="" coords="27,5,142,32"/>
+</map>

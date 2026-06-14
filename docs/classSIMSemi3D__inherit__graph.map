@@ -1,0 +1,6 @@
+<map id="SIMSemi3D&lt; PlaneSolver &gt;" name="SIMSemi3D&lt; PlaneSolver &gt;">
+<area shape="rect" id="node1" title="Driver class for plane&#45;decoupled 3D problems." alt="" coords="26,155,230,181"/>
+<area shape="rect" id="node2" href="$classSIMadmin.html" title="Administration base class for FEM simulators." alt="" coords="19,80,106,107"/>
+<area shape="rect" id="node3" href="$classXMLInputBase.html" title="Base class for XML based input file parsing." alt="" coords="5,5,120,32"/>
+<area shape="rect" id="node4" href="$classSIMdependency.html" title="Class administering inter&#45;SIM field dependencies." alt="" coords="131,80,256,107"/>
+</map>

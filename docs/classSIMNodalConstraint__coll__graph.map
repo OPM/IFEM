@@ -1,0 +1,8 @@
+<map id="SIMNodalConstraint&lt; Dim &gt;" name="SIMNodalConstraint&lt; Dim &gt;">
+<area shape="rect" id="node1" title="Inherit this class to equip your SIM with nodal constraints." alt="" coords="5,364,156,405"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,275,55,301"/>
+<area shape="rect" id="node3" title=" " alt="" coords="79,275,299,301"/>
+<area shape="rect" id="node4" href="$structTopSetToVertex.html" title="Describes a topologyset constrained to a vertex." alt="" coords="128,185,249,212"/>
+<area shape="rect" id="node5" title=" " alt="" coords="145,96,232,123"/>
+<area shape="rect" id="node6" title=" " alt="" coords="119,5,258,47"/>
+</map>

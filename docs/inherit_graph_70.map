@@ -1,0 +1,10 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classLocalIntegral.html" title="Abstract base class representing an element level integrated quantity." alt="" coords="5,107,112,133"/>
+<area shape="rect" id="node2" href="$classElmMats.html" title="Class collecting the element matrices associated with a FEM problem." alt="" coords="162,81,241,108"/>
+<area shape="rect" id="node8" href="$classElmNorm.html" title="Class representing integrated norm quantities over an element." alt="" coords="160,132,243,159"/>
+<area shape="rect" id="node3" href="$classBDFMats.html" title="Class representing the element matrices for a dynamic FEM problem using backward difference formulae ..." alt="" coords="309,5,390,32"/>
+<area shape="rect" id="node4" href="$classBlockElmMats.html" title="Class representing the block element matrices for a FEM problem." alt="" coords="292,56,407,83"/>
+<area shape="rect" id="node5" href="$classL2Mats.html" title="Local integral container class for L2&#45;projections." alt="" coords="315,107,384,133"/>
+<area shape="rect" id="node6" href="$classNewmarkMats.html" title="Class representing the element matrices for a dynamic FEM problem based on Newmark time integration." alt="" coords="291,157,408,184"/>
+<area shape="rect" id="node7" href="$classHHTMats.html" title="Class representing the element matrices for a dynamic FEM problem based on Hilber&#45;Hughes&#45;Taylor time ..." alt="" coords="456,157,539,184"/>
+</map>

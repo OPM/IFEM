@@ -1,0 +1,9 @@
+<map id="LinSolParams::BlockParams" name="LinSolParams::BlockParams">
+<area shape="rect" id="node1" title="Linear solver settings for a block of the linear system." alt="" coords="94,408,295,435"/>
+<area shape="rect" id="node2" href="$classSettingMap.html" title="A key&#45;value store for settings." alt="" coords="57,311,153,338"/>
+<area shape="rect" id="node3" title=" " alt="" coords="5,200,168,241"/>
+<area shape="rect" id="node4" title=" " alt="" coords="146,96,233,123"/>
+<area shape="rect" id="node7" href="$structLinSolParams_1_1BlockParams_1_1DirSmoother.html" title="Settings for a directional smoother." alt="" coords="193,200,394,241"/>
+<area shape="rect" id="node5" title=" " alt="" coords="120,5,259,47"/>
+<area shape="rect" id="node6" title=" " alt="" coords="180,304,399,345"/>
+</map>

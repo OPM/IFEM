@@ -1,0 +1,17 @@
+<map id="Apps/Common/StabilizationUtils.C" name="Apps/Common/StabilizationUtils.C">
+<area shape="rect" id="node1" title="Various helpers for stabilized formulations." alt="" coords="437,5,639,47"/>
+<area shape="rect" id="node2" href="$StabilizationUtils_8h.html" title="Various helpers for stabilized formulations." alt="" coords="523,95,668,121"/>
+<area shape="rect" id="node15" href="$Vec3Oper_8h.html" title="Global algebraic operators involving Vec3 objects." alt="" coords="396,169,491,196"/>
+<area shape="rect" id="node3" title=" " alt="" coords="692,393,755,420"/>
+<area shape="rect" id="node4" href="$Vec3_8h.html" title="Representation of a point in 3D space with some basic operations." alt="" coords="603,319,668,345"/>
+<area shape="rect" id="node7" href="$MatVec_8h.html" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="515,169,598,196"/>
+<area shape="rect" id="node5" title=" " alt="" coords="501,393,581,420"/>
+<area shape="rect" id="node6" title=" " alt="" coords="605,393,668,420"/>
+<area shape="rect" id="node8" href="$matrixnd_8h.html" title="Simple template classes for dense multi&#45;dimensional matrices." alt="" coords="490,244,583,271"/>
+<area shape="rect" id="node9" href="$matrix_8h.html" title="Simple template classes for dense rectangular matrices and vectors." alt="" coords="397,319,474,345"/>
+<area shape="rect" id="node10" title=" " alt="" coords="391,393,477,420"/>
+<area shape="rect" id="node11" title=" " alt="" coords="95,393,162,420"/>
+<area shape="rect" id="node12" title=" " alt="" coords="5,393,71,420"/>
+<area shape="rect" id="node13" href="$BLAS_8h.html" title="BLAS support for various platforms." alt="" coords="187,393,255,420"/>
+<area shape="rect" id="node14" href="$print__tol_8h.html" title="Global parameters for controlling the print of vectors and matrices." alt="" coords="279,393,367,420"/>
+</map>

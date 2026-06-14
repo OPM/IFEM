@@ -1,0 +1,17 @@
+<map id="src/Utility/ElementBlock.h" name="src/Utility/ElementBlock.h">
+<area shape="rect" id="node1" title="Storage of a standard FE grid block." alt="" coords="219,5,409,32"/>
+<area shape="rect" id="node2" href="$Point_8h.html" title="Representation of points in 3D space with coordinates and parameters." alt="" coords="158,80,225,107"/>
+<area shape="rect" id="node7" href="$MatVec_8h.html" title="Global algebraic operations on index 1&#45;based matrices and vectors." alt="" coords="273,80,355,107"/>
+<area shape="rect" id="node15" title=" " alt="" coords="379,80,435,107"/>
+<area shape="rect" id="node3" href="$Vec3_8h.html" title="Representation of a point in 3D space with some basic operations." alt="" coords="107,229,172,256"/>
+<area shape="rect" id="node4" title=" " alt="" coords="5,304,68,331"/>
+<area shape="rect" id="node5" title=" " alt="" coords="93,304,173,331"/>
+<area shape="rect" id="node6" title=" " alt="" coords="197,304,260,331"/>
+<area shape="rect" id="node8" href="$matrixnd_8h.html" title="Simple template classes for dense multi&#45;dimensional matrices." alt="" coords="270,155,363,181"/>
+<area shape="rect" id="node9" href="$matrix_8h.html" title="Simple template classes for dense rectangular matrices and vectors." alt="" coords="290,229,367,256"/>
+<area shape="rect" id="node10" title=" " alt="" coords="397,304,482,331"/>
+<area shape="rect" id="node11" title=" " alt="" coords="506,304,573,331"/>
+<area shape="rect" id="node12" title=" " alt="" coords="597,304,663,331"/>
+<area shape="rect" id="node13" href="$BLAS_8h.html" title="BLAS support for various platforms." alt="" coords="687,304,755,331"/>
+<area shape="rect" id="node14" href="$print__tol_8h.html" title="Global parameters for controlling the print of vectors and matrices." alt="" coords="285,304,373,331"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="SparseMatrix" name="SparseMatrix">
+<area shape="rect" id="node1" title="Class for representing a system matrix on an unstructured sparse form." alt="" coords="8,80,116,107"/>
+<area shape="rect" id="node3" href="$classISTLMatrix.html" title="Class for representing the system matrix in ISTL format." alt="" coords="17,155,107,181"/>
+<area shape="rect" id="node2" href="$classSystemMatrix.html" title="Base class for representing a system matrix on different formats." alt="" coords="5,5,119,32"/>
+</map>

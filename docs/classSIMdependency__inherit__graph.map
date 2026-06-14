@@ -1,0 +1,13 @@
+<map id="SIMdependency" name="SIMdependency">
+<area shape="rect" id="node1" title="Class administering inter&#45;SIM field dependencies." alt="" coords="158,5,283,32"/>
+<area shape="rect" id="node2" href="$classSIMSemi3D.html" title="Driver class for plane&#45;decoupled 3D problems." alt="" coords="36,80,240,107"/>
+<area shape="rect" id="node3" href="$classSIMbase.html" title="Base class for NURBS&#45;based FEM simulators." alt="" coords="265,80,342,107"/>
+<area shape="rect" id="node4" href="$classSIMinput.html" title="Sub&#45;class with functionality for model input and setup." alt="" coords="264,155,343,181"/>
+<area shape="rect" id="node5" href="$classSIMoutput.html" title="Sub&#45;class with additional functionality for result output." alt="" coords="259,229,347,256"/>
+<area shape="rect" id="node6" href="$classSIMgeneric.html" title="Generic SIM class with some added functionalities." alt="" coords="256,304,351,331"/>
+<area shape="rect" id="node7" href="$classSIMdummy.html" title=" " alt="" coords="5,379,204,405"/>
+<area shape="rect" id="node9" href="$classSIM1D.html" title="Driver class for 1D NURBS&#45;based FEM solver." alt="" coords="227,379,291,405"/>
+<area shape="rect" id="node10" href="$classSIM2D.html" title="Driver class for 2D NURBS&#45;based FEM solver." alt="" coords="315,379,379,405"/>
+<area shape="rect" id="node11" href="$classSIM3D.html" title="Driver class for 3D NURBS&#45;based FEM solver." alt="" coords="403,379,467,405"/>
+<area shape="rect" id="node8" href="$classSIMsupel.html" title="Solution driver for general superelement FEM analysis." alt="" coords="64,453,145,480"/>
+</map>

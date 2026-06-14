@@ -1,0 +1,7 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classImmersed_1_1Geometry.html" title="Interface class representing a geometric object." alt="" coords="5,56,167,83"/>
+<area shape="rect" id="node2" href="$classGeoFunc2D.html" title="Class describing the immersed boundary as a scalar function." alt="" coords="237,5,333,32"/>
+<area shape="rect" id="node3" href="$classHole2D.html" title="Class representing the perforated plate benchmark." alt="" coords="250,56,321,83"/>
+<area shape="rect" id="node5" href="$classPerforatedPlate2D.html" title="Class representing a plate perforated by multiple holes." alt="" coords="215,107,356,133"/>
+<area shape="rect" id="node4" href="$classOval2D.html" title="Class representing a plate perforated by an oval hole." alt="" coords="404,56,475,83"/>
+</map>

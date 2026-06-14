@@ -1,0 +1,5 @@
+<map id="src/SIM/SIMdummy.h" name="src/SIM/SIMdummy.h">
+<area shape="rect" id="node1" title="Dummy SIM template class for drivers not associated with a FE model." alt="" coords="5,5,163,32"/>
+<area shape="rect" id="node2" href="$SIMsupel_8h.html" title="Solution driver for general superelement FEM analysis." alt="" coords="12,80,156,107"/>
+<area shape="rect" id="node3" href="$SIMsupel_8C.html" title="Solution driver for general superelement FEM analysis." alt="" coords="11,155,157,181"/>
+</map>
