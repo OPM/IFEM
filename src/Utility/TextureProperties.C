@@ -13,6 +13,7 @@
 
 #include "TextureProperties.h"
 #include "IFEM.h"
+#include "Functions.h"
 #include "HDF5Reader.h"
 #include "ProcessAdm.h"
 #include "Utilities.h"
@@ -33,8 +34,11 @@ void TextureProperties::parse(const tinyxml2::XMLElement* elem)
       continue;
     }
 
-    std::string textureFile;
+    std::string textureFile, function;
     utl::getAttribute(child, "file", textureFile);
+    utl::getAttribute(child, "function", function);
+    int comp = 1;
+    utl::getAttribute(child,"comp",comp);
 
     if (textureFile.find(".h5") != std::string::npos ||
         textureFile.find(".hdf5") != std::string::npos) {
@@ -73,6 +77,17 @@ void TextureProperties::parse(const tinyxml2::XMLElement* elem)
       }
 
       properties[prop].textureData.resize(nx,ny,nz);
+      if (!function.empty()) {
+        properties[prop].func_definition = function;
+        FunctionBase* func;
+        if (comp == 1)
+          func = utl::parseRealFunc(function.c_str());
+        else
+          func = utl::parseVecFunc(function.c_str());
+
+        properties[prop].function.reset(func);
+      }
+
       const unsigned char* data = image;
       for (int i = 1; i <= nx; ++i)
         for (int j = 1; j <= ny; ++j)
@@ -89,10 +104,13 @@ void TextureProperties::parse(const tinyxml2::XMLElement* elem)
 
 void TextureProperties::printLog() const
 {
-  for (const auto& prop : properties)
+  for (const auto& prop : properties) {
     IFEM::cout << "\n\t\tProperty with name " << prop.first
                << " (min = " << prop.second.min
                << ", max = " << prop.second.max << ")";
+    if (!prop.second.func_definition.empty())
+      IFEM::cout << "\n\t\t\tfunction = " << prop.second.func_definition;
+  }
 }
 
 
@@ -104,7 +122,46 @@ bool TextureProperties::getProperty(const std::string& name,
     return false;
 
   const Property& prop = it->second;
+  val = this->getValue(prop, X);
 
+  if (prop.function) {
+    Vec3 f;
+    f.x = val;
+    val = prop.function->getValue(f).front();
+  }
+
+  return true;
+}
+
+bool TextureProperties::getProperty(const std::string& name,
+                                    const Vec3& X, Vec3& val) const
+{
+  auto it = properties.find(name);
+  if (it == properties.end())
+    return false;
+
+  const Property& prop = it->second;
+  double value = this->getValue(prop, X);
+
+  if (prop.function) {
+    Vec3 f;
+    f.x = value;
+    val = prop.function->getValue(f);
+  } else
+    val = value;
+
+  return true;
+}
+
+
+bool TextureProperties::hasProperty(const std::string& name) const
+{
+  return properties.find(name) != properties.end();
+}
+
+
+double TextureProperties::getValue(const Property& prop, const Vec3& X) const
+{
   const Vec4* X4 = static_cast<const Vec4*>(&X);
   if (!X4)
     return false;
@@ -114,15 +171,8 @@ bool TextureProperties::getProperty(const std::string& name,
   int k = std::round(X4->u[2]*(prop.textureData.dim(3)-1));
 
   if (prop.prescaled)
-    val = prop.textureData(i+1,j+1,k+1);
+    return prop.textureData(i+1,j+1,k+1);
   else
-    val = prop.min + (prop.max-prop.min) * prop.textureData(i+1,j+1,k+1);
+    return prop.min + (prop.max-prop.min) * prop.textureData(i+1,j+1,k+1);
 
-  return true;
-}
-
-
-bool TextureProperties::hasProperty(const std::string& name) const
-{
-  return properties.find(name) != properties.end();
 }
