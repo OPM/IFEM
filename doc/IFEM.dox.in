@@ -7,19 +7,20 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief File containing the Main Page of the spline FEM documentation.
+//! \brief File containing the Main Page of the %IFEM documentation.
 //!
 //==============================================================================
 
-/*! \mainpage Toolbox for Isogeometric Finite Element analysis
+/*!
+\mainpage Toolbox for Isogeometric Finite Element analysis
 
-\author Knut Morten Okstad, Sintef Digital, Trondheim
+\author Knut Morten Okstad, SINTEF Digital, Trondheim
 
 \section intro Introduction
 
-IFEM is an object-oriented toolbox for implementing isogeometric finite element
+%IFEM is an object-oriented toolbox for implementing isogeometric finite element
 solvers for linear and nonlinear partial differential equations.
-The toolbox is developed through the ICADA project at SINTEF ICT, Trondheim.
+The toolbox is developed through the ICADA project at SINTEF Digital, Trondheim.
 The purpose of this code is to serve as a common base for isogeometric
 PDE-simulators, using splines and NURBS as basis functions in the finite element
 formulations. The toolbox contains methods for doing linear and non-linear,
@@ -44,11 +45,6 @@ There is typically one ASMbase object for each spline patch in the model.
 The physical problem-dependent data and methods is accessed via an abstract
 interface class, Integrand, through which the application programmer can
 implement the weak form of the underlying finite element problem.
-
-The actual splines evaluation is performed through the GoTools library, which is
-not part of the current package. In addition, this code depends on the ARPACK,
-LAPACK and BLAS libraries. Optionally, the SAMG algebraic multi-grid solver and
-the SuperLU direct solver (public domain http://crd.lbl.gov/~xiaoye/SuperLU)
-may be included. The Ceetron VTFAPI library may also be included for direct
-export of simulations results to GLview VTF-files.
+The actual splines evaluation is performed through the GoTools library
+(see https://github.com/SINTEF-Geometry/GoTools).
 */
