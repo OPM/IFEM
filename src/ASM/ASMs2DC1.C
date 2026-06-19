@@ -514,8 +514,9 @@ bool ASMs2DC1::initConstraints ()
 
 
 bool ASMs2DC1::updateDirichlet (const std::map<int,RealFunc*>& func,
-				const std::map<int,VecFunc*>& vfunc,
-                                double time, const std::map<int,int>* g2l)
+                                const std::map<int,VecFunc*>& vfunc,
+                                double time, const std::map<int,int>* g2l,
+                                bool tangent)
 {
   neighbors.clear();
 
@@ -536,9 +537,11 @@ bool ASMs2DC1::updateDirichlet (const std::map<int,RealFunc*>& func,
       double theta = 0.0;
       Vec4 X(this->getCoord(jnod),time);
       if ((fit = func.find(cit->second)) != func.end())
-	theta = (*fit->second)(X);
+        theta = tangent ? fit->second->timeDerivative(X) : (*fit->second)(X);
       else if ((vfit = vfunc.find(cit->second)) != vfunc.end())
-	theta = (*vfit->second)(X)[cit->first->getSlave().dof-1];
+        theta = tangent ?
+          vfit->second->timeDerivative(X)[cit->first->getSlave().dof-1] :
+          (*vfit->second)(X)[cit->first->getSlave().dof-1];
       else
       {
 	std::cerr <<" *** ASMs2DC1::updateDirichlet: Code "<< cit->second
@@ -549,5 +552,5 @@ bool ASMs2DC1::updateDirichlet (const std::map<int,RealFunc*>& func,
       cit->first->setSlaveCoeff((this->getCoord(inod) - X).length()*tan(theta));
     }
 
-  return this->ASMs2D::updateDirichlet(func,vfunc,time,g2l);
+  return this->ASMs2D::updateDirichlet(func,vfunc,time,g2l,tangent);
 }

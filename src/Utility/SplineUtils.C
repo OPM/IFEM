@@ -23,6 +23,25 @@
 #include "GoTools/trivariate/VolumeInterpolator.h"
 
 
+namespace
+{
+  RealArray evalProjectedValue(const FunctionBase& f, const Vec4& X,
+                               int nComp, bool tangent)
+  {
+    if (!tangent)
+      return f.getValue(X);
+
+    if (const RealFunc* rf = dynamic_cast<const RealFunc*>(&f); rf)
+      return { rf->timeDerivative(X) };
+
+    if (const VecFunc* vf = dynamic_cast<const VecFunc*>(&f); vf)
+      return vf->timeDerivative(X).vec(vf->dim());
+
+    return f.getValue(X);
+  }
+}
+
+
 Vec3 SplineUtils::toVec3 (const Go::Point& X, int nsd)
 {
   Vec3 Y;
@@ -203,7 +222,8 @@ void SplineUtils::getGaussParameters (RealArray& uGP, int nGP, const double* xi,
 
 Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
                                        const FunctionBase& f,
-                                       int nComp, Real time)
+                                       int nComp, Real time,
+                                       bool tangent)
 {
   if (!curve || nComp < 1) return nullptr;
 
@@ -220,7 +240,7 @@ Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
   {
     gpar[i] = basis.grevilleParameter(i);
     curve->point(X,gpar[i]);
-    fOfX = f.getValue(toVec4(X,time,&gpar[i]));
+    fOfX = evalProjectedValue(f,toVec4(X,time,&gpar[i]),nComp,tangent);
     fval.insert(fval.end(),fOfX.begin(),fOfX.begin()+nComp);
   }
 
@@ -237,7 +257,8 @@ Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
 
 Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
                                          const FunctionBase& f,
-                                         int nComp, Real time)
+                                         int nComp, Real time,
+                                         bool tangent)
 {
   if (!surface || nComp < 1) return nullptr;
 
@@ -264,7 +285,7 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
     {
       surface->point(X,upar[i],vpar[j]);
       double u[2] = {upar[i], vpar[j]};
-      fOfX = f.getValue(toVec4(X,time,u));
+      fOfX = evalProjectedValue(f,toVec4(X,time,u),nComp,tangent);
       fval.insert(fval.end(),fOfX.begin(),fOfX.begin()+nComp);
     }
 
@@ -283,7 +304,8 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
 
 Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
                                         const FunctionBase& f,
-                                        int nComp, Real time)
+                                        int nComp, Real time,
+                                        bool tangent)
 {
   if (!volume || nComp < 1) return nullptr;
 
@@ -315,7 +337,7 @@ Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
       {
         volume->point(X,upar[i],vpar[j],wpar[k]);
         double u[3] = {upar[i], vpar[j], wpar[k]};
-        fOfX = f.getValue(toVec4(X,time,u));
+        fOfX = evalProjectedValue(f,toVec4(X,time,u),nComp,tangent);
         fval.insert(fval.end(),fOfX.begin(),fOfX.begin()+nComp);
       }
 

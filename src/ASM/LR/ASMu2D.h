@@ -353,9 +353,11 @@ public:
   //! \param[in] vfunc Vector property fields
   //! \param[in] time Current time
   //! \param[in] g2l Pointer to global-to-local node number mapping
+  //! \param[in] tangent If \e true, use time-derivatives of prescribed values
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
-                               const std::map<int,int>* g2l = nullptr);
+                               const std::map<int,int>* g2l = nullptr,
+                               bool tangent = false);
 
   //! \brief Returns the node index for a given corner.
   //! \param[in] I -1 or +1 for either umin or umax corner
@@ -538,8 +540,10 @@ public:
   //! \param[in] values inhomogenuous function which is to be fitted
   //! \param[out] result fitted value in terms of control-point values
   //! \param[in] time time used in dynamic problems
+  //! \param[in] tangent If \e true, project time-derivative values
   bool edgeL2projection(const DirichletEdge& edge, const FunctionBase& values,
-                        Real2DMat& result, double time) const;
+                        Real2DMat& result, double time,
+                        bool tangent = false) const;
 
   //! \brief Transfers Gauss point variables from old basis to this patch.
   //! \param[in] old_basis The LR-spline basis to transfer from

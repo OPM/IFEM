@@ -947,11 +947,12 @@ bool SIMbase::initDirichlet (double time)
   \sa ASMbase::updateDirichlet() and SAMpatch::updateConstraintEqs().
 */
 
-bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
+bool SIMbase::updateDirichlet (double time, const Vector* prevSol,
+                               bool tangent)
 {
   if (prevSol)
     for (ASMbase* pch : myModel)
-      if (!pch->updateDirichlet(myScalars,myVectors,time))
+      if (!pch->updateDirichlet(myScalars,myVectors,time,nullptr,tangent))
         return false;
 
   SAMpatch* pSam = dynamic_cast<SAMpatch*>(mySam);

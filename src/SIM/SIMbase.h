@@ -244,8 +244,10 @@ public:
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
   //! \param[in] prevSol Pointer to previous primary solution in DOF-order
+  //! \param[in] tangent If \e true, use time-derivatives of prescribed values
   virtual bool updateDirichlet(double time = 0.0,
-                               const Vector* prevSol = nullptr);
+                               const Vector* prevSol = nullptr,
+                               bool tangent = false);
 
   //! \brief Updates problem-dependent state based on the current solution.
   virtual bool updateConfiguration(const Vector&) { return true; }

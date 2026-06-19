@@ -1956,7 +1956,8 @@ void ASMu3D::changeNumThreads ()
 
 bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
-                              const std::map<int,int>* g2l)
+                              const std::map<int,int>* g2l,
+                              bool tangent)
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
@@ -1965,9 +1966,9 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
   {
     Real2DMat controlPts;
     if ((fit = func.find(dfac.code)) != func.end())
-      this->faceL2projection(dfac, *fit->second, controlPts, time);
+      this->faceL2projection(dfac, *fit->second, controlPts, time, tangent);
     else if ((vfit = vfunc.find(dfac.code)) != vfunc.end())
-      this->faceL2projection(dfac, *vfit->second, controlPts, time);
+      this->faceL2projection(dfac, *vfit->second, controlPts, time, tangent);
     else
     {
       std::cerr <<" *** ASMu3D::updateDirichlet: Code "<< dfac.code
@@ -2004,7 +2005,7 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
 
   // The parent class method takes care of the corner nodes with direct
   // evaluation of the Dirichlet functions; since they are interpolatory
-  return this->ASMbase::updateDirichlet(func,vfunc,time,g2l);
+  return this->ASMbase::updateDirichlet(func,vfunc,time,g2l,tangent);
 }
 
 

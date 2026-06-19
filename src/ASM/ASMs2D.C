@@ -1194,7 +1194,8 @@ void ASMs2D::setNodeNumbers (const IntVec& nodes)
 
 bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
-                              const std::map<int,int>* g2l)
+                              const std::map<int,int>* g2l,
+                              bool tangent)
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
@@ -1204,10 +1205,10 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     // Project the function onto the spline curve basis
     Go::SplineCurve* dcrv = nullptr;
     if ((fit = func.find(dirich[i].code)) != func.end())
-      dcrv = SplineUtils::project(dirich[i].curve,*fit->second,1,time);
+      dcrv = SplineUtils::project(dirich[i].curve,*fit->second,1,time,tangent);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
       dcrv = SplineUtils::project(dirich[i].curve,*vfit->second,
-                                  vfit->second->dim(),time);
+                                  vfit->second->dim(),time,tangent);
     else
     {
       std::cerr <<" *** ASMs2D::updateDirichlet: Code "<< dirich[i].code
@@ -1249,7 +1250,7 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
 
   // The parent class method takes care of the corner nodes with direct
   // evaluation of the Dirichlet functions (since they are interpolatory)
-  return this->ASMbase::updateDirichlet(func,vfunc,time,g2l);
+  return this->ASMbase::updateDirichlet(func,vfunc,time,g2l,tangent);
 }
 
 

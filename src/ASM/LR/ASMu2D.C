@@ -2410,7 +2410,8 @@ bool ASMu2D::getOrder (int& p1, int& p2, int& p3) const
 
 bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
-                              const std::map<int,int>* g2l)
+                              const std::map<int,int>* g2l,
+                              bool tangent)
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
@@ -2419,9 +2420,9 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
   {
     Real2DMat controlPts;
     if ((fit = func.find(dedg.code)) != func.end())
-      this->edgeL2projection(dedg, *fit->second, controlPts, time);
+      this->edgeL2projection(dedg, *fit->second, controlPts, time, tangent);
     else if ((vfit = vfunc.find(dedg.code)) != vfunc.end())
-      this->edgeL2projection(dedg, *vfit->second, controlPts, time);
+      this->edgeL2projection(dedg, *vfit->second, controlPts, time, tangent);
     else
     {
       std::cerr <<" *** ASMu2D::updateDirichlet: Code "<< dedg.code
@@ -2458,7 +2459,7 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
 
   // The parent class method takes care of the corner nodes with direct
   // evaluation of the Dirichlet functions; since they are interpolatory
-  return this->ASMbase::updateDirichlet(func,vfunc,time,g2l);
+  return this->ASMbase::updateDirichlet(func,vfunc,time,g2l,tangent);
 }
 
 

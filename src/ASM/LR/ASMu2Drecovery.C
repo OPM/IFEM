@@ -24,7 +24,10 @@
 #include "SplineUtils.h"
 #include "Function.h"
 #include "Profiler.h"
+
 #include <array>
+#include <GoTools/geometry/SplineSurface.h>
+
 #if SP_DEBUG > 2
 #include <fstream>
 #endif
@@ -455,7 +458,8 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation (const RealArray& upar,
 bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
                                const FunctionBase& values,
                                Real2DMat& result,
-                               double time) const
+                               double time,
+                               bool tangent) const
 {
   size_t n = edge.MLGN.size();
   size_t m = values.dim();
@@ -557,7 +561,16 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       // Assemble into matrix A and vector B
       Matrix lA;
       lA.outer_product(N, N, false, detJxW);
-      const RealArray val = values.getValue(X);
+      RealArray val;
+      if (tangent)
+      {
+        if (const RealFunc* rf = dynamic_cast<const RealFunc*>(&values); rf)
+          val = { rf->timeDerivative(X) };
+        else if (const VecFunc* vf = dynamic_cast<const VecFunc*>(&values); vf)
+          val = vf->timeDerivative(X).vec(values.dim());
+      }
+      if (val.empty())
+        val = values.getValue(X);
 
       for (size_t il = 0; il < eMNPC.size(); il++) // local i-index
         if ((ig = 1+eMNPC[il]) > 0) {             // global i-index
