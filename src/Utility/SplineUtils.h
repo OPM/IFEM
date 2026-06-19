@@ -81,17 +81,20 @@ namespace SplineUtils //! Various utility functions on spline objects.
   //! \brief Projects a spatial function onto a spline curve.
   Go::SplineCurve* project(const Go::SplineCurve* curve,
                            const FunctionBase& f,
-                           int nComp = 1, Real time = Real(0));
+                           int nComp = 1, Real time = Real(0),
+                           bool tangent = false);
 
   //! \brief Projects a spatial function onto a spline surface.
   Go::SplineSurface* project(const Go::SplineSurface* surface,
                              const FunctionBase& f,
-                             int nComp = 1, Real time = Real(0));
+                             int nComp = 1, Real time = Real(0),
+                             bool tangent = false);
 
   //! \brief Projects a spatial function onto a spline volume.
   Go::SplineVolume* project(const Go::SplineVolume* volume,
                             const FunctionBase& f,
-                            int nComp = 1, Real time = Real(0));
+                            int nComp = 1, Real time = Real(0),
+                            bool tangent = false);
 
   //! \brief Enumeration of basis adjustment operations.
   enum class AdjustOp {

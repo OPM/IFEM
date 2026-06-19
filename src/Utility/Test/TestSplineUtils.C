@@ -20,8 +20,11 @@
 #include "GoTools/trivariate/SphereVolume.h"
 #include "GoTools/trivariate/SplineVolume.h"
 #include "ExprFunctions.h"
+#include "Functions.h"
 
 #include "Catch2Support.h"
+
+#include <memory>
 
 
 TEST_CASE("TestSplineUtils.ToVec3")
@@ -389,14 +392,17 @@ TEST_CASE("TestSplineUtils.ProjectCurve")
 
   EvalFunction func("sin(x)*t");
   VecFuncExpr func2("sin(x)*t|cos(x)*t");
-  Go::SplineCurve* prjCrv  = SplineUtils::project(crv, func , 1, 0.1);
-  Go::SplineCurve* prjCrv2 = SplineUtils::project(crv, func2, 2, 0.1);
+  std::unique_ptr<RealFunc> func3(utl::parseExprRealFunc("sin(t)", true));
+  std::unique_ptr<Go::SplineCurve> prjCrv(SplineUtils::project(crv, func , 1, 0.1));
+  std::unique_ptr<Go::SplineCurve> prjCrv2(SplineUtils::project(crv, func2, 2, 0.1));
+  std::unique_ptr<Go::SplineCurve> prjCrv3(SplineUtils::project(crv, *func3, 2, 0.1, true));
 
-  Vec3 result1, result2, result3, result4;
-  SplineUtils::point(result1, 0.5, prjCrv);
-  SplineUtils::point(result2, 0.8, prjCrv);
-  SplineUtils::point(result3, 0.5, prjCrv2);
-  SplineUtils::point(result4, 0.8, prjCrv2);
+  Vec3 result1, result2, result3, result4, result5;
+  SplineUtils::point(result1, 0.5, prjCrv.get());
+  SplineUtils::point(result2, 0.8, prjCrv.get());
+  SplineUtils::point(result3, 0.5, prjCrv2.get());
+  SplineUtils::point(result4, 0.8, prjCrv2.get());
+  SplineUtils::point(result5, 1.0, prjCrv3.get());
 
   REQUIRE_THAT(result1.x, WithinRel(-0.0783364, 1e-6));
   REQUIRE_THAT(result2.x, WithinRel(-0.0694399, 1e-6));
@@ -404,6 +410,7 @@ TEST_CASE("TestSplineUtils.ProjectCurve")
   REQUIRE_THAT(result3.y, WithinRel(-0.0363385, 1e-6));
   REQUIRE_THAT(result4.x, WithinRel(-0.0694399, 1e-6));
   REQUIRE_THAT(result4.y, WithinRel(-0.0363385, 1e-6));
+  REQUIRE_THAT(result5.x, WithinRel(cos(0.1), 1e-6));
 }
 
 
@@ -417,20 +424,24 @@ TEST_CASE("TestSplineUtils.ProjectSurface")
 
   EvalFunction func("sin(x)*sin(y)*t");
   VecFuncExpr func2("sin(x)*sin(y)*t|cos(x)*cos(y)*t");
-  Go::SplineSurface* prjSrf  = SplineUtils::project(srf, func , 1, 0.1);
-  Go::SplineSurface* prjSrf2 = SplineUtils::project(srf, func2, 2, 0.1);
+  std::unique_ptr<RealFunc> func3(utl::parseExprRealFunc("sin(t)", true));
+  std::unique_ptr<Go::SplineSurface> prjSrf(SplineUtils::project(srf, func , 1, 0.1));
+  std::unique_ptr<Go::SplineSurface> prjSrf2(SplineUtils::project(srf, func2, 2, 0.1));
+  std::unique_ptr<Go::SplineSurface> prjSrf3(SplineUtils::project(srf, *func3, 2, 0.1, true));
 
-  Vec3 result1, result2, result3, result4;
-  SplineUtils::point(result1, 0.5, 0.5, prjSrf);
-  SplineUtils::point(result2, 0.8, 0.8, prjSrf);
-  SplineUtils::point(result3, 0.5, 0.5, prjSrf2);
-  SplineUtils::point(result4, 0.8, 0.8, prjSrf2);
+  Vec3 result1, result2, result3, result4, result5;
+  SplineUtils::point(result1, 0.5, 0.5, prjSrf.get());
+  SplineUtils::point(result2, 0.8, 0.8, prjSrf.get());
+  SplineUtils::point(result3, 0.5, 0.5, prjSrf2.get());
+  SplineUtils::point(result4, 0.8, 0.8, prjSrf2.get());
+  SplineUtils::point(result5, 0.8, 0.8, prjSrf3.get());
   REQUIRE_THAT(result1.x, WithinRel(0.02110140763086564));
   REQUIRE_THAT(result2.x, WithinRel(-0.02189938149140131));
   REQUIRE_THAT(result3.x, WithinRel(0.02110140763086564));
   REQUIRE_THAT(result3.y, WithinRel(0.07889859236913437));
   REQUIRE_THAT(result4.x, WithinRel(-0.02189938149140131));
   REQUIRE_THAT(result4.y, WithinRel(0.06514225417205573));
+  REQUIRE_THAT(result5.x, WithinRel(cos(0.1)));
 }
 
 

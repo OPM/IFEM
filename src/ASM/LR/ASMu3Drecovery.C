@@ -474,7 +474,8 @@ LR::LRSplineVolume* ASMu3D::regularInterpolation (const RealArray& upar,
 bool ASMu3D::faceL2projection (const DirichletFace& face,
                                const FunctionBase& values,
                                Real2DMat& result,
-                               double time) const
+                               double time,
+                               bool tangent) const
 {
   size_t n = face.MLGN.size();
   size_t m = values.dim();
@@ -585,7 +586,16 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
           SplineUtils::extractBasis(spline,N,dNdu);
         }
 
-        const RealArray val = values.getValue(X);
+        RealArray val;
+        if (tangent)
+        {
+          if (const RealFunc* rf = dynamic_cast<const RealFunc*>(&values); rf)
+            val = { rf->timeDerivative(X) };
+          else if (const VecFunc* vf = dynamic_cast<const VecFunc*>(&values); vf)
+            val = vf->timeDerivative(X).vec(values.dim());
+        }
+        if (val.empty())
+          val = values.getValue(X);
 
         // Assemble into matrix A and vector B
         for (size_t il = 0; il < fMNPC.size(); il++) // local i-index

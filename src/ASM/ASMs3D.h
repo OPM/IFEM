@@ -460,9 +460,11 @@ public:
   //! \param[in] vfunc Vector property fields
   //! \param[in] time Current time
   //! \param[in] g2l Pointer to global-to-local node number mapping
+  //! \param[in] tangent If \e true, use time-derivatives of prescribed values
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
-                               const std::map<int,int>* g2l = nullptr);
+                               const std::map<int,int>* g2l = nullptr,
+                               bool tangent = false);
 
 
   // Methods for integration of finite element quantities.

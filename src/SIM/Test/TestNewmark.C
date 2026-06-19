@@ -269,7 +269,8 @@ public:
     return myEqSys->assemble(&elm,1) && myEqSys->finalize(newLHSmatrix);
   }
 
-  virtual bool updateDirichlet (double time, const Vector* prevSol)
+  virtual bool updateDirichlet (double time, const Vector* prevSol,
+                                bool = false)
   {
     return static_cast<SAM2DOFprescr*>(mySam)->updateContrainEqs(time,prevSol);
   }

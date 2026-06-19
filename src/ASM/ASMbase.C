@@ -1201,7 +1201,8 @@ bool ASMbase::hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
 
 bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
-                               const std::map<int,int>* g2l)
+                               const std::map<int,int>* g2l,
+                               bool tangent)
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
@@ -1215,6 +1216,21 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
       return false;
     }
 
+    // Lambda function that evaluates either absolute or time-derivative Dirichlet values.
+    auto evalDirichletValue = [tangent](const FunctionBase& f, const Vec4& X)
+    {
+      if (!tangent)
+        return f.getValue(X);
+
+      if (const RealFunc* rf = dynamic_cast<const RealFunc*>(&f); rf)
+        return RealArray(1,rf->timeDerivative(X));
+
+      if (const VecFunc* vf = dynamic_cast<const VecFunc*>(&f); vf)
+        return vf->timeDerivative(X).vec(vf->dim());
+
+      return f.getValue(X);
+    };
+
     int node = cit.first->getSlave().node;
     if (g2l) node = utl::findKey(*g2l,node);
     Vec4 X(this->getCoord(inod),time,node);
@@ -1224,7 +1240,7 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
       if (g.isZero())
         cit.first->setSlaveCoeff(0.0);
       else
-        cit.first->setSlaveCoeff(g(X));
+        cit.first->setSlaveCoeff(evalDirichletValue(g,X).front());
     }
     else if ((vfit = vfunc.find(cit.second)) != vfunc.end())
     {
@@ -1233,7 +1249,11 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
       if (g.isZero())
         cit.first->setSlaveCoeff(0.0);
       else
-        cit.first->setSlaveCoeff(g(X)[idof-1]);
+      {
+        RealArray val(evalDirichletValue(g,X));
+        cit.first->setSlaveCoeff(idof <= static_cast<int>(val.size()) ?
+                                 val[idof-1] : 0.0);
+      }
     }
     else
     {
