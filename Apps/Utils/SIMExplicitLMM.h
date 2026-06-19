@@ -68,8 +68,19 @@ public:
     if (alone)
       solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
+    // Initialize time-dependent Dirichlet boundary conditions at start of step.
+    if (!solver.initDirichlet(tp.time.t))
+      return false;
+
     TimeDomain time(tp.time);
     time.t = tp.time.t - tp.time.dt;
+
+    // Set up constraints at stage time for assembly.
+    // Note: we don't apply absolute BCs before assembly like RK does;
+    // the assembly process handles the constraint formulation.
+    Vector zeroRef(solver.getSolution(1).size());
+    if (!solver.updateDirichlet(time.t, &zeroRef, true))
+      return false;
 
     if (!solver.assembleSystem(time, Vectors(1, solver.getSolution(1)),
                                !linear || (tp.step == 1)))
@@ -102,9 +113,12 @@ public:
 
     solver.getSolution() += solver.getSolution(1);
 
+    // Enforce absolute boundary values at the new time level.
     Vector dum;
-    solver.updateDirichlet(tp.time.t, &dum);
-    solver.applyDirichlet(solver.getSolution());
+    if (!solver.updateDirichlet(tp.time.t, &dum))
+      return false;
+    if (!solver.applyDirichlet(solver.getSolution()))
+      return false;
 
     if (alone)
       solver.printSolutionSummary(solver.getSolution(), 0,
@@ -125,6 +139,10 @@ public:
         if (solver.hasIC(str.str())) {
           TimeDomain time(tp.time);
           time.t = tp.time.t - j*tp.time.dt;
+
+          Vector zeroRef(solver.getSolution(j-1).size());
+          if (!solver.updateDirichlet(time.t, &zeroRef, true))
+            return false;
 
           if (!solver.assembleSystem(time, Vectors(1, solver.getSolution(j-1))))
             return false;
