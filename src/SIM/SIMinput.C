@@ -532,12 +532,13 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
   {
     const tinyxml2::XMLNode* dval = nullptr;
     int comp = 0, symm = 0, basis = 1;
-    bool override = false;
+    bool override = false, autodiff = false;
     std::string set, type, axes;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
     utl::getAttribute(elem,"basis",basis);
     utl::getAttribute(elem,"override",override);
+    utl::getAttribute(elem,"autodiff",autodiff);
     // Handle some predefined property codes for symmtry-conditions (C1-patches)
     if (type == "symmxy" || type == "symmyx")
       comp = symm = 12000;
@@ -554,6 +555,7 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
       utl::getAttribute(elem,"component",comp);
       utl::getAttribute(elem,"comp",comp);
     }
+    const int bcComp = comp;
     int code = this->getUniquePropertyCode(set,comp);
     if (code == 0) utl::getAttribute(elem,"code",code);
     if (axes == "local projected")
@@ -585,11 +587,31 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
         this->setPropertyType(code,Property::DIRICHLET_OVERRIDE,comp,basis);
       else
         this->setPropertyType(code,Property::DIRICHLET_INHOM,comp,basis);
-      RealFunc* f = utl::parseRealFunc(dval->Value(),type);
-      if (!f)
-        return false;
+      if (type == "expression")
+      {
+        // Multi-DOF Dirichlet expressions may define one expression per
+        // constrained component, so parse as a vector function in that case.
+        if (std::abs(bcComp) > 9) {
+          VecFunc* f = utl::parseExprVecFunc(dval->Value(),autodiff);
+          if (!f)
+            return false;
+          myVectors[abs(code)] = f;
+        }
+        else {
+          RealFunc* f = utl::parseExprRealFunc(dval->Value(),autodiff);
+          if (!f)
+            return false;
+          myScalars[abs(code)] = f;
+        }
+      }
       else
+      {
+        RealFunc* f = utl::parseRealFunc(dval->Value(),type);
+        if (!f)
+          return false;
         myScalars[abs(code)] = f;
+      }
+      IFEM::cout << ": " << dval->Value();
     }
     else
     {
