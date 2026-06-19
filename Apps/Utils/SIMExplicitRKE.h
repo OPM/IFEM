@@ -106,6 +106,8 @@ public:
           return false;
         this->solver.getSolution() = prevSol;
         this->solver.setMode(this->assemble ? SIM::DYNAMIC: SIM::RHS_ONLY);
+        if (!this->solver.initDirichlet(tp.time.t))
+          return false;
         ok = this->solveRK(stages, tp);
       }
     }
