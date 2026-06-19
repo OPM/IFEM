@@ -83,6 +83,9 @@ public:
     if (alone)
       solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
+    if (!solver.initDirichlet(tp.time.t))
+      return false;
+
     Vectors stages;
     return this->solveRK(stages, tp);
   }
