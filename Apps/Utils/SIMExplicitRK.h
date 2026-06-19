@@ -102,9 +102,9 @@ public:
 
     stages.resize(RK.b.size());
 
-    for (size_t i=0;i<stages.size();++i) {
+    for (size_t i = 0; i < stages.size(); ++i) {
       Vector tmp(solver.getSolution());
-      for (size_t j=0;j<i;++j)
+      for (size_t j = 0; j < i; ++j)
         tmp.add(stages[j], tp.time.dt*RK.A(i+1,j+1));
       time.t = tp.time.t+tp.time.dt*(RK.c[i]-1.0);
 
@@ -125,7 +125,7 @@ public:
                                  !linear || (tp.step == 1 && i == 0)))
         return false;
 
-      // solve Mu = Au + f
+      // solve Mk = Au + f
       if (!solver.solveSystem(stages[i]))
         return false;
 
@@ -136,7 +136,7 @@ public:
     }
 
     // finally construct solution as weighted stages
-    for (size_t i=0;i<RK.b.size();++i)
+    for (size_t i = 0; i < RK.b.size(); ++i)
       solver.getSolution().add(stages[i], tp.time.dt*RK.b[i]);
 
     // Enforce absolute boundary values at the new time level.
