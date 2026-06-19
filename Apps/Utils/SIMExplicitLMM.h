@@ -18,7 +18,9 @@
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
 
+#include <memory>
 #include <sstream>
+#include <utility>
 
 class DataExporter;
 
@@ -52,16 +54,9 @@ public:
     else
       order = 1;
 
-    loads.resize(order, nullptr);
+    loads.resize(order);
 
     Solver::msgLevel = 1; // prints primary solution summary only
-  }
-
-  //! \brief Destructor frees up the load vectors.
-  ~SIMExplicitLMM()
-  {
-    for (SystemVector*& v : loads)
-      delete v;
   }
 
   //! \copydoc ISolver::getProcessAdm()
@@ -75,11 +70,12 @@ public:
 
     TimeDomain time(tp.time);
     time.t = tp.time.t - tp.time.dt;
+
     if (!solver.assembleSystem(time, Vectors(1, solver.getSolution(1)),
                                !linear || (tp.step == 1)))
       return false;
 
-    loads[0] = solver.getRHSvector(0, true);
+    loads[0].reset(solver.getRHSvector(0, true));
 
     const std::vector<std::vector<double>> AB_coefs = {
        {1.0},
@@ -91,7 +87,10 @@ public:
 
     const int c_order = hasICs ? order-1 : std::min(order-1, tp.step-1);
     const std::vector<double>& AB_coef = AB_coefs[c_order];
-    solver.getRHSvector(0, false)->mult(AB_coef.back() * tp.time.dt);
+
+    SystemVector* rhs = solver.getRHSvector(0, false);
+    rhs->mult(AB_coef.back() * tp.time.dt);
+
     for (size_t j = 0; j < AB_coef.size()-1; ++j)
       solver.addToRHSvector(0, *loads[c_order-j], AB_coef[j]*tp.time.dt);
 
@@ -126,10 +125,11 @@ public:
         if (solver.hasIC(str.str())) {
           TimeDomain time(tp.time);
           time.t = tp.time.t - j*tp.time.dt;
+
           if (!solver.assembleSystem(time, Vectors(1, solver.getSolution(j-1))))
             return false;
 
-          loads[j-2] = solver.getRHSvector(0, true);
+          loads[j-2].reset(solver.getRHSvector(0, true));
         } else {
           hasICs = false;
           break;
@@ -137,9 +137,10 @@ public:
       }
     }
 
-    delete loads.back();
+    loads.back().reset();
     for (int j = order-2; j >= 0; --j)
-      loads[j+1] = loads[j];
+      loads[j+1] = std::move(loads[j]);
+    loads[0].reset();
 
     return solver.advanceStep(tp);
   }
@@ -181,7 +182,7 @@ public:
 
 protected:
   Solver& solver; //!< Reference to simulator
-  std::vector<SystemVector*> loads; //!< Unscaled load vectors
+  std::vector<std::unique_ptr<SystemVector>> loads; //!< Unscaled load vectors
   int order; //!< Order of method
   bool alone; //!< If true, this is a standalone solver
   const std::string fieldName; //!< Name of primary solution fields (for ICs)
