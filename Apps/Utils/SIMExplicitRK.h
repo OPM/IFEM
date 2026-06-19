@@ -83,6 +83,8 @@ public:
     if (alone)
       solver.getProcessAdm().cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
+    solver.setMode(this->assemble ? SIM::DYNAMIC : SIM::RHS_ONLY);
+
     if (!solver.initDirichlet(tp.time.t))
       return false;
 
@@ -115,8 +117,10 @@ public:
       if (!solver.solveSystem(stages[i]))
         return false;
 
-      if (linear)
+      if (linear) {
         solver.setMode(SIM::RHS_ONLY);
+        assemble = false;
+      }
     }
 
     // finally construct solution as weighted stages
@@ -177,7 +181,8 @@ protected:
   Solver& solver; //!< Reference to simulator
   RKTableaux RK;  //!< Tableaux of Runge-Kutta coefficients
   bool alone; //!< If true, this is a standalone solver
-  bool linear = false; //!< If true mass matrix is constant
+  bool linear = false; //!< If true operators are constant
+  bool assemble = true; //!< If true, assemble operators
 };
 
 }

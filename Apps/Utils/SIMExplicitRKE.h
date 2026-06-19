@@ -83,6 +83,7 @@ public:
 
     Vectors stages;
     Vector prevSol = this->solver.getSolution();
+    this->solver.setMode(this->assemble ? SIM::DYNAMIC: SIM::RHS_ONLY);
     if (!this->solver.initDirichlet(tp.time.t))
       return false;
     bool ok = this->solveRK(stages, tp);
@@ -104,6 +105,7 @@ public:
         if (!tp.cutback())
           return false;
         this->solver.getSolution() = prevSol;
+        this->solver.setMode(this->assemble ? SIM::DYNAMIC: SIM::RHS_ONLY);
         ok = this->solveRK(stages, tp);
       }
     }
