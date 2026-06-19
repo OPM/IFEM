@@ -3,7 +3,7 @@ name: Build source code documentation
 on:
   push:
     tags:
-      - "release/*.*"
+      - "release/*.*/final"
 
   workflow_dispatch:
 
@@ -18,7 +18,7 @@ jobs:
   build-doc:
     name: Build API documentation
 
-    runs-on: ubuntu-22.04 # Can't use latest since BLAS is not included there
+    runs-on: ubuntu-latest
 
     steps:
       - name: Add the IFEM personal package archive
@@ -28,8 +28,8 @@ jobs:
 
       - name: Install IFEM dependencies
         run: |
-          sudo apt-get -y install libboost-dev libarpack2-dev libsuperlu-dev libtinyxml2-dev catch2
-          sudo apt-get -y install libgotools-core-dev libgotools-trivariate-dev liblrspline1-dev
+          sudo apt-get -y install libarpack2-dev libsuperlu-dev liblapack-dev libtinyxml2-dev
+          sudo apt-get -y install libgotools-core-dev libgotools-trivariate-dev
 
       - name: Install doxygen
         run: sudo apt-get -y install doxygen graphviz
@@ -45,15 +45,24 @@ jobs:
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
             MY_TAG=${GITHUB_REF_NAME}
           else
-            MY_TAG=$(git tag -l --sort=version:refname 'release/*.*' | tail -1)
+            MY_TAG=$(git tag -l --sort=committerdate 'release/*.*' | tail -1)
           fi
           git checkout "$MY_TAG"
+          mkdir Release
 
       - name: Configure for build
-        run: |
-          mkdir Release
-          cd Release
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DIFEM_USE_PETSC=OFF -DIFEM_USE_ISTL=OFF -DIFEM_USE_UMFPACK=OFF
+        run: >
+          cmake -B ./Release
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_DISABLE_FIND_PACKAGE_Catch2=ON
+          -DIFEM_BUILD_TESTING=OFF
+          -DIFEM_USE_LRSPLINES=OFF
+          -DIFEM_USE_UMFPACK=OFF
+          -DIFEM_USE_PETSC=OFF
+          -DIFEM_USE_ISTL=OFF
+          -DIFEM_USE_HDF5=OFF
+          -DIFEM_USE_CEREAL=OFF
+          -DIFEM_USE_VTFWRITER=OFF
 
       - name: Build the documentation
         run: |
