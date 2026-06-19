@@ -107,8 +107,20 @@ public:
       for (size_t j=0;j<i;++j)
         tmp.add(stages[j], tp.time.dt*RK.A(i+1,j+1));
       time.t = tp.time.t+tp.time.dt*(RK.c[i]-1.0);
-      solver.updateDirichlet(time.t, &dum);
-      solver.applyDirichlet(tmp);
+
+      // 1) Update to stage time and impose stage-state boundary values.
+      //    Passing an empty vector means absolute Dirichlet values.
+      if (!solver.updateDirichlet(time.t, &dum))
+        return false;
+
+      if (!solver.applyDirichlet(tmp))
+        return false;
+
+      // 2) Constrain stage unknowns to tangent boundary values dg/dt.
+      Vector zeroRef(solver.getSolution().size());
+      if (!solver.updateDirichlet(time.t, &zeroRef, true))
+        return false;
+
       if (!solver.assembleSystem(time, Vectors(1, tmp),
                                  !linear || (tp.step == 1 && i == 0)))
         return false;
@@ -124,10 +136,14 @@ public:
     }
 
     // finally construct solution as weighted stages
-    solver.updateDirichlet(tp.time.t, &dum);
     for (size_t i=0;i<RK.b.size();++i)
       solver.getSolution().add(stages[i], tp.time.dt*RK.b[i]);
-    solver.applyDirichlet(solver.getSolution());
+
+    // Enforce absolute boundary values at the new time level.
+    if (!solver.updateDirichlet(tp.time.t, &dum))
+      return false;
+    if (!solver.applyDirichlet(solver.getSolution()))
+      return false;
 
     if (alone)
       solver.printSolutionSummary(solver.getSolution(), 0,
