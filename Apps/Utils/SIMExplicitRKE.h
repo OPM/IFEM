@@ -83,6 +83,8 @@ public:
 
     Vectors stages;
     Vector prevSol = this->solver.getSolution();
+    if (!this->solver.initDirichlet(tp.time.t))
+      return false;
     bool ok = this->solveRK(stages, tp);
     double prevEst = 1.0;
     while (ok && prevEst > errTol) {
