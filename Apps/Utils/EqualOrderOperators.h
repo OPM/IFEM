@@ -13,10 +13,11 @@
 #ifndef EQUAL_ORDER_OPERATORS_H
 #define EQUAL_ORDER_OPERATORS_H
 
-class Vec3;
-
-#include "FiniteElement.h"
 #include "MatVec.h"
+
+class FiniteElement;
+class Tensor;
+class Vec3;
 
 
 namespace WeakOperators
@@ -109,13 +110,22 @@ public:
     static void Stress(Matrix& EM, const FiniteElement& fe,
                        double scale=1.0, int basis=1);
 
-    //! \brief Compute a heteregenous coefficient laplacian.
+    //! \brief Compute a heterogeneous coefficient laplacian.
     //! \param[out] EM The element matrix to add contribution to
-    //! \param[out] K The coefficient matrix
+    //! \param[in] K The coefficient matrix
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] scale Scaling factor for contribution
     //! \param[in] basis Basis to use
     static void LaplacianCoeff(Matrix& EM, const Matrix& K, const FiniteElement& fe,
+                               double scale=1.0, int basis=1);
+
+    //! \brief Compute a heterogeneous coefficient laplacian.
+    //! \param[out] EM The element matrix to add contribution to
+    //! \param[in] K The diagonal coefficient matrix
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
+    static void LaplacianCoeff(Matrix& EM, const Vec3& K, const FiniteElement& fe,
                                double scale=1.0, int basis=1);
 
     //! \brief Compute an integration constraint.
