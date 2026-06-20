@@ -108,16 +108,14 @@ void multiplyTest()
 {
   utl::vector<Scalar> u(14), v(9), x, y;
   utl::matrix<Scalar> A(3,5), B, B2(3,5), B3;
-  utl::matrix<Scalar> I(5,5), I2(3,3);
+  utl::matrix<Scalar> I(5,5), J(3,3);
 
   std::iota(u.begin(),u.end(),1.0);
   std::iota(v.begin(),v.end(),1.0);
   std::iota(A.begin(),A.end(),1.0);
   std::iota(B2.begin(),B2.end(),1.0);
-  for (size_t i = 1; i <= 5; ++i)
-    I(i,i) = 1.0;
-  for (size_t i = 1; i <= 3; ++i)
-    I2(i,i) = 1.0;
+  I.diag(1.0);
+  J.diag(1.0);
 
   REQUIRE(A.multiply(u,x,1.0,0.0,false,3,4,1,2));
   REQUIRE(A.multiply(v,y,1.0,0.0,true,4,2));
@@ -147,7 +145,7 @@ void multiplyTest()
 
   B.multiplyMat(A, static_cast<const std::vector<Scalar>&>(I));
   B2.multiplyMat(A, static_cast<const std::vector<Scalar>&>(I), false, true);
-  B3.multiplyMat(A, static_cast<const std::vector<Scalar>&>(I2), true, false);
+  B3.multiplyMat(A, static_cast<const std::vector<Scalar>&>(J), true, false);
   REQUIRE(B.rows() == A.rows());
   REQUIRE(B.cols() == A.cols());
   for (size_t i = 1; i <= 3; ++i)
@@ -161,6 +159,19 @@ void multiplyTest()
   REQUIRE_THAT(v(1), WithinRel(135.0));
   REQUIRE_THAT(v(2), WithinRel(150.0));
   REQUIRE_THAT(v(3), WithinRel(165.0));
+
+  u.resize(A.cols());
+  std::iota(u.begin(),u.end(),1.0);
+
+  utl::matrix<Scalar> C(A), D;
+  C.scale(u);
+  D.multiply(A,I.diag(u));
+
+  REQUIRE(C.rows() == D.rows());
+  REQUIRE(C.cols() == D.cols());
+  for (size_t i = 1; i <= C.rows(); ++i)
+    for (size_t j = 1; j <= D.cols(); ++j)
+      REQUIRE_THAT(C(i,j), WithinRel(D(i,j)));
 }
 
 

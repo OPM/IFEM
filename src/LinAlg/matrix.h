@@ -735,6 +735,35 @@ namespace utl //! General utility classes and functions.
         this->elem[r+nrow*r] = d;
       return *this;
     }
+    //! \brief Create a diagonal matrix.
+    matrix<T>& diag(const T* d, size_t dim = 0)
+    {
+      if (dim > 0)
+        this->resize(dim,dim,true);
+      else
+        this->resize(nrow,ncol,true);
+      for (size_t r = 0; r < nrow && r < ncol; r++)
+        this->elem[r+nrow*r] = d[r];
+      return *this;
+    }
+    //! \brief Create a diagonal matrix.
+    matrix<T>& diag(const std::vector<T>& d)
+    {
+      if (d.empty())
+        this->clear();
+      else
+        this->diag(d.data(), d.size());
+      return *this;
+    }
+
+    //! \brief Scale the columns of a matrix.
+    //! \details This is equivalent to post-multiplying with a diagonal matrix.
+    matrix<T>& scale(const T* d, size_t dim);
+    //! \brief Scale the columns of a matrix.
+    matrix<T>& scale(const std::vector<T>& d)
+    {
+      return this->scale(d.data(), d.size());
+    }
 
     //! \brief Replace the current matrix by its transpose.
     matrix<T>& transpose()
@@ -1202,6 +1231,22 @@ namespace utl //! General utility classes and functions.
   }
 
   template<> inline
+  matrix<float>& matrix<float>::scale(const float* d, size_t dim)
+  {
+    for (size_t c = 0; c < dim && c < ncol; c++)
+      cblas_sscal(nrow,d[c],this->ptr(c),1);
+    return *this;
+  }
+
+  template<> inline
+  matrix<double>& matrix<double>::scale(const double* d, size_t dim)
+  {
+    for (size_t c = 0; c < dim && c < ncol; c++)
+      cblas_dscal(nrow,d[c],this->ptr(c),1);
+    return *this;
+  }
+
+  template<> inline
   bool matrix<float>::multiply(const std::vector<float>& X,
                                std::vector<float>& Y,
                                bool transA, char addTo) const
@@ -1608,6 +1653,15 @@ namespace utl //! General utility classes and functions.
   {
     for (T& x : this->elem)
       x *= c;
+    return *this;
+  }
+
+  template<class T> inline
+  matrix<T>& matrix<T>::scale(const T* d, size_t dim)
+  {
+    for (size_t c = 0; c < dim && c < ncol; c++)
+      for (size_t r = 0; r < nrow; r++)
+        this->elem[r+nrow*c] *= d[c];
     return *this;
   }
 
