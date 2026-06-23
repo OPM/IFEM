@@ -1646,7 +1646,6 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
   }
 
   // Multi-patch models need to pass refinement indices over patch boundaries
-  std::vector<LR::RefineData> prmloc(myModel.size(),LR::RefineData(prm));
   std::vector<IntSet> refineIndices(myModel.size());
   std::vector<IntSet> conformingIndices(myModel.size());
   bool changed = !this->getPatch(1)->isShared();
@@ -1708,7 +1707,12 @@ bool SIMinput::refine (const LR::RefineData& prm, Vectors& sol)
     }
 
     for (size_t i = 0; i < pch.size(); i++)
+    {
+      const size_t n0 = refineIndices[i].size();
       pch[i]->extendRefinementDomain(refineIndices[i],conformingIndices[i]);
+      if (refineIndices[i].size() > n0)
+        changed = true;
+    }
   }
 
   Vectors lsols;
