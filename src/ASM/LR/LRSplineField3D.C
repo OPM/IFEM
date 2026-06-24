@@ -18,6 +18,7 @@
 
 #include "ASMu3D.h"
 #include "ItgPoint.h"
+#include "SplineUtils.h"
 #include "Vec3.h"
 
 
@@ -71,7 +72,7 @@ double LRSplineField3D::valueFE (const ItgPoint& x) const
   // Evaluate the basis functions at the given point
   int iel = basis->getElementContaining(x.u,x.v,x.w);
   auto elm = basis->getElement(iel);
-  Go::BasisPts spline;
+  GoBasisPtsVol spline;
   basis->computeBasis(x.u,x.v,x.w,spline,iel);
 
   Vector Vnod;

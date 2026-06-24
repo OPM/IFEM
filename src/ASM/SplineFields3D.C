@@ -89,7 +89,7 @@ bool SplineFields3D::valueFE (const ItgPoint& x, Vector& vals) const
   if (!basis) return false;
 
   // Evaluate the basis functions at the given point
-  Go::BasisPts spline;
+  GoBasisPtsVol spline;
 #pragma omp critical
   basis->computeBasis(x.u,x.v,x.w,spline);
 

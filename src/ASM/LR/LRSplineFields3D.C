@@ -15,6 +15,7 @@
 
 #include "LRSplineFields3D.h"
 #include "LRSplineField.h"
+#include "SplineUtils.h"
 
 #include "ASMu3D.h"
 #include "ItgPoint.h"
@@ -81,7 +82,7 @@ bool LRSplineFields3D::valueFE (const ItgPoint& x, Vector& vals) const
   int iel = basis->getElementContaining(x.u,x.v,x.w);
   auto elm = basis->getElement(iel);
 
-  Go::BasisPts spline;
+  GoBasisPtsVol spline;
   basis->computeBasis(x.u,x.v,x.w,spline,iel);
 
   // Evaluate the solution field at the given point

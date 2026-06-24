@@ -25,13 +25,30 @@ namespace Go {
   struct BasisDerivsSf;
   struct BasisDerivsSf2;
   struct BasisDerivsSf3;
+#if GoTools_VERSION_MAJOR > 4
+  struct BasisDerivsVol;
+  struct BasisDerivsVol2;
+  struct BasisPtsVol;
+#else
   struct BasisDerivs;
   struct BasisDerivs2;
+  struct BasisPts;
+#endif
   class BsplineBasis;
   class SplineCurve;
   class SplineSurface;
   class SplineVolume;
 }
+
+#if GoTools_VERSION_MAJOR > 4
+using GoBasisPtsVol = Go::BasisPtsVol; //!< Forward for new version
+using GoBasisDerivsVol = Go::BasisDerivsVol; //!< Forward for new version
+using GoBasisDerivsVol2 = Go::BasisDerivsVol2; //!< Forward for new version
+#else
+using GoBasisPtsVol = Go::BasisPts; //!< Type alias for old version
+using GoBasisDerivsVol = Go::BasisDerivs; //!< Type alias for old version
+using GoBasisDerivsVol2 = Go::BasisDerivs2; //!< Type alias for old version
+#endif
 
 
 namespace SplineUtils //! Various utility functions on spline objects.
@@ -62,10 +79,10 @@ namespace SplineUtils //! Various utility functions on spline objects.
                     Matrix3D& d2Ndu2, Matrix4D& d3Ndu3);
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
-  void extractBasis(const Go::BasisDerivs& spline,
+  void extractBasis(const GoBasisDerivsVol& spline,
                     Vector& N, Matrix& dNdu);
   //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
-  void extractBasis(const Go::BasisDerivs2& spline,
+  void extractBasis(const GoBasisDerivsVol2& spline,
                     Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
   //! \brief Extracts parameter values of the Gauss points for a spline basis.
