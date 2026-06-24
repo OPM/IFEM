@@ -66,6 +66,7 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   nel = nnod = 0;
   idx = 0;
   firstEl = firstIp = 0;
+  switchOffMT = false;
   myElActive = nullptr;
   active = true;
 }
@@ -87,6 +88,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   idx = patch.idx;
   firstEl = patch.firstEl;
   firstIp = patch.firstIp;
+  switchOffMT = patch.switchOffMT;
   // Note: Properties are _not_ copied
   myElActive = nullptr; // Element activation function is not copied
   active = true;
@@ -106,6 +108,7 @@ ASMbase::ASMbase (const ASMbase& patch)
   idx = patch.idx;
   firstEl = patch.firstEl;
   firstIp = patch.firstIp;
+  switchOffMT = patch.switchOffMT;
 
   // Only copy the regular part of the FE data, leave out any extraordinaries
 
@@ -189,6 +192,7 @@ void ASMbase::clear (bool retainGeometry)
   mpcs.clear();
 
   myActiveEls = nullptr;
+  switchOffMT = false;
 }
 
 
@@ -798,7 +802,10 @@ bool ASMbase::selfInterconnect (const std::vector<Ipair>& nodes, double xtol)
   for (const Ipair& np : nodes)
     if (xtol < 0.0 ||
         this->getCoord(np.first).equal(this->getCoord(np.second),xtol))
+    {
       ASMbase::collapseNodes(*this,np.first,*this,np.second);
+      switchOffMT = true;
+    }
     else if (++nonMatching <= 20)
       std::cerr <<" *** ASMbase::selfInterconnect: Non-matching nodes "
                 << np.first <<": "<< this->getCoord(np.first)

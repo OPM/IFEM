@@ -39,6 +39,9 @@
 #ifdef SP_DEBUG
 #include <cassert>
 #endif
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 bool SIMbase::preserveNOrder  = false;
@@ -1231,6 +1234,38 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 {
   PROFILE1("Element assembly");
 
+  // Helper struct to switch off multi-threading for problematic patches.
+  struct ThreadGuard
+  {
+#ifdef USE_OPENMP
+    ASMbase* patch;
+    int my_threads;
+
+    ThreadGuard(ASMbase* pch) : patch(pch), my_threads(1)
+    {
+      if (int max_threads = omp_get_max_threads(); max_threads > 1)
+        if (pch->noThreads())
+        {
+          // Switch off multi-threading during assembly for this patch
+          patch = pch;
+          my_threads = max_threads;
+          omp_set_num_threads(1);
+          patch->changeNumThreads();
+        }
+    }
+    ~ThreadGuard()
+    {
+      if (my_threads > 1)
+      {
+        omp_set_num_threads(my_threads);
+        patch->changeNumThreads();
+      }
+    }
+#else
+    ThreadGuard(ASMbase*) {}
+#endif
+  };
+
   // Lambda function for assembling the interior terms for a given patch
   auto&& assembleInterior = [this,time,prevSol](IntegrandBase* integrand,
                                                 GlobalIntegral& integral,
@@ -1265,6 +1300,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 
     if (mySol)
       mySol->initPatch(pch->idx);
+
+    ThreadGuard guard(pch);
 
 #if SP_DEBUG > 2
     integrand->printSolution(std::cout,pch->idx+1);
@@ -1390,6 +1427,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
                            << p->lindx%10 <<" on P"<< pch->idx+1 << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
+              ThreadGuard guard(pch);
               ok &= pch->integrate(*it->second,p->lindx,sysQ,time);
               lp = p->patch;
             }
@@ -1406,6 +1444,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
                            << (int)p->lindx <<" on P"<< pch->idx+1 << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
+              ThreadGuard guard(pch);
               ok &= pch->integrateEdge(*it->second,p->lindx,sysQ,time);
               lp = p->patch;
             }

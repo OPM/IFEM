@@ -537,6 +537,8 @@ public:
 
   //! \brief Hook for changing number of threads.
   virtual void changeNumThreads() {}
+  //! \brief Flags whether multi-threading should be disabled or not.
+  bool noThreads() const { return switchOffMT; }
 
 
   // Methods for integration of finite element quantities.
@@ -1110,6 +1112,8 @@ private:
   IntVec* myActiveEls; //!< List of active elements during element assembly
   mutable bool active; //!< If \e true, the patch is currently active
   static IntVec Empty; //!< Empty integer vector used when a reference is needed
+
+  bool switchOffMT; //!< If \e true, disable multi-threading for this patch
 
 protected:
   using XYZ = std::array<double,3>; //!< Convenience type definition
