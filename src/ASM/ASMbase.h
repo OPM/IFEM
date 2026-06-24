@@ -1019,7 +1019,8 @@ public:
   //! \brief Connects a list of node pairs to each other.
   //! \param[in] nodes List of node number pairs that should share common DOFs.
   //! \param[in] xtol Coordinate tolerance for matching nodes
-  bool selfInterconnect(const std::vector<Ipair>& nodes, double xtol = 1.0e-8);
+  virtual bool selfInterconnect(const std::vector<Ipair>& nodes,
+                                double xtol = 1.0e-8);
 
 protected:
   //! \brief Returns \e true if \a dirs constains all local DOFs in the patch.

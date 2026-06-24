@@ -40,22 +40,18 @@ class ASMs2D : public ASMstruct, public ASM2D
   //! \brief Struct for nodal point data.
   struct IJ
   {
-    int I; //!< Index in first parameter direction
-    int J; //!< Index in second parameter direction
+    int I = 0; //!< Index in first parameter direction
+    int J = 0; //!< Index in second parameter direction
   };
 
-  typedef std::vector<IJ> IndexVec; //!< Node index container
+  using IndexVec = std::vector<IJ>; //!< Node index container
 
   //! \brief Struct for edge node definitions.
   struct Edge
   {
-    int icnod; //!< Global node number of first interior point along the edge
-    int incr;  //!< Increment in the global numbering along the edge
-
-    //! \brief Default constructor.
-    Edge() { icnod = incr = 0; }
-    //! \brief Returns \a icnod which then is incremented.
-    int next();
+    int icnod = 0; //!< Global node number of first interior point along edge
+    int incr  = 0; //!< Increment in the global numbering along the edge
+    int next();    //!< Returns \ref icnod which then is incremented
   };
 
 protected:
@@ -64,16 +60,13 @@ protected:
   {
   public:
     //! \brief The constructor initializes the class.
-    //! \param pch Patch the cache is for
+    //! \param[in] pch Patch the cache is for
     BasisFunctionCache(const ASMs2D& pch);
 
     //! \brief Constructor reusing quadrature info from another instance.
-    //! \param cache Instance holding quadrature information
-    //! \param b Basis to use
+    //! \param[in] cache Instance holding quadrature information
+    //! \param[in] b Basis to use
     BasisFunctionCache(const BasisFunctionCache& cache, int b);
-
-    //! \brief Empty destructor.
-    virtual ~BasisFunctionCache() = default;
 
     //! \brief Returns number of elements in each direction.
     const std::array<size_t,2>& noElms() const { return nel; }
@@ -83,24 +76,25 @@ protected:
     bool internalInit() override;
 
     //! \brief Calculates basis function info in a single integration point.
-    //! \param el Element of integration point (0-indexed)
-    //! \param gp Integration point on element (0-indexed)
-    //! \param reduced If true, returns values for reduced integration scheme
-    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+    //! \param[in] el Element of integration point (0-indexed)
+    //! \param[in] gp Integration point on element (0-indexed)
+    //! \param[in] reduced If \e true, calculate for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t el, size_t gp,
+                                  bool reduced) const override;
 
     //! \brief Calculates basis function info in all integration points.
     void calculateAll() override;
 
-    //! \brief Obtain global integration point index.
-    //! \param el Element of integration point (0-indexed)
-    //! \param gp Integration point on element (0-indexed)
-    //! \param reduced True to return index for reduced quadrature
+    //! \brief Returns global integration point index.
+    //! \param[in] el Element of integration point (0-indexed)
+    //! \param[in] gp Integration point on element (0-indexed)
+    //! \param[in] reduced If \e true, return index for reduced quadrature
     size_t index(size_t el, size_t gp, bool reduced) const override;
 
-    //! \brief Setup integration point parameters.
+    //! \brief Sets up the integration point parameters.
     virtual void setupParameters();
 
-    //! \brief Configure quadratures.
+    //! \brief Configures the quadratures.
     bool setupQuadrature();
 
     const ASMs2D& patch; //!< Reference to patch cache is for
@@ -108,8 +102,8 @@ protected:
     std::array<size_t,2> nel{}; //!< Number of elements in each direction
 
   private:
-    //! \brief Obtain structured element indices.
-    //! \param el Global element index
+    //! \brief Returns structured element indices for an element.
+    //! \param[in] el Global index of element to get structured indices for
     std::array<size_t,2> elmIndex(size_t el) const;
   };
 
@@ -118,7 +112,7 @@ public:
   struct BlockNodes
   {
     int  ibnod[4]; //!< Vertex nodes
-    Edge edges[4]; //!< Edge nodes
+    Edge edges[4]; //!< %Edge nodes
     int  iinod;    //!< Global node number of the first interior node
     int  inc[2];   //!< Increment in global node numbering in each direction
     int  nnodI;    //!< Number of nodes in parameter direction I
@@ -136,8 +130,6 @@ public:
   };
 
 private:
-  typedef std::pair<int,int> Ipair; //!< Convenience type
-
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletEdge
   {
@@ -160,8 +152,6 @@ public:
   public:
     //! \brief The constructor initialises the reference to current patch.
     explicit InterfaceChecker(const ASMs2D& pch) : myPatch(pch) {}
-    //! \brief Empty destructor.
-    virtual ~InterfaceChecker() {}
     //! \brief Returns non-zero if the specified element have contributions.
     //! \param[in] I Index in first parameter direction of the element
     //! \param[in] J Index in second parameter direction of the element
@@ -186,6 +176,7 @@ public:
   virtual const Go::SplineSurface* getBasis(int basis = 1) const;
   //! \brief Copies the parameter domain from the \a other patch.
   virtual void copyParameterDomain(const ASMbase* other);
+
 
   // Methods for model generation
   // ============================
@@ -397,8 +388,12 @@ public:
   //! \param[in] tangent If \e true, use time-derivatives of prescribed values
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
-                               const std::map<int,int>* g2l = nullptr,
-                               bool tangent = false);
+                               const std::map<int,int>* g2l, bool tangent);
+
+  //! \brief Connects a list of node pairs to each other.
+  //! \param[in] nodes List of node number pairs that should share common DOFs.
+  //! \param[in] xtol Coordinate tolerance for matching nodes
+  virtual bool selfInterconnect(const std::vector<Ipair>& nodes, double xtol);
 
 
   // Methods for integration of finite element quantities.
@@ -425,8 +420,9 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] iChk Object checking if an element interface has contributions
-  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-                         const TimeDomain& time, const ASM::InterfaceChecker& iChk);
+  virtual bool integrate(Integrand& integrand,
+                         GlobalIntegral& glbInt, const TimeDomain& time,
+                         const ASM::InterfaceChecker& iChk);
 
 protected:
   //! \brief Evaluates an integral over the interior patch domain.

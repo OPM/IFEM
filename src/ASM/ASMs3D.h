@@ -40,38 +40,30 @@ class ASMs3D : public ASMstruct, public ASM3D
   //! \brief Struct for nodal point data.
   struct IJK
   {
-    int I; //!< Index in first parameter direction
-    int J; //!< Index in second parameter direction
-    int K; //!< Index in third parameter direction
+    int I = 0; //!< Index in first parameter direction
+    int J = 0; //!< Index in second parameter direction
+    int K = 0; //!< Index in third parameter direction
   };
 
-  typedef std::vector<IJK> IndexVec; //!< Node index container
+  using IndexVec = std::vector<IJK> ; //!< Node index container
 
   //! \brief Struct for edge node definitions.
   struct Edge
   {
-    int icnod; //!< Global node number of first interior point along the edge
-    int incr;  //!< Increment in the global numbering along the edge
-
-    //! \brief Default constructor.
-    Edge() { icnod = incr = 0; }
-    //! \brief Returns \a icnod which then is incremented.
-    int next();
+    int icnod = 0; //!< Global node number of first interior point along edge
+    int incr  = 0; //!< Increment in the global numbering along the edge
+    int next();    //!< Returns \ref icnod which then is incremented.
   };
 
   //! \brief Struct for face node definitions.
   struct Face
   {
-    int isnod; //!< Global node number of the first interior point on the face
-    int incrI; //!< Increment in global numbering in the I-direction on the face
-    int incrJ; //!< Increment in global numbering in the J-direction on the face
-    int nnodI; //!< Number of nodes in the local I-direction on the face
-    int indxI; //!< Running node index in the local I-direction
-
-    //! \brief Default constructor.
-    Face() { isnod = incrI = incrJ = nnodI = 0; indxI = 1; }
-    //! \brief Returns \a isnod which then is incremented.
-    int next();
+    int isnod = 0; //!< Global node number of the first interior point on face
+    int incrI = 0; //!< Increment in global numbering in the I-direction on face
+    int incrJ = 0; //!< Increment in global numbering in the J-direction on face
+    int nnodI = 0; //!< Number of nodes in the local I-direction on face
+    int indxI = 1; //!< Running node index in the local I-direction
+    int next();    //!< Returns \ref isnod which then is incremented.
   };
 
 protected:
@@ -80,16 +72,13 @@ protected:
   {
   public:
     //! \brief The constructor initializes the class.
-    //! \param pch Patch the cache is for
+    //! \param[in] pch Patch the cache is for
     BasisFunctionCache(const ASMs3D& pch);
 
     //! \brief Constructor reusing quadrature info from another instance.
-    //! \param cache Instance holding quadrature information
-    //! \param b Basis to use
+    //! \param[in] cache Instance holding quadrature information
+    //! \param[in] b Basis to use
     BasisFunctionCache(const BasisFunctionCache& cache, int b);
-
-    //! \brief Empty destructor.
-    virtual ~BasisFunctionCache() = default;
 
     //! \brief Returns number of elements in each direction.
     const std::array<size_t,3>& noElms() const { return nel; }
@@ -99,24 +88,25 @@ protected:
     bool internalInit() override;
 
     //! \brief Calculates basis function info in a single integration point.
-    //! \param el Element of integration point (0-indexed)
-    //! \param gp Integration point on element (0-indexed)
-    //! \param reduced If true, returns values for reduced integration scheme
-    BasisFunctionVals calculatePt(size_t el, size_t gp, bool reduced) const override;
+    //! \param[in] el Element of integration point (0-indexed)
+    //! \param[in] gp Integration point on element (0-indexed)
+    //! \param[in] reduced If \e true, calculate for reduced integration scheme
+    BasisFunctionVals calculatePt(size_t el, size_t gp,
+                                  bool reduced) const override;
 
     //! \brief Calculates basis function info in all integration points.
     void calculateAll() override;
 
-    //! \brief Obtain global integration point index.
-    //! \param el Element of integration point (0-indexed)
-    //! \param gp Integration point on element (0-indexed)
-    //! \param reduced True to return index for reduced quadrature
+    //! \brief Returns global integration point index.
+    //! \param[in] el Element of integration point (0-indexed)
+    //! \param[in] gp Integration point on element (0-indexed)
+    //! \param[in] reduced If \e true, return index for reduced quadrature
     size_t index(size_t el, size_t gp, bool reduced) const override;
 
-    //! \brief Setup integration point parameters.
+    //! \brief Sets up integration point parameters.
     virtual void setupParameters();
 
-    //! \brief Configure quadratures.
+    //! \brief Configures the quadratures.
     bool setupQuadrature();
 
     const ASMs3D& patch; //!< Reference to patch cache is for
@@ -124,8 +114,8 @@ protected:
     std::array<size_t,3> nel{}; //!< Number of elements in each direction
 
   private:
-    //! \brief Obtain structured element indices.
-    //! \param el Global element index
+    //! \brief Returns structured element indices for an element.
+    //! \param[in] el Global index of element to get structured indices for
     std::array<size_t,3> elmIndex(size_t el) const;
   };
 
@@ -134,8 +124,8 @@ public:
   struct BlockNodes
   {
     int  ibnod[8];  //!< Vertex nodes
-    Edge edges[12]; //!< Edge nodes
-    Face faces[6];  //!< Face nodes
+    Edge edges[12]; //!< %Edge nodes
+    Face faces[6];  //!< %Face nodes
     int  iinod;     //!< Global node number of the first interior node
     int  inc[3];    //!< Increment in global node numbering in each direction
     int  nnodI;     //!< Number of nodes in parameter direction I
@@ -155,8 +145,6 @@ public:
   };
 
 private:
-  typedef std::pair<int,int> Ipair; //!< Convenience type
-
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletFace
   {
@@ -179,8 +167,6 @@ public:
   public:
     //! \brief The constructor initialises the reference to current patch.
     explicit InterfaceChecker(const ASMs3D& pch) : myPatch(pch) {}
-    //! \brief Empty destructor.
-    virtual ~InterfaceChecker() {}
     //! \brief Returns non-zero if the specified element have contributions.
     //! \param[in] I Index in first parameter direction of the element
     //! \param[in] J Index in second parameter direction of the element
@@ -194,8 +180,6 @@ public:
   ASMs3D(const ASMs3D& patch, unsigned char n_f);
   //! \brief Default copy constructor copying everything.
   ASMs3D(const ASMs3D& patch);
-  //! \brief Empty destructor.
-  virtual ~ASMs3D() {}
 
   //! \brief Returns the spline surface representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
@@ -206,6 +190,7 @@ public:
   virtual const Go::SplineVolume* getBasis(int basis = 1) const;
   //! \brief Copies the parameter domain from the \a other patch.
   virtual void copyParameterDomain(const ASMbase* other);
+
 
   // Methods for model generation
   // ============================
@@ -463,8 +448,12 @@ public:
   //! \param[in] tangent If \e true, use time-derivatives of prescribed values
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
-                               const std::map<int,int>* g2l = nullptr,
-                               bool tangent = false);
+                               const std::map<int,int>* g2l, bool tangent);
+
+  //! \brief Connects a list of node pairs to each other.
+  //! \param[in] nodes List of node number pairs that should share common DOFs.
+  //! \param[in] xtol Coordinate tolerance for matching nodes
+  virtual bool selfInterconnect(const std::vector<Ipair>& nodes, double xtol);
 
 
   // Methods for integration of finite element quantities.
@@ -907,7 +896,7 @@ private:
   //! \param[out] n1 Number of nodes in first local parameter direction on face
   //! \param[out] n2 Number of nodes in second local parameter direction face
   //! \param[in] basis Basis to obtain sizes for
-  //! \param[in] face Face to obtain sizes for
+  //! \param[in] face %Face to obtain sizes for
   bool getFaceSize(int& n1, int& n2, int basis, int face) const;
 
   //! \brief Creates matrix of nodal point correspondance for a spline surface.

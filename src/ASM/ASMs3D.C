@@ -1454,8 +1454,7 @@ void ASMs3D::setNodeNumbers (const IntVec& nodes)
 
 bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
-                              const std::map<int,int>* g2l,
-                              bool tangent)
+                              const std::map<int,int>* g2l, bool tangent)
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
@@ -1511,6 +1510,19 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
   // The parent class method takes care of the corner nodes with direct
   // evaluation of the Dirichlet functions (since they are interpolatory)
   return this->ASMbase::updateDirichlet(func,vfunc,time,g2l,tangent);
+}
+
+
+bool ASMs3D::selfInterconnect (const std::vector<Ipair>& nodes, double xtol)
+{
+  if (threadGroupsVol.stripDir != ThreadGroups::NONE)
+    IFEM::cout <<"  ** ASMs3D::selfInterconnect: Multi-threading deactivated"
+               <<" for Patch "<< idx+1 << std::endl;
+  threadGroupsVol.stripDir = ThreadGroups::NONE;
+  for (std::pair<const char,ThreadGroups>& group : threadGroupsFace)
+    group.second.stripDir = ThreadGroups::NONE;
+
+  return this->ASMstruct::selfInterconnect(nodes,xtol);
 }
 
 
