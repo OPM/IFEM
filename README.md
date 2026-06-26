@@ -65,7 +65,7 @@ A number of things need to be set up properly to build the IFEM library:
 
 3. Install required official libraries
 
-       sudo apt-get install libboost-dev libarpack2-dev libsuperlu-dev catch2 libtinyxml2-dev
+       sudo apt-get install libboost-dev libarpack2-dev libsuperlu-dev libtinyxml2-dev
 
 4. Install required in-house GoTools libraries by typing
 
@@ -74,34 +74,38 @@ A number of things need to be set up properly to build the IFEM library:
    There are a number of other GoTools libraries available also, but
    the two above are the only ones required to build IFEM simulators.
 
-5. **[optional]** Install PETSc from the official web page
+5. **[optional]** Install the Catch2 package for building the unit tests
+
+       sudo apt-get install catch2
+
+6. **[optional]** Install PETSc from the official web page
    https://petsc.org/release/install/download
 
-6. **[optional]** Install UMFPACK direct solver
+7. **[optional]** Install UMFPACK direct solver
 
        sudo apt-get install libsuitesparse-dev
 
-7. **[optional]** Install LR-splines by typing
+8. **[optional]** Install LR-splines by typing
 
        sudo apt-get install liblrspline1-dev
 
-8. **[optional]** Install support for HDF5 output typing (one or both commands,
+9. **[optional]** Install support for HDF5 output typing (one or both commands,
    the second one is needed only if you want to build parallel applications)
 
        sudo apt-get install libhdf5-serial-dev
        sudo apt-get install libhdf5-openmpi-dev
 
-9. **[optional]** Install support for [de]serialization of simulator state.
-   This package is needed if you want to equip your simulator with restart
-   capabilities. Install it by typing
+10. **[optional]** Install support for [de]serialization of simulator state.
+    This package is needed if you want to equip your simulator with restart
+    capabilities. Install it by typing
 
-       sudo apt-get install libcereal-dev
+        sudo apt-get install libcereal-dev
 
-10. **[optional]** Install the Ceetron VTFAPI library.
-   This is proprietary software that cannot be shared openly.  
-   Send email to Trond.Kvamsdal@sintef.no and ask for them.
-   This library enables direct export of simulations results to VTF-files
-   for visualization in the proprietary GLview Inova software.
+11. **[optional]** Install the Ceetron VTFAPI library.
+    This is proprietary software that cannot be shared openly.
+    Send email to Trond.Kvamsdal@sintef.no and ask for them.
+    This library enables direct export of simulations results to VTF-files
+    for visualization in the proprietary GLview Inova software.
 
 ## Getting the code
 
@@ -120,8 +124,8 @@ Navigate to the root folder of IFEM source, here denoted by `<IFEM root>`. Then
 
 where `<IFEM-options>` is an optional list of sub-modules
 you may choose to activate or deactivate in your build.
-See the file `<IFEM root>/cmake/Modules/IFEMOptions.cmake` for a complete list
-of available options and their default setting.
+See the file [IFEMOptions.cmake](cmake/IFEMOptions.cmake)
+for a complete list of available options and their default setting.
 
 This will build the libraries which can be found in the `Debug/lib` sub-folder.
 Change all instances of `Debug` with `Release` to drop debug-symbols,
