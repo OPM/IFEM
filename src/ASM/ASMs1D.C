@@ -1388,6 +1388,23 @@ int ASMs1D::findElementContaining (const double* param) const
 }
 
 
+
+size_t ASMs1D::getNoViz (const int* npe) const
+{
+  if (!curv || !npe || npe[0] < 1)
+    return 0;
+
+  int n = curv->numCoefs();
+  int p = curv->order()-1;
+  size_t npt = 1;
+  for (int i = p; i < n; i++)
+    if (this->getKnotSpan(i) > 0.0)
+      npt += npe[0]-1;
+
+  return npt;
+}
+
+
 bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
 {
   if (!curv) return false;

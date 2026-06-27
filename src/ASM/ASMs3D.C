@@ -858,7 +858,7 @@ bool ASMs3D::collapseFace (int face, int edge, int basis)
   if (swapW && face > 4) // Account for swapped parameter direction
     face = 11-face;
 
-  // Lambda function to verify co-location of nodes and collapse them
+  // Lambda function to verify co-location of nodes and collapse them.
   auto&& collapse = [this](int master, int slave)
   {
     const double xtol = 1.0e-4;
@@ -3046,6 +3046,30 @@ double ASMs3D::findPoint (Vec3& X, double* param) const
 }
 
 
+size_t ASMs3D::getNoViz (const int* npe) const
+{
+  if (!svol || !npe)
+    return 0;
+
+  size_t nvp = 1;
+  for (int d = 0; d < 3; d++)
+  {
+    if (npe[d] < 1)
+      return 0;
+
+    int n = svol->numCoefs(d);
+    int p = svol->order(d)-1;
+    size_t npt = 1;
+    for (int i = p; i < n; i++)
+      if (svol->knotSpan(d,i) > 0.0)
+        npt += npe[d]-1;
+    nvp *= npt;
+  }
+
+  return nvp;
+}
+
+
 bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!svol) return false;
@@ -3490,13 +3514,13 @@ void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence,
       const int n1 = prj->numCoefs(0);
       const int n2 = prj->numCoefs(1);
       const int n3 = prj->numCoefs(2);
-      const int p1 = prj->order(0);
-      const int p2 = prj->order(1);
-      const int p3 = prj->order(2);
-      const int nelp = (n1-p1+1)*(n2-p2+1)*(n3-p3+1);
-      proj2ThreadGroups.oneGroup(nelp);
+      const int p1 = prj->order(0) - 1;
+      const int p2 = prj->order(1) - 1;
+      const int p3 = prj->order(2) - 1;
+      proj2ThreadGroups.oneGroup((n1-p1)*(n2-p2)*(n3-p3));
     }
-  } else
+  }
+  else
     this->generateThreadGroups(svol->order(0)-1, svol->order(1)-1,
                                svol->order(2)-1, silence, ignoreGlobalLM);
 }
@@ -3505,12 +3529,9 @@ void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence,
 void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
                                    bool silence, bool ignoreGlobalLM)
 {
-  //! \brief Lamda for setting up thread groups for a basis.
-  auto&& genThreadGroups = [](ThreadGroups& tg,
-                              const Go::SplineVolume* svol,
-                              const size_t strip1,
-                              const size_t strip2,
-                              const size_t strip3)
+  // Lambda function for setting up thread groups for a basis.
+  auto&& genThreadGroups = [](ThreadGroups& tg, const Go::SplineVolume* svol,
+                              int strip1 = 0, int strip2 = 0, int strip3 = 0)
   {
     const int p1 = svol->order(0) - 1;
     const int p2 = svol->order(1) - 1;
@@ -3532,22 +3553,19 @@ void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
     for (ii = p3; ii < n3; ii++)
       el3.push_back(svol->knotSpan(2,ii) > 0.0);
 
-    tg.calcGroups(el1,el2,el3,strip1,strip2,strip3);
+    tg.calcGroups(el1, el2, el3,
+                  strip1 > 0 ? strip1 : p1,
+                  strip2 > 0 ? strip2 : p2,
+                  strip3 > 0 ? strip3 : p3);
   };
 
   genThreadGroups(threadGroupsVol, svol.get(), strip1, strip2, strip3);
-  if (this->separateProjectionBasis()) {
-    const Go::SplineVolume* vol = this->getBasis(ASM::PROJECTION_BASIS);
-    genThreadGroups(projThreadGroups, vol,
-                    vol->order(0)-1, vol->order(1)-1, vol->order(2)-1);
-  } else {
+  if (this->separateProjectionBasis())
+    genThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
+  else
     projThreadGroups = threadGroupsVol;
-  }
-  if (this->getBasis(ASM::PROJECTION_BASIS_2)) {
-    const Go::SplineVolume* vol = this->getBasis(ASM::PROJECTION_BASIS_2);
-    genThreadGroups(proj2ThreadGroups, vol,
-                    vol->order(0)-1, vol->order(1)-1, vol->order(2)-1);
-  }
+  if (this->getBasis(ASM::PROJECTION_BASIS_2))
+    genThreadGroups(proj2ThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
   if (silence || threadGroupsVol.size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";

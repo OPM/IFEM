@@ -457,6 +457,10 @@ public:
   //! \return Distance from the point \a X to the found point
   virtual double findPoint(Vec3& X, double* param) const;
 
+  //! \brief Returns the total number of visualization points for this patch.
+  //! \param[in] npe Number of visualization nodes over each knot span
+  virtual size_t getNoViz(const int* npe) const;
+
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1)

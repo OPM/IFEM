@@ -233,6 +233,10 @@ public:
   //! \return Distance from the point \a X to the found point
   virtual double findPoint(Vec3& X, double* param) const;
 
+  //! \brief Returns the total number of visualization points for this patch.
+  //! \param[in] npe Number of visualization nodes over each knot span
+  virtual size_t getNoViz(const int* npe) const;
+
   //! \brief Creates a line element model of this patch for visualization.
   //! \param[out] grid The generated line grid
   //! \param[in] npe Number of visualization nodes over each knot span

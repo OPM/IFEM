@@ -2602,6 +2602,30 @@ double ASMs2D::findPoint (Vec3& X, double* param) const
 }
 
 
+size_t ASMs2D::getNoViz (const int* npe) const
+{
+  if (!surf || !npe)
+    return 0;
+
+  size_t nvp = 1;
+  for (int d = 0; d < 2; d++)
+  {
+    if (npe[d] < 1)
+      return 0;
+
+    int n = d == 0 ? surf->numCoefs_u() : surf->numCoefs_v();
+    int p = d == 0 ? surf->order_u()-1  : surf->order_v()-1;
+    size_t npt = 1;
+    for (int i = p; i < n; i++)
+      if (surf->knotSpan(d,i) > 0.0)
+        npt += npe[d]-1;
+    nvp *= npt;
+  }
+
+  return nvp;
+}
+
+
 bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
   if (!surf) return false;
@@ -3050,12 +3074,12 @@ void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence,
       const Go::SplineSurface* prj = this->getBasis(ASM::PROJECTION_BASIS_2);
       const int n1 = prj->numCoefs_u();
       const int n2 = prj->numCoefs_v();
-      const int p1 = prj->order_u();
-      const int p2 = prj->order_v();
-      const int nelp = (n1-p1+1)*(n2-p2+1);
-      proj2ThreadGroups.oneGroup(nelp);
+      const int p1 = prj->order_u() - 1;
+      const int p2 = prj->order_v() - 1;
+      proj2ThreadGroups.oneGroup((n1-p1)*(n2-p2));
     }
-  } else
+  }
+  else
     this->generateThreadGroups(surf->order_u()-1, surf->order_v()-1,
                                silence, ignoreGlobalLM);
 }
@@ -3063,11 +3087,9 @@ void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence,
 void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2,
                                    bool silence, bool ignoreGlobalLM)
 {
-  //! \brief Lamba for setting up thread groups for basis.
-  auto&& genThreadGroups = [](ThreadGroups& tg,
-                              const Go::SplineSurface* surf,
-                              const size_t strip1,
-                              const size_t strip2)
+  // Lambda function for setting up thread groups for basis.
+  auto&& genThreadGroups = [](ThreadGroups& tg, const Go::SplineSurface* surf,
+                              int strip1 = 0, int strip2 = 0)
   {
     const int n1 = surf->numCoefs_u();
     const int n2 = surf->numCoefs_v();
@@ -3084,20 +3106,16 @@ void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2,
     for (ii = p2; ii < n2; ii++)
       el2.push_back(surf->knotSpan(1,ii) > 0.0);
 
-    tg.calcGroups(el1,el2,strip1,strip2);
+    tg.calcGroups(el1, el2, strip1 > 0 ? strip1 : p1, strip2 > 0 ? strip2 : p2);
   };
 
   genThreadGroups(threadGroups, surf.get(), strip1, strip2);
-  if (this->separateProjectionBasis()) {
-    const Go::SplineSurface* srf = this->getBasis(ASM::PROJECTION_BASIS);
-    genThreadGroups(projThreadGroups, srf, srf->order_u()-1, srf->order_v()-1);
-  } else {
+  if (this->separateProjectionBasis())
+    genThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
+  else
     projThreadGroups = threadGroups;
-  }
-  if (this->getBasis(ASM::PROJECTION_BASIS_2)) {
-    const Go::SplineSurface* srf = this->getBasis(ASM::PROJECTION_BASIS_2);
-    genThreadGroups(proj2ThreadGroups, srf, srf->order_u()-1, srf->order_v()-1);
-  }
+  if (this->getBasis(ASM::PROJECTION_BASIS_2))
+    genThreadGroups(proj2ThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
   if (silence || threadGroups.size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
