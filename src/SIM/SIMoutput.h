@@ -346,6 +346,11 @@ protected:
   virtual bool writeAddFuncs(int& nBlock, int& idBlock, const Vector& psol,
                              int iStep, double time);
 
+  //! \brief Utility concatenating two matrices with the same number of rows.
+  //! \param A The matrix to be expanded
+  //! \param B The matrix to be augmented into matrix \b A
+  static bool augmentColumns(Matrix& A, Matrix& B);
+
 private:
   //! \brief Private helper to initialize patch for solution evaluation.
   bool initPatchForEvaluation(int patchNo) const;

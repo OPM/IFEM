@@ -802,28 +802,34 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 {
   if (!myVtf)
     return true;
-  if (mergeVtf && myModel.size() > 1)
-    return true; // not implemented for merged patches, ignore
 
+  // Find the last active patch at current time
+  size_t lastActive = 0;
+  if (mergeVtf)
+    for (const ASMbase* pch : myModel)
+      if (!pch->empty() && !pch->inActive())
+        lastActive = pch->idx;
+
+  Matrix singleField;
   Matrix field;
   std::array<IntVec,6> dID;
   std::array<int,6> flag{};
 
-  size_t j, n;
   int geomID = myGeomID;
   for (const ASMbase* pch : myModel)
   {
-    if (pch->empty())
-      continue; // skip empty patches
+    if (pch->empty() || pch->inActive())
+      continue; // skip empty and inactive patches
 
-    ++geomID;
+    if (lastActive == 0)
+      flag.fill(0);
+
     size_t nbc = pch->getNoFields(1);
     size_t nNod = pch->getNoNodes(1);
     Vector bc(nbc*nNod);
-    flag.fill(0);
-    ASMbase::BCVec::const_iterator bit;
-    for (bit = pch->begin_BC(); bit != pch->end_BC(); ++bit)
-      if ((n = pch->getNodeIndex(bit->node,true)) && n <= nNod)
+    for (ASMbase::BCVec::const_iterator bit = pch->begin_BC();
+         bit != pch->end_BC(); ++bit)
+      if (size_t n = pch->getNodeIndex(bit->node,true); n > 0 && n <= nNod)
       {
         size_t offs = nbc*(n-1);
         if (!bit->CX && nbc > 0) bc[offs]   = flag[0] = 1;
@@ -834,26 +840,52 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
         if (!bit->RZ && nbc > 5) bc[offs+5] = flag[5] = 1;
       }
 
-    if (std::accumulate(flag.begin(),flag.end(),0) == 0)
-      continue; // nothing on this patch
+    if (std::accumulate(flag.begin(),flag.end(),0) > 0)
+    {
+      if (msgLevel > 1)
+        IFEM::cout <<"Writing boundary conditions for patch "
+                   << pch->idx+1 << std::endl;
 
-    if (msgLevel > 1)
-      IFEM::cout <<"Writing boundary conditions for patch "
-                 << pch->idx+1 << std::endl;
+      if (!pch->evalSolution(field,bc,opt.nViz,nbc))
+        return false;
 
-    if (!pch->evalSolution(field,bc,opt.nViz,nbc))
-      return false;
+      if (lastActive > 0)
+      {
+        // We need to merge the data for all patches before writing them
+        if (!augmentColumns(singleField,field))
+          return false;
+        if (lastActive == pch->idx)
+          std::swap(field,singleField);
+        else
+          continue;
+      }
+    }
+    else if (lastActive == 0)
+    {
+      ++geomID; // no BCs on this patch
+      continue;
+    }
+    else
+    {
+      // No BCs on this patch, but pad result array with zeros
+      singleField.resize(nbc,singleField.cols()+pch->getNoViz(opt.nViz));
+      if (lastActive == pch->idx)
+        std::swap(field,singleField);
+      else
+        continue;
+    }
 
     if (opt.discretization >= ASM::Spline)
       // The BC field values should either be 0 or 1 but in case of extra
       // visualization points for Splines, the extra points get interpolated
       // values between 0 and 1. Reset these to 0 as they don't represent nodes.
-      for (j = 1; j <= 6; j++)
+      for (int j = 1; j <= 6; j++)
         if (flag[j-1])
-          for (n = 1; n <= field.cols(); n++)
+          for (size_t n = 1; n <= field.cols(); n++)
             if (field(j,n) < 0.9999) field(j,n) = 0.0;
 
-    for (j = 0; j < 6; j++)
+    ++geomID;
+    for (int j = 0; j < 6; j++)
       if (flag[j])
       {
         if (!myVtf->writeNres(field.getRow(1+j),++nBlock,geomID))
@@ -866,7 +898,7 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
     "fix_X", "fix_Y", "fix_Z", "fix_RX", "fix_RY", "fix_RZ"
   };
 
-  for (j = 0; j < 6; j++)
+  for (int j = 0; j < 6; j++)
     if (!dID[j].empty())
       if (!myVtf->writeSblk(dID[j],label[j],1+j,iStep))
         return false;
@@ -1133,10 +1165,8 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     if (lastActive > 0)
     {
       // We need to merge the results for all patches before writing them
-      if (singleField.empty())
-        std::swap(singleField,field);
-      else
-        singleField.augmentCols(field);
+      if (!augmentColumns(singleField,field))
+        return -99;
       if (lastActive == pch->idx)
         std::swap(field,singleField);
       else
@@ -1354,10 +1384,8 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
     if (lastActive > 0)
     {
       // We need to merge the results for all patches before writing them
-      if (singleField.empty())
-        std::swap(singleField,field);
-      else
-        singleField.augmentCols(field);
+      if (!augmentColumns(singleField,field))
+        return -99;
       if (lastActive == pch->idx)
         std::swap(field,singleField);
       else
@@ -1396,10 +1424,8 @@ int SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       if (lastActive > 0)
       {
         // We need to merge the results for all patches before writing them
-        if (projField.empty())
-          std::swap(projField,field);
-        else
-          projField.augmentCols(field);
+        if (!augmentColumns(projField,field))
+          return -99;
         if (lastActive == pch->idx)
           std::swap(field,projField);
       }
@@ -1576,10 +1602,8 @@ bool SIMoutput::writeGlvP (const RealArray& ssol, int iStep, int& nBlock,
     if (lastActive > 0)
     {
       // We need to merge the results for all patches before writing them
-      if (singleField.empty())
-        std::swap(singleField,field);
-      else
-        singleField.augmentCols(field);
+      if (!augmentColumns(singleField,field))
+        return false;
       if (lastActive == pch->idx)
         std::swap(field,singleField);
       else
@@ -2366,23 +2390,6 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   if (points.empty() && elms.empty() && !allElems)
     return true; // no points in this patch
 
-  // Lambda function augmenting two matrices with the same number of rows.
-  auto&& augment = [](Matrix& A, const Matrix& B)
-  {
-    if (B.empty())
-      return true;
-    else if (A.empty())
-      A = B;
-    else if (!A.augmentCols(B))
-    {
-      std::cerr <<" *** SIMoutput::evalResults: Incompatible matrices, rows(A)="
-                << A.rows() <<" rows(B)="<< B.rows() << std::endl;
-      return false;
-    }
-
-    return true;
-  };
-
   // Extract patch-level control/nodal point values of the primary solution
   Vector& patchSol = myProblem->getSolution();
   patch->extractNodalVec(psol.front(),patchSol,mySam->getMADOF(),-2);
@@ -2404,14 +2411,13 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   if (ok) // Compute application-specific primary solution quantities, if any
     myProblem->primaryScalarFields(tmp);
 
-  if (!ok || !augment(sol1,tmp))
-    return false;
-
-  const bool getNames = compNames && compNames->empty();
-
+  const bool getNames = ok && compNames && compNames->empty();
   if (getNames && !tmp.empty())
     for (size_t i = 0; i < myProblem->getNoFields(1); i++)
       compNames->push_back(myProblem->getField1Name(i));
+
+  if (ok)
+    ok = augmentColumns(sol1,tmp);
 
   if (psol.size() > 2 && (opt.discretization >= ASM::Spline || !points.empty()))
     // Extract nodal point velocity and acceleration
@@ -2423,7 +2429,8 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
         ok = patch->evalSolution(tmp,locVec,params.data(),false);
       else
         ok = patch->getSolution(tmp,locVec,points);
-      if (ok) ok = sol1.augmentRows(tmp);
+      if (ok)
+        ok = sol1.augmentRows(tmp);
       if (ok && getNames)
       {
         const char* velacc = idx == 1 ? "velocity" : "acceleration";
@@ -2447,7 +2454,7 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
   else // evaluate at specified elements
     ok = patch->evalSolution(tmp,*myProblem,elms);
 
-  if ((ok &= augment(sol2,tmp)) && getNames)
+  if ((ok &= augmentColumns(sol2,tmp)) && getNames)
     for (size_t i = 0; i < myProblem->getNoFields(2); i++)
       compNames->push_back(myProblem->getField2Name(i));
 
@@ -2784,6 +2791,28 @@ bool SIMoutput::writeAddFuncs (int& nBlock, int& idBlock, const Vector& psol,
     if (!this->writeGlvF(*func.second, func.first.c_str(), iStep, nBlock,
                          psol.empty() ? nullptr : &psol, idBlock++, time))
       return false;
+
+  return true;
+}
+
+
+/*!
+  \note If the matrix \b A is empty it will be swapped with matrix \b B
+  such that the latter becomes empty instead.
+*/
+
+bool SIMoutput::augmentColumns (Matrix& A, Matrix& B)
+{
+  if (B.empty())
+    return true;
+  else if (A.empty())
+    std::swap(A,B);
+  else if (!A.augmentCols(B))
+  {
+    std::cerr <<" *** SIMoutput::augmentColumns: Incompatible matrices,"
+              <<" rows(A)="<< A.rows() <<" rows(B)="<< B.rows() << std::endl;
+    return false;
+  }
 
   return true;
 }
