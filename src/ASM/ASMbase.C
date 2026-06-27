@@ -1201,8 +1201,7 @@ bool ASMbase::hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
 
 bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
-                               const std::map<int,int>* g2l,
-                               bool tangent)
+                               const std::map<int,int>* g2l, bool tangent)
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
@@ -1216,21 +1215,6 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
       return false;
     }
 
-    // Lambda function that evaluates either absolute or time-derivative Dirichlet values.
-    auto evalDirichletValue = [tangent](const FunctionBase& f, const Vec4& X)
-    {
-      if (!tangent)
-        return f.getValue(X);
-
-      if (const RealFunc* rf = dynamic_cast<const RealFunc*>(&f); rf)
-        return RealArray(1,rf->timeDerivative(X));
-
-      if (const VecFunc* vf = dynamic_cast<const VecFunc*>(&f); vf)
-        return vf->timeDerivative(X).vec(vf->dim());
-
-      return f.getValue(X);
-    };
-
     int node = cit.first->getSlave().node;
     if (g2l) node = utl::findKey(*g2l,node);
     Vec4 X(this->getCoord(inod),time,node);
@@ -1239,21 +1223,21 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
       RealFunc& g = *fit->second;
       if (g.isZero())
         cit.first->setSlaveCoeff(0.0);
+      else if (tangent)
+        cit.first->setSlaveCoeff(g.timeDerivative(X));
       else
-        cit.first->setSlaveCoeff(evalDirichletValue(g,X).front());
+        cit.first->setSlaveCoeff(g(X));
     }
     else if ((vfit = vfunc.find(cit.second)) != vfunc.end())
     {
-      int idof = cit.first->getSlave().dof;
+      int dof = cit.first->getSlave().dof;
       VecFunc& g = *vfit->second;
-      if (g.isZero())
+      if (g.isZero() || dof < 1 || dof > std::min(3,static_cast<int>(g.dim())))
         cit.first->setSlaveCoeff(0.0);
+      else if (tangent)
+        cit.first->setSlaveCoeff(g.timeDerivative(X)(dof));
       else
-      {
-        RealArray val(evalDirichletValue(g,X));
-        cit.first->setSlaveCoeff(idof <= static_cast<int>(val.size()) ?
-                                 val[idof-1] : 0.0);
-      }
+        cit.first->setSlaveCoeff(g(X)(dof));
     }
     else
     {
@@ -1633,10 +1617,9 @@ void ASMbase::extractNodeVec (const RealArray& globRes, RealArray& nodeVec,
     // assumed not to have entries in the globRes vector. In that case, we use
     // the "real" node at that location instead (see, e.g., ASMs2D::getNodeID).
     // The same is assumed if basis < 0 on input (for vector fields) HACK!
-    int n = this->getNodeID(i, nndof == 1 || basis < 0);
-    int lastDof = nndof*n;
+    int lastDof = nndof*this->getNodeID(i, nndof == 1 || basis < 0);
 #ifdef INDEX_CHECK
-    if (n < 1 || lastDof > maxDof)
+    if (lastDof < 1 || lastDof > maxDof)
       std::cerr <<" *** ASMbase::extractNodeVec: Global DOF "<< lastDof
                 <<" is out of range [1,"<< maxDof <<"]."<< std::endl;
 #endif
@@ -1663,17 +1646,13 @@ bool ASMbase::injectNodeVec (const RealArray& nodeVec, RealArray& globRes,
 
   const double* nodeP = nodeVec.data();
   for (size_t i = 0; i < nNod; i++, nodeP += nndof)
-  {
-    int n = MLGN[i];
-    int lastDof = nndof*n;
-    if (n > 0 && lastDof <= maxDof)
+    if (int lastDof = nndof*MLGN[i]; lastDof > 0 && lastDof <= maxDof)
       memcpy(globRes.data()+lastDof-nndof,nodeP,nndof*sizeof(double));
 #ifdef SP_DEBUG
     else // This is most likely OK, print message only in debug mode
       std::cerr <<" *** ASMbase::injectNodeVec: Global DOF "<< lastDof
                 <<" is out of range [1,"<< maxDof <<"]."<< std::endl;
 #endif
-  }
 
   return true;
 }
@@ -1853,6 +1832,12 @@ bool ASMbase::evaluate (const Field*, RealArray&, int) const
 bool ASMbase::evaluate (const FunctionBase*, RealArray&, int, double) const
 {
   return Aerror("evaluate(const FunctionBase*,RealArray&,int,double)");
+}
+
+
+size_t ASMbase::getNoViz (const int*) const
+{
+  return Aerror("getNoViz(const int*)");
 }
 
 

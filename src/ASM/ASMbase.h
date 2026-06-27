@@ -793,9 +793,12 @@ public:
   //! \brief Returns the number of elements on refinement basis for this patch.
   virtual size_t getNoRefineElms() const { return this->getNoElms(); }
 
+  //! \brief Returns the total number of visualization points for this patch.
+  //! \param[in] npe Number of visualization nodes over each knot span
+  virtual size_t getNoViz(const int* npe) const;
+
   //! \brief Returns a field using the projection basis.
-  virtual Field* getProjectedField(const Vector&) const
-  { return nullptr; }
+  virtual Field* getProjectedField(const Vector&) const { return nullptr; }
 
   //! \brief Returns a field using the projection basis.
   virtual Fields* getProjectedFields(const Vector&, size_t) const
