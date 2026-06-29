@@ -233,7 +233,7 @@ bool ASMs3D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
       Matrix dNdu, Xnod, J;
       for (int iel : projThreadGroups[g][t])
       {
-        if (checkAge && !this->isElementActive(iel,integrand.getTimeLevel()))
+        if (checkAge && this->inActiveElement(iel,integrand.getTimeLevel()))
           continue; // inactive element
 
         const IntVec& mnpc = gmnpc[iel];

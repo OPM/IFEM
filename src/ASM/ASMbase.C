@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <functional>
 #include <iomanip>
+#include <numeric>
 
 
 bool ASMbase::fixHomogeneousDirichlet = true;
@@ -40,7 +41,12 @@ int ASMbase::gNod = 0;
 IntMap ASMbase::xNode;
 IntVec ASMbase::Empty;
 
-ASM::CachePolicy ASM::cachePolicy = ASM::PRE_CACHE;
+
+namespace ASM
+{
+  CachePolicy cachePolicy = PRE_CACHE;
+  bool includeNeighbor_L2 = false;
+}
 
 
 namespace
@@ -188,7 +194,20 @@ void ASMbase::clear (bool retainGeometry)
   dCode.clear();
   mpcs.clear();
 
+  MNEC.clear();
+
   myActiveEls = nullptr;
+}
+
+
+void ASMbase::invertConnectivities ()
+{
+  std::vector<IntSet> tmp(nnod);
+  for (size_t iel = 0; iel < MNPC.size(); iel++)
+    for (int inod : MNPC[iel])
+      tmp[inod].insert(iel);
+
+  MNEC.swap(tmp);
 }
 
 
@@ -276,7 +295,7 @@ size_t ASMbase::getNodeIndex (int globalNum, bool) const
 
 int ASMbase::getNodeID (size_t inod, bool) const
 {
-  return inod < 1 || inod > MLGN.size() ? 0 : MLGN[inod-1];
+  return inod > 0 && --inod < MLGN.size() ? MLGN[inod] : 0;
 }
 
 
@@ -295,17 +314,13 @@ size_t ASMbase::getElmIndex (int globalNum) const
 
 int ASMbase::getElmID (size_t iel) const
 {
-  return iel < 1 || iel > MLGE.size() ? 0 : abs(MLGE[iel-1]);
+  return iel > 0 && --iel < MLGE.size() ? abs(MLGE[iel]) : 0;
 }
 
 
 const IntVec& ASMbase::getElementNodes (int iel) const
 {
-  if (iel > 0 && iel <= static_cast<int>(MNPC.size()))
-    return MNPC[iel-1];
-
-  static IntVec empty;
-  return empty;
+  return iel > 0 && --iel < static_cast<int>(MNPC.size()) ? MNPC[iel] : Empty;
 }
 
 
@@ -342,12 +357,9 @@ size_t ASMbase::getNoElms (bool includeZeroVolElms, bool includeXElms) const
   if (includeZeroVolElms)
     return includeXElms ? MLGE.size() : nel;
 
-  size_t numels = 0;
-  for (int iel : MLGE)
-    if (iel > 0 || (includeXElms && iel < 0))
-      numels++;
-
-  return numels;
+  return std::accumulate(MLGE.begin(), MLGE.end(), 0u,
+                         [&incNeg=includeXElms](size_t n, int iel)
+                         { return iel > 0 || (incNeg && iel < 0) ? n+1u : n; });
 }
 
 
@@ -1512,7 +1524,7 @@ void ASMbase::extractElmRes (const Matrix& globRes, Vector& elmRes,
 
 
 bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
-                               const int* madof, int ngnod) const
+                               const int* madof, int ngnod, int inod) const
 {
   nodeVec.clear();
   if (ngnod == 0)
@@ -1522,14 +1534,23 @@ bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
   }
 
 #ifdef INDEX_CHECK
-  int maxDof = globRes.size();
+  const int maxDof = globRes.size();
 #endif
-  size_t nPchNod = ngnod == -2 ? nnod : MLGN.size();
-  nodeVec.reserve(nf*nPchNod);
-  for (size_t i = 0; i < nPchNod; i++)
+  const int maxNod = ngnod == -2 ? nnod : MLGN.size();
+  const int pchNod = inod > 0 ? 1 : maxNod;
+  nodeVec.reserve(nf*pchNod);
+  for (int i = 0; i < pchNod; i++)
   {
-    int inod = MLGN[i];
-#ifdef INDEX_CHECK
+    if (i > 0 || inod < 1)
+      inod = MLGN[i]; // Extract for all patch nodes
+    else if (inod <= maxNod)
+      inod = MLGN[inod-1]; // Extract only for the specified node
+    else
+    {
+      std::cerr <<" *** ASMbase::extractNodalVec: Local node "<< inod
+                <<" is out of range [1,"<< maxNod <<"]."<< std::endl;
+      return false;
+    }
     if (inod < 1 || (inod > ngnod && ngnod > 0))
     {
       std::cerr <<" *** ASMbase::extractNodalVec: Global node "<< inod;
@@ -1539,7 +1560,6 @@ bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
         std::cerr <<" is out of range."<< std::endl;
       return false;
     }
-#endif
     int idof = madof[inod-1] - 1;
     int jdof = madof[inod] - 1;
     if (idof == jdof)
@@ -1548,7 +1568,7 @@ bool ASMbase::extractNodalVec (const RealArray& globRes, RealArray& nodeVec,
     else if (idof < 0 || idof > jdof || jdof > maxDof)
     {
       std::cerr <<" *** ASMbase::extractNodalVec: Global DOFs "
-                << idof+1 <<" "<< jdof
+                << idof+1 <<"..."<< jdof
                 <<" out of range [1,"<< maxDof <<"]."<< std::endl;
       return false;
     }
@@ -1609,6 +1629,44 @@ bool ASMbase::injectNodalVec (const RealArray& nodeVec, RealArray& globVec,
       ldof += ndof;
     }
 
+  return true;
+}
+
+
+bool ASMbase::injectNodalVec (const RealArray& nodeVec, RealArray& globVec,
+                              const int* madof, int inod) const
+{
+  if (inod < 1 || inod > static_cast<int>(MLGN.size()))
+  {
+    std::cerr <<" *** ASMbase::injectNodalVec: Node index "<< inod
+              <<" is out of range. [1,"<< MLGN.size() <<"]."<< std::endl;
+    return false;
+  }
+
+  inod = MLGN[inod-1]; // Inject only for the specified node
+
+  int idof = madof[inod-1] - 1;
+  int ndof = madof[inod] - 1 - idof;
+  if (ndof == 0)
+    return true; // DOF-less node, do nothing
+
+#ifdef INDEX_CHECK
+  int maxDof = globVec.size();
+  if (idof < 0 || ndof < 0 || idof+ndof > maxDof)
+  {
+    std::cerr <<" *** ASMbase::injectNodalVec: Global DOFs "
+              << idof+1 <<"..."<< idof+ndof
+              <<" out of range [1,"<< maxDof <<"]."<< std::endl;
+    return false;
+  }
+  else if (ndof > static_cast<int>(nodeVec.size()))
+  {
+    std::cerr <<" *** ASMbase::injectNodalVec: Nodal array too short "
+              << nodeVec.size() <<" < "<< ndof <<"."<< std::endl;
+    return false;
+  }
+#endif
+  std::copy(nodeVec.begin(), nodeVec.begin()+ndof, globVec.begin()+idof);
   return true;
 }
 
@@ -1888,6 +1946,12 @@ bool ASMbase::isElementActive (int iel, double time) const
 }
 
 
+bool ASMbase::inActiveElement (int iel, double time) const
+{
+  return this->getAge(iel,time,ASM::includeNeighbor_L2) < 0.0;
+}
+
+
 /*!
   If \a time is negative, the cached value \ref active (computed from an earlier
   call with non-negative time) is used instead. This enables the usage of this
@@ -1914,7 +1978,7 @@ bool ASMbase::inActive (double time) const
 }
 
 
-double ASMbase::getAge (int iel, double time) const
+double ASMbase::getAge (int iel, double time, bool includeNeighbor) const
 {
   if (iel < 0 || iel >= static_cast<int>(MLGE.size()))
     return -1001.0; // element index out of range
@@ -1930,10 +1994,25 @@ double ASMbase::getAge (int iel, double time) const
   if (time < 0.0) time = 0.0; // reset to zero to avoid element deactivation
 
   if (!myElActive)
-    return time; // no activation time, age equals current time
+    return time; // no birth time, age equals current time
 
-  time -= (*myElActive)(1+iel);
-  return time < -1.0e-12 || time > 0.0 ? time : 0.0;
+  double elmAge = time - (*myElActive)(1+iel);
+  if (elmAge < -1.0e-12 && includeNeighbor)
+  {
+    // This element is not born yet, but check its neighbors.
+    // First, construct node-to-element connectivities for this patch.
+#pragma omp critical (ASMbase_MNEC)
+    if (MNEC.empty())
+      const_cast<ASMbase*>(this)->invertConnectivities();
+
+    // Check if this element is connected to other elements already born,
+    // then consider this an active element as well
+    for (int inod : MNPC[iel])
+      for (int jel : MNEC[inod])
+        if (jel != iel && this->isElementActive(jel,time))
+          return 0.0; // connected to an active element
+  }
+  return elmAge < -1.0e-12 || elmAge > 0.0 ? elmAge : 0.0;
 }
 
 

@@ -93,9 +93,9 @@ public:
   //! the input file in the refinement step of an adaptive simulation.
   virtual void clearProperties();
 
-  //! \brief Interface for app-specific single-step simulation initialisation.
+  //! \brief %Interface for app-specific single-step simulation initialisation.
   virtual void initForSingleStep() {}
-  //! \brief Interface for app-specific multi-step simulation initialisation.
+  //! \brief %Interface for app-specific multi-step simulation initialisation.
   virtual void initForMultiStep() {}
 
   //! \brief Performs some pre-processing tasks on the FE model.
@@ -521,12 +521,28 @@ public:
   //! \param[in] method Projection method to use
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //!
+  //! \details %Interface for amending additional fields to the projection.
+  virtual bool project(Matrix& ssol, const Vector& psol,
+                       SIMoptions::ProjectionMethod method = SIMoptions::GLOBAL,
+                       const TimeDomain& time = TimeDomain()) const
+  {
+    return this->project(ssol,psol,method,time,false);
+  }
+
+  //! \brief Projects the secondary solution associated with a primary solution.
+  //! \param[out] ssol Control point values of the secondary solution
+  //! \param[in] psol Control point values of the primary solution
+  //! \param[in] method Projection method to use
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] updNewPt If \e true, estimate newly activated point values
+  //!
   //! \details The secondary solution, defined through the Integrand object,
   //! corresponding to the primary solution \a psol is projected onto the
   //! spline basis to obtain the control point values of the secondary solution.
-  virtual bool project(Matrix& ssol, const Vector& psol,
-                       SIMoptions::ProjectionMethod method = SIMoptions::GLOBAL,
-                       const TimeDomain& time = TimeDomain()) const;
+  bool project(Matrix& ssol, const Vector& psol,
+               SIMoptions::ProjectionMethod method,
+               const TimeDomain& time, bool updNewPt) const;
+
   //! \brief Projects the secondary solution associated with a primary solution.
   //! \param[out] ssol Vector of control point values of the secondary solution
   //! \param[in] psol Vector of control point values of the primary solution
@@ -619,21 +635,22 @@ protected:
   //! \param[in] renumMNPC If \e true, also update element connectivity tables
   //! \return Total number of unique nodes in the model, negative on error
   int renumberNodes(bool renumMNPC = false);
-  //! \brief Interface for renumbering of app-specific node number tables.
+  //! \brief %Interface for renumbering of app-specific node number tables.
   virtual bool renumberNodes(const std::map<int,int>&) { return true; }
 
   //! \brief Extracts all local solution vector(s) for a specified patch.
   //! \param[in] problem The integrand to receive patch-level solution vectors
   //! \param[in] sol Global primary solution vectors in DOF-order
   //! \param[in] pindx Local patch index to extract solution vectors for
+  //! \param[in] time Current time (used only if element activators exist)
   //!
   //! \details This method is typically invoked before ASMbase::integrate()
   //! on the specified patch, in order to extract all patch-level vector
   //! quantities needed by the Integrand. This also includes any dependent
   //! vectors from other simulator classes that have been registered.
   //! All patch-level vectors are stored within the provided integrand.
-  virtual bool extractPatchSolution(IntegrandBase* problem,
-                                    const Vectors& sol, size_t pindx) const;
+  virtual bool extractPatchSolution(IntegrandBase* problem, const Vectors& sol,
+                                    size_t pindx, double time = 0.0) const;
 
 public:
   using SIMdependency::registerDependency;

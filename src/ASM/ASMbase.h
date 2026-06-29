@@ -22,6 +22,7 @@
 #include <array>
 #include <string>
 
+using IntSet = std::set<int>;       //!< General integer set
 using IntVec = std::vector<int>;    //!< General integer vector
 using IntMat = std::vector<IntVec>; //!< General 2D integer matrix
 using Ipair  = std::pair<int,int>;  //!< A pair of integers
@@ -53,6 +54,8 @@ namespace ASM {
   class InterfaceChecker;
   using NodeSet  = std::pair<std::string,IntVec>; //!< Named set container type
   using PatchVec = std::vector<ASMbase*>; //!< Spline patch container type
+  //! If \e true, the neighbors to newly activated elements are included
+  extern bool includeNeighbor_L2; //!< in global L2-projection
 }
 
 
@@ -347,10 +350,12 @@ public:
   void setActiveElements(IntVec* active) { myActiveEls = active; }
   //! \brief Returns \e true if element with 0-based index \a iel is active.
   bool isElementActive(int iel, double time = -1.0) const;
+  //! \brief Returns \e true if element with 0-based index \a iel is inactive.
+  bool inActiveElement(int iel, double time) const;
   //! \brief Returns \e true if none of the elements in the patch are active.
   bool inActive(double time = -1.0) const;
   //! \brief Returns the age of the element with 0-based index \a iel.
-  double getAge(int iel, double time) const;
+  double getAge(int iel, double time, bool includeNeighbor = false) const;
   //! \brief Returns \e true if element is in process partition.
   //! \param[in] iel 0-based element index local to current patch
   bool isElementInPartition(int iel) const;
@@ -834,8 +839,9 @@ public:
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] madof Global Matrix of Accumulated DOFs
   //! \param[in] ngnod Dimension of madof (the default -1 means unknown)
+  //! \param[in] inod 1-based local index of the node to extract (or 0 for all)
   bool extractNodalVec(const RealArray& globVec, RealArray& nodeVec,
-                       const int* madof, int ngnod = -1) const;
+                       const int* madof, int ngnod = -1, int inod = 0) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
@@ -860,6 +866,14 @@ public:
   //! \param[in] basis Which basis to inject nodal values for (mixed methods)
   bool injectNodalVec(const RealArray& nodeVec, RealArray& globVec,
                       const IntVec& madof, int basis = 0) const;
+
+  //! \brief Injects nodal results for a single node into the global vector.
+  //! \param[in] nodeVec Nodal result vector
+  //! \param globVec Global solution vector in DOF-order
+  //! \param[in] madof Global Matrix of Accumulated DOFs
+  //! \param[in] inod 1-based local index of the node to inject
+  bool injectNodalVec(const RealArray& nodeVec, RealArray& globVec,
+                      const int* madof, int inod) const;
 
   //! \brief Creates and adds a two-point constraint to this patch.
   //! \param[in] slave Global node number of the node to constrain
@@ -951,6 +965,9 @@ protected:
 
   // Miscellaneous methods for internal use
   // ======================================
+
+  //! \brief Constructs the \ref MNEC array for this patch.
+  void invertConnectivities();
 
   //! \brief Helper method used by evalPoint to search for a control point.
   //! \param[in] cit iterator of array of control point coordinates
@@ -1078,6 +1095,8 @@ protected:
   IntVec myMLGN; //!< The actual Matrix of Local to Global Node numbers
   IntMat myMNPC; //!< The actual Matrix of Nodal Point Correspondance
   IntVec myElms; //!< Elements on patch - used with partitioning
+
+  std::vector<IntSet> MNEC; //!< Matrix of Node to Element Connectivities
 
   //! \brief Numerical integration scheme for this patch.
   //! \details A value in the range [1,10] means use that number of Gauss
