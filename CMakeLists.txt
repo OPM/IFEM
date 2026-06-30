@@ -160,6 +160,7 @@ target_sources(
     src/SIM/AdaptiveSetup.C
     src/SIM/AdaptiveSIM.C
     src/SIM/EigenModeSIM.C
+    src/SIM/ElementSteps.C
     src/SIM/ForceIntegrator.C
     src/SIM/FunctionSum.C
     src/SIM/GenAlphaSIM.C
@@ -331,6 +332,7 @@ set(IFEM_PUBLIC_HEADERS
   src/SIM/AdaptiveSetup.h
   src/SIM/AdaptiveSIM.h
   src/SIM/EigenModeSIM.h
+  src/SIM/ElementSteps.h
   src/SIM/ForceIntegrator.h
   src/SIM/FunctionSum.h
   src/SIM/GenAlphaSIM.h
