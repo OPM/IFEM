@@ -23,20 +23,21 @@
 
 class FunctionSum : public FunctionBase
 {
-  typedef std::pair<FunctionBase*,double> WeightedFunc; //!< Convenience type
-
 protected:
   //! \brief Constructor to allow empty initialization in subclasses.
-  FunctionSum() {}
+  explicit FunctionSum(bool ownFn = false) : ownFunc(ownFn) {}
 
 public:
   //! \brief The constructor specifies the first function to sum.
   //! \param[in] f Pointer to a function to sum
   //! \param[in] w Weighting factor. If negative, take max value instead.
-  explicit FunctionSum(FunctionBase* f, double w = 1.0) { this->add(f,w); }
+  explicit FunctionSum(FunctionBase* f, double w = 1.0) : ownFunc(false)
+  {
+    this->add(f,w);
+  }
 
-  //! \brief Empty destructor.
-  virtual ~FunctionSum() {}
+  //! \brief The destructor deletes the function components if flagged so.
+  virtual ~FunctionSum();
 
   //! \brief Adds a function to the list of functions to sum.
   //! \param[in] f Pointer to a function to sum
@@ -57,7 +58,33 @@ public:
   virtual double getScalarValue(const Vec3& X) const;
 
 private:
+  using WeightedFunc = std::pair<FunctionBase*,double>; //!< Convenience type
+
   std::vector<WeightedFunc> comps; //!< List of weighted functions to sum
+
+  bool ownFunc; //!< If \e true, the destructor deletes the function components
+};
+
+
+/*!
+  \brief A sum of spatial dirac functions.
+*/
+
+class DiracSum : public FunctionSum, public RealFunc
+{
+public:
+  //! \brief The constructor reads the function definition from a string.
+  //! \param[in] input The string to parse for function parameters
+  //! \param[in] tol Radius of non-zero-valued function domains
+  //! \param[in] nsd Number of spatial dimensions
+  DiracSum(const char* input, double tol, int nsd);
+
+protected:
+  //! \brief Evaluates the function.
+  virtual double evaluate(const Vec3& X) const
+  {
+    return this->FunctionSum::getScalarValue(X);
+  }
 };
 
 #endif

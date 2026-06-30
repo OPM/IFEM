@@ -12,7 +12,19 @@
 //==============================================================================
 
 #include "FunctionSum.h"
-#include "matrix.h"
+#include "Functions.h"
+#include "IFEM.h"
+
+#include <sstream>
+#include <cstring>
+
+
+FunctionSum::~FunctionSum ()
+{
+  if (ownFunc)
+    for (WeightedFunc& fn : comps)
+      delete fn.first;
+}
 
 
 bool FunctionSum::add (FunctionBase* f, double w)
@@ -102,4 +114,43 @@ double FunctionSum::getScalarValue (const Vec3& X) const
     }
 
   return sum;
+}
+
+
+DiracSum::DiracSum (const char* input, double tol, int nsd)
+  : FunctionSum(true)
+{
+  if (!input || input[0] == 0)
+    return; // avoid segfault on empty string
+
+  size_t nc = strlen(input);
+  char* cpy = strdup(input);
+  // Replace all '\' and '|' characters in the string by newline '\n'
+  for (size_t i = 0; i < nc; i++)
+    if (cpy[i] == '\\' || cpy[i] == '|')
+      cpy[i] = '\n';
+
+  IFEM::cout <<" DiracSum";
+  std::stringstream str(cpy);
+  char temp[512];
+  while (str.getline(temp,512))
+    if (temp[0] != '#' && temp[0] != 0)
+    {
+      std::stringstream sline(temp);
+      Vec3 X;
+      double value = 0.0;
+      for (int i = 0; i < nsd; i++)
+        sline >> X[i];
+      sline >> value;
+
+      IFEM::cout <<"\n\t\tDirac("<< X.x;
+      for (int i = 1; i < nsd; i++)
+        IFEM::cout <<", "<< X[i];
+      IFEM::cout <<") = "<< value;
+
+      this->add(new DiracSpaceFunc(value,X,tol,nsd));
+    }
+  IFEM::cout << std::endl;
+
+  free(cpy);
 }
