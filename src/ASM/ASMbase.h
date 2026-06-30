@@ -254,6 +254,11 @@ public:
   //! otherwise the geometry basis coordinates are returned
   virtual bool getElementCoordinates(Matrix& X, int iel,
                                      bool forceItg = false) const = 0;
+  //! \brief Returns the bounding box for an element.
+  //! \param[out] X0 Lower bound of the element coordinates
+  //! \param[out] X1 Upper bound of the element coordinates
+  //! \param[in] iel 1-based element index local to current patch
+  bool getElementBBox(Vec3& X0, Vec3& X1, int iel) const;
   //! \brief Returns the coordinates of the element center.
   virtual Vec3 getElementCenter(int) const = 0;
 

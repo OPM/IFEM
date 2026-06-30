@@ -309,6 +309,31 @@ const IntVec& ASMbase::getElementNodes (int iel) const
 }
 
 
+bool ASMbase::getElementBBox (Vec3& X0, Vec3& X1, int iel) const
+{
+  X0 =  1.0e99;
+  X1 = -1.0e99;
+  Matrix Xnod;
+  if (!this->getElementCoordinates(Xnod,iel))
+    return false;
+
+  for (size_t d = 1; d <= 3; d++)
+    if (d > Xnod.rows())
+    {
+      X0(d) *= -1.0;
+      X1(d) *= -1.0;
+    }
+    else for (size_t i = 1; i <= Xnod.cols(); i++)
+    {
+      const double x = Xnod(d,i);
+      if (X0(d) > x) X0(d) = x;
+      if (X1(d) < x) X1(d) = x;
+    }
+
+  return true;
+}
+
+
 unsigned char ASMbase::getNodalDOFs (size_t inod) const
 {
   if (this->isLMn(inod))
