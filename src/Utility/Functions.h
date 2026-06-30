@@ -547,6 +547,60 @@ protected:
 
 
 /*!
+  \brief A scalar-valued spatial function, step in \a x, \a y and \a z.
+*/
+
+class StepXYZFunc : public RealFunc
+{
+  Real fv; //!< The non-zero function value
+  Vec3 X0; //!< The function is zero for \a X < \a X0
+  Vec3 X1; //!< The function is zero for \a X > \a X1
+  Real eps; //!< Zero tolerance
+
+public:
+  //! \brief Constructor initializing the function parameters.
+  explicit StepXYZFunc(Real v, const Vec3& x0, const Vec3& x1,
+                       Real tol = Real(0)) : fv(v), X0(x0), X1(x1), eps(tol) {}
+
+  //! \brief Returns whether the function is identically zero or not.
+  bool isZero() const override { return fv == Real(0); }
+
+protected:
+  //! \brief Evaluates the step function.
+  Real evaluate(const Vec3& X) const override;
+};
+
+
+/*!
+  \brief A scalar-valued spatial dirac function.
+*/
+
+class DiracSpaceFunc : public RealFunc
+{
+  int  nsd;  //!< Number of spatial dimensions
+  Real amp;  //!< The amplitude of the dirac function
+  Vec3 Xmax; //!< Associated \a X value
+  Real eps2; //!< Equals \a eps^2
+  Real epsd; //!< Equals \a eps^nsd times a normalization factor
+
+public:
+  //! \brief Constructor initializing the function parameters.
+  //! \param[in] a The amplitude of the dirac function
+  //! \param[in] X Coordinate of the point of maximum function value
+  //! \param[in] eps Radius of nonzero function value domain
+  //! \param[in] n Number of spatial dimensions
+  DiracSpaceFunc(Real a, const Vec3& X, Real eps = Real(0), int n = 3);
+
+  //! \brief Returns whether the function is identically zero or not.
+  bool isZero() const override { return amp == Real(0); }
+
+protected:
+  //! \brief Evaluates the dirac function.
+  Real evaluate(const Vec3& X) const override;
+};
+
+
+/*!
   \brief A scalar-valued spatial function, linear interpolation.
 */
 

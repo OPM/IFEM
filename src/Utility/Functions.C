@@ -599,6 +599,39 @@ Real StepXYFunc::evaluate (const Vec3& X) const
 }
 
 
+Real StepXYZFunc::evaluate (const Vec3& X) const
+{
+  return X.inside(X0,X1,eps) ? fv : Real(0);
+}
+
+
+DiracSpaceFunc::DiracSpaceFunc (Real a, const Vec3& X, Real eps, int n)
+  : nsd(n), amp(a), Xmax(X)
+{
+  eps2 = eps*eps;
+  epsd = pow(eps,Real(nsd));
+
+  // Need to normalize to 1 since evaluated by Gauss quadrature
+  // akva: what are these numbers actually?
+  if (nsd == 1)
+    epsd *= 0.44399381616807944;
+  else if (nsd == 2)
+    epsd *= 0.46651239317833007;
+  else
+    epsd *= 0.44108888727660440;
+}
+
+
+Real DiracSpaceFunc::evaluate (const Vec3& X) const
+{
+  Real r2 = Real(0);
+  for (int i = 0; i < nsd; i++)
+    r2 += (X[i] - Xmax[i]) * (X[i] - Xmax[i]);
+
+  return r2 < eps2 ? amp * exp(-eps2/(eps2-r2)) / epsd : Real(0);
+}
+
+
 Real Interpolate1D::evaluate (const Vec3& X) const
 {
   Real res = lfunc(X[dir]);
