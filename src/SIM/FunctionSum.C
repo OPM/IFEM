@@ -118,7 +118,6 @@ double FunctionSum::getScalarValue (const Vec3& X) const
 
 
 DiracSum::DiracSum (const char* input, double tol, int nsd)
-  : FunctionSum(true)
 {
   if (!input || input[0] == 0)
     return; // avoid segfault on empty string

@@ -23,7 +23,7 @@ class SIMbase;
   \brief A sum of single-element step functions.
 */
 
-class ElementSteps : public FunctionSum, public RealFunc
+class ElementSteps : public RealFuncSum
 {
 public:
   //! \brief The constructor reads the function definition from a string.
@@ -31,13 +31,6 @@ public:
   //! \param[in] sim The simulator holding the element information
   //! \param[in] nsd Number of spatial dimensions
   ElementSteps(const char* input, const SIMbase& sim, int nsd);
-
-protected:
-  //! \brief Evaluates the function.
-  virtual double evaluate(const Vec3& X) const
-  {
-    return this->FunctionSum::getScalarValue(X);
-  }
 };
 
 #endif

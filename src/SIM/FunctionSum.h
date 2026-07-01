@@ -21,7 +21,7 @@
   \brief Unary spatial function as a sum of other spatial functions.
 */
 
-class FunctionSum : public FunctionBase
+class FunctionSum : public virtual FunctionBase
 {
 protected:
   //! \brief Constructor to allow empty initialization in subclasses.
@@ -45,17 +45,17 @@ public:
   bool add(FunctionBase* f, double w = 1.0);
 
   //! \brief Returns the function type flag.
-  virtual unsigned char getType() const;
+  unsigned char getType() const override;
 
   //! \brief Checks if a specified point is within the function domain.
-  virtual bool inDomain(const Vec3& X) const;
+  bool inDomain(const Vec3& X) const override;
   //! \brief Returns \e true if current patch is affected by this function.
-  virtual bool initPatch(size_t idx);
+  bool initPatch(size_t idx) override;
 
   //! \brief Returns the function value as an array.
-  virtual std::vector<double> getValue(const Vec3& X) const;
+  std::vector<double> getValue(const Vec3& X) const override;
   //! \brief Returns a representative scalar equivalent of the function value.
-  virtual double getScalarValue(const Vec3& X) const;
+  double getScalarValue(const Vec3& X) const override;
 
 private:
   using WeightedFunc = std::pair<FunctionBase*,double>; //!< Convenience type
@@ -67,10 +67,47 @@ private:
 
 
 /*!
+  \brief A real-valued spatial function as a sum of other spatial functions.
+*/
+
+class RealFuncSum : public FunctionSum, public RealFunc
+{
+protected:
+  //! \brief The constructor is protected to allow subclass instances only.
+  RealFuncSum() : FunctionSum(true) {}
+
+  //! \brief Evaluates the function.
+  double evaluate(const Vec3& X) const override
+  {
+    return this->FunctionSum::getScalarValue(X);
+  }
+
+public:
+  //! \copydoc FunctionSum::getScalarValue()
+  double getScalarValue(const Vec3& X) const override
+  {
+    return this->FunctionSum::getScalarValue(X);
+  }
+
+  //! \copydoc FunctionSum::getValue()
+  std::vector<double> getValue(const Vec3& X) const override
+  {
+    return this->FunctionSum::getValue(X);
+  }
+
+  //! \copydoc FunctionSum::getType()
+  unsigned char getType() const override
+  {
+    return this->FunctionSum::getType();
+  }
+};
+
+
+/*!
   \brief A sum of spatial dirac functions.
 */
 
-class DiracSum : public FunctionSum, public RealFunc
+class DiracSum : public RealFuncSum
 {
 public:
   //! \brief The constructor reads the function definition from a string.
@@ -78,13 +115,6 @@ public:
   //! \param[in] tol Radius of non-zero-valued function domains
   //! \param[in] nsd Number of spatial dimensions
   DiracSum(const char* input, double tol, int nsd);
-
-protected:
-  //! \brief Evaluates the function.
-  virtual double evaluate(const Vec3& X) const
-  {
-    return this->FunctionSum::getScalarValue(X);
-  }
 };
 
 #endif

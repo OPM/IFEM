@@ -23,7 +23,8 @@
   \brief Tensor-valued unary function of a spatial point.
 */
 
-class TensorFunc : public utl::SpatialFunction<Tensor>, public FunctionBase
+class TensorFunc : public utl::SpatialFunction<Tensor>,
+                   public virtual FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
@@ -33,20 +34,17 @@ protected:
   }
 
 public:
-  //! \brief Empty destructor.
-  virtual ~TensorFunc() {}
-
   //! \brief Returns the function type flag.
-  virtual unsigned char getType() const { return 3; }
+  unsigned char getType() const override { return 3; }
 
   //! \brief Returns the function value as an array.
-  virtual std::vector<Real> getValue(const Vec3& X) const
+  std::vector<Real> getValue(const Vec3& X) const override
   {
     return this->evaluate(X);
   }
 
   //! \brief Returns a representative scalar equivalent of the function value.
-  virtual Real getScalarValue(const Vec3& X) const
+  Real getScalarValue(const Vec3& X) const override
   {
     return this->evaluate(X).trace();
   }
@@ -67,7 +65,7 @@ public:
 */
 
 class STensorFunc : public utl::SpatialFunction<SymmTensor>,
-                    public FunctionBase
+                    public virtual FunctionBase
 {
   //! \brief Returns the flat indices of the symmetric tensor.
   size_t index(size_t nsd, size_t i, size_t j) const;
@@ -81,20 +79,17 @@ protected:
   }
 
 public:
-  //! \brief Empty destructor.
-  virtual ~STensorFunc() {}
-
   //! \brief Returns the function type flag.
-  virtual unsigned char getType() const { return 3; }
+  unsigned char getType() const override { return 3; }
 
   //! \brief Returns the function value as an array.
-  virtual std::vector<Real> getValue(const Vec3& X) const
+  std::vector<Real> getValue(const Vec3& X) const override
   {
     return this->evaluate(X);
   }
 
   //! \brief Returns a representative scalar equivalent of the function value.
-  virtual Real getScalarValue(const Vec3& X) const
+  Real getScalarValue(const Vec3& X) const override
   {
     return this->evaluate(X).trace();
   }

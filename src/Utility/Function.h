@@ -189,7 +189,8 @@ protected:
   \brief Scalar-valued unary function of a spatial point.
 */
 
-class RealFunc : public utl::SpatialFunction<Real>, public FunctionBase
+class RealFunc : public utl::SpatialFunction<Real>,
+                 public virtual FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
@@ -238,7 +239,8 @@ public:
   \brief Vector-valued unary function of a spatial point.
 */
 
-class VecFunc : public utl::SpatialFunction<Vec3>, public FunctionBase
+class VecFunc : public utl::SpatialFunction<Vec3>,
+                public virtual FunctionBase
 {
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.

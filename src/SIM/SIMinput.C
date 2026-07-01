@@ -872,10 +872,10 @@ FunctionBase* SIMinput::parseDualTag (const tinyxml2::XMLElement* elem,
   utl::getAttribute(elem,"weight",weight);
   if (weight != 0.0)
   {
-    if (dualField)
-      static_cast<FunctionSum*>(dualField)->add(extrFunc.back(),weight);
-    else
+    if (!dualField)
       dualField = new FunctionSum(extrFunc.back(),weight);
+    else if (FunctionSum* fs = dynamic_cast<FunctionSum*>(dualField); fs)
+      fs->add(extrFunc.back(),weight);
   }
 
   return extrFunc.back();

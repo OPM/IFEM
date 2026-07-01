@@ -23,7 +23,6 @@
 
 
 ElementSteps::ElementSteps (const char* input, const SIMbase& sim, int nsd)
-  : FunctionSum(true)
 {
   if (!input || input[0] == 0)
     return; // avoid segfault on empty string
