@@ -590,7 +590,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
             if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
-              continue; // skip singular points
+              ok = false;
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))

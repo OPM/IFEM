@@ -1894,8 +1894,8 @@ bool ASMs2D::integrate (Integrand& integrand,
               fe.N = bfs.N;
 
               // Compute Jacobian inverse and derivatives
-              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
-              if (fe.detJxW == 0.0) continue; // skip singular points
+              if (!fe.Jacobian(Jac,Xnod,bfs.dNdu))
+                ok = false;
 
               // Cartesian coordinates of current integration point
               X.assign(Xnod * fe.N);
@@ -1930,8 +1930,8 @@ bool ASMs2D::integrate (Integrand& integrand,
             fe.N = bfs.N;
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,bfs.dNdu);
-            if (fe.detJxW == 0.0) continue; // skip singular points
+            if (!fe.Jacobian(Jac,Xnod,bfs.dNdu))
+              ok = false;
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (use2ndDer)
@@ -2144,8 +2144,8 @@ bool ASMs2D::integrate (Integrand& integrand,
             SplineUtils::extractBasis(spline[jp++],fe.N,dNdu);
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-          if (fe.detJxW == 0.0) continue; // skip singular points
+          if (!fe.Jacobian(Jac,Xnod,dNdu))
+            ok = false;
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
           if (use2ndDer)
@@ -2445,7 +2445,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
- #ifdef SP_DEBUG
+#ifdef SP_DEBUG
       int ielm = 1+iel;
       if (dbgElm < 0 && ielm != -dbgElm)
         continue; // Skipping all elements, except for -dbgElm
@@ -3030,8 +3030,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       SplineUtils::extractBasis(spline1[i],fe.N,dNdu);
 
     // Compute the Jacobian inverse and derivatives
-    fe.detJxW = utl::Jacobian(fe.G,fe.dNdX,Xtmp,dNdu);
-    if (fe.detJxW == 0.0) continue; // skip singular points
+    if (!fe.Jacobian(fe.G,Xtmp,dNdu))
+      continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
