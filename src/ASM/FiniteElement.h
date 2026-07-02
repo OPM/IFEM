@@ -29,8 +29,7 @@ class FiniteElement : public ItgPoint
 {
 public:
   //! \brief Default constructor.
-  explicit FiniteElement(size_t n = 0, size_t i = 0) : ItgPoint(i), N(n), Te(3)
-  { p = q = r = 0; age = h = 0.0; detJxW = 1.0; }
+  explicit FiniteElement(size_t n = 0, size_t i = 0);
 
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return 1; }
@@ -46,6 +45,12 @@ public:
   virtual const Matrix3D& hess(char) const { return d2NdX2; }
   //! \brief Returns a const reference to the basis function 3nd-derivatives.
   virtual const Matrix4D& hess2(char) const { return d3NdX3; }
+
+  //! \brief Sets up the Jacobian matrix of the coordinate mapping.
+  //! \param[out] Jac The inverse of the Jacobian matrix
+  //! \param[in] Xnod Matrix of element nodal coordinates
+  //! \param[in] dNdu Basis function derivatives
+  bool Jacobian(Matrix& Jac, const Matrix& Xnod, const Matrix& dNdu);
 
 protected:
   //! \brief Returns a reference to the basis function derivatives.
@@ -138,8 +143,7 @@ public:
   //! \param[in] gBasis 1-based index of basis representing the geometry
   //! \param[in] bfs Basis function values and derivatives
   bool Jacobian(Matrix& Jac, const Matrix& Xnod,
-                unsigned short int gBasis,
-                const BasisValuesPtrs& bfs);
+                unsigned short int gBasis, const BasisValuesPtrs& bfs);
 
   //! \brief Sets up the Jacobian matrix of the coordinate mapping on a boundary.
   //! \param[out] Jac The inverse of the Jacobian matrix
@@ -152,8 +156,7 @@ public:
   //! \param[in] nBasis Number of basis functions
   //! \param[in] Xnod2 Matrix of element nodal coordinates for neighbor element
   bool Jacobian(Matrix& Jac, Vec3& n, const Matrix& Xnod,
-                unsigned short int gBasis,
-                const BasisValuesPtrs& bfs,
+                unsigned short int gBasis, const BasisValuesPtrs& bfs,
                 size_t t1, size_t t2, size_t nBasis = 0,
                 const Matrix* Xnod2 = nullptr);
 
@@ -164,18 +167,15 @@ public:
   //! \param[in] gBasis 1-based index of basis representing the geometry
   //! \param[in] bfs Basis function derivatives
   bool Hessian(Matrix3D& Hess, const Matrix& Jac, const Matrix& Xnod,
-               unsigned short int gBasis,
-               const BasisValuesPtrs& bfs);
+               unsigned short int gBasis, const BasisValuesPtrs& bfs);
 
   //! \brief Calculates the Piola basis functions and their derivatives.
   //! \param[in] detJ Determinant of Jacobian of the geometry mapping
   //! \param[in] Ji Inverse jacobian of the geometry mapping
   //! \param[in] Xnod Matrix of element nodal coordinates
   //! \param[in] bfs Derivatives of basis functions
-  void piolaMapping (const double detJ,
-                     const Matrix& Ji,
-                     const Matrix& Xnod,
-                     const BasisValuesPtrs& bfs);
+  void piolaMapping(const double detJ, const Matrix& Ji,
+                    const Matrix& Xnod, const BasisValuesPtrs& bfs);
 
   //! \brief Calculates the Piola basis functions.
   //! \param[in] detJ Determinant of Jacobian of the geometry mapping

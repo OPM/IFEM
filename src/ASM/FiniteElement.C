@@ -15,6 +15,15 @@
 #include "BasisFunctionVals.h"
 #include "CoordinateMapping.h"
 #include "Vec3Oper.h"
+#include "IFEM.h"
+
+
+FiniteElement::FiniteElement (size_t n, size_t i) : ItgPoint(i), N(n), Te(3)
+{
+  p = q = r = 0;
+  age = h = 0.0;
+  detJxW = 1.0;
+}
 
 
 std::ostream& FiniteElement::write (std::ostream& os) const
@@ -42,6 +51,18 @@ std::ostream& FiniteElement::write (std::ostream& os) const
   for (size_t j = 0; j < En.size(); j++)
     os <<"En_"<< j+1 <<": "<< En[j] << std::endl;
   return os;
+}
+
+
+bool FiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
+                              const Matrix& dNdu)
+{
+  detJxW = utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  if (detJxW > 0.0) return true;
+
+  IFEM::cout <<"  ** Non-positive Jacobian |J|="<< detJxW
+             <<" at itg.point "<< iGP <<" in element "<< iel << std::endl;
+  return false;
 }
 
 
@@ -90,15 +111,17 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
   // Make sure we point to a valid matrix with separate geometry,
   // even if it is not used
   detJxW = utl::Jacobian(Jac, this->grad(separateGeometry ? 1 : gBasis), Xnod,
-                         bfs[gBasis-1]->dNdu,
-                         !separateGeometry);
-  if (detJxW == 0.0) return false; // singular point
+                         bfs[gBasis-1]->dNdu, !separateGeometry);
 
   for (size_t b = 1; b <= this->getNoBasis(); b++)
     if (b != gBasis || separateGeometry)
       this->grad(b).multiply(bfs[b-1]->dNdu, Jac);
 
-  return true;
+  if (detJxW > 0.0) return true;
+
+  IFEM::cout <<"  ** Non-positive Jacobian |J|="<< detJxW
+             <<" at itg.point "<< iGP <<" in element "<< iel << std::endl;
+  return false;
 }
 
 
@@ -117,17 +140,20 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, Vec3& n,
                                 size_t t1, size_t t2, size_t nBasis,
                                 const Matrix* Xnod2)
 {
-  if (nBasis == 0) nBasis = bfs.size();
+  if (nBasis == 0)
+    nBasis = bfs.size();
+
   const bool separateGeometry = nBasis > this->getNoBasis();
-  if (separateGeometry) gBasis = nBasis;
+  if (separateGeometry)
+    gBasis = nBasis;
 
   Matrix dummy;
   if (2*nBasis <= this->getNoBasis())
   {
     // We are are doing interface terms, evaluate for the second element first
-    detJxW = utl::Jacobian(Jac,n,this->grad(nBasis+gBasis),
+    detJxW = utl::Jacobian(Jac, n, this->grad(nBasis+gBasis),
                            Xnod2 ? *Xnod2 : Xnod,
-                           bfs[nBasis+gBasis-1]->dNdu,t1,t2);
+                           bfs[nBasis+gBasis-1]->dNdu, t1, t2);
 
     for (size_t b = 1; b <= nBasis; ++b)
       if (b != gBasis)
@@ -143,7 +169,11 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, Vec3& n,
     if (b != gBasis || separateGeometry)
       this->grad(b).multiply(bfs[b-1]->dNdu,Jac);
 
-  return detJxW != 0.0;
+  if (detJxW > 0.0) return true;
+
+  IFEM::cout <<"  ** Non-positive Jacobian |J|="<< detJxW
+             <<" at itg.point "<< iGP <<" in element "<< iel << std::endl;
+  return false;
 }
 
 
@@ -241,14 +271,14 @@ void MxFiniteElement::piolaGradient (const double detJ,
       bf(b) = this->basis(b)(i);
       for (size_t j = 1; j <= dim; ++j)
         dBf(b,j) = bfs[b-1]->dNdu(i,j);
-      for (size_t d = 1; d <= dim; ++d)
+      for (size_t d = 0; d < dim; ++d)
       {
         Vector tmp(dim), res(dim);
-        dBf.multiply(Ji.getColumn(d), tmp);
-        J.multiply(tmp, res, 1.0 / detJ);
-        Ptmp[d-1].multiply(bf, res, false, 1);
+        dBf.multiply(Ji.getColumn(d+1),tmp);
+        J.multiply(tmp, res, 1.0/detJ);
+        Ptmp[d].multiply(bf, res, false, 1);
         for (size_t j = 1; j <= dim; ++j)
-          dPdX((d-1) * dim + j,k + i) = res(j);
+          dPdX(d*dim+j,k+i) = res(j);
       }
     }
 }
