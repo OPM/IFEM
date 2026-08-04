@@ -395,7 +395,7 @@ TEST_CASE("TestSplineUtils.ProjectCurve")
   std::unique_ptr<RealFunc> func3(utl::parseExprRealFunc("sin(t)", true));
   std::unique_ptr<Go::SplineCurve> prjCrv(SplineUtils::project(crv, func , 1, 0.1));
   std::unique_ptr<Go::SplineCurve> prjCrv2(SplineUtils::project(crv, func2, 2, 0.1));
-  std::unique_ptr<Go::SplineCurve> prjCrv3(SplineUtils::project(crv, *func3, 2, 0.1, true));
+  std::unique_ptr<Go::SplineCurve> prjCrv3(SplineUtils::project(crv, *func3, 1, 0.1, true));
 
   Vec3 result1, result2, result3, result4, result5;
   SplineUtils::point(result1, 0.5, prjCrv.get());
@@ -427,7 +427,7 @@ TEST_CASE("TestSplineUtils.ProjectSurface")
   std::unique_ptr<RealFunc> func3(utl::parseExprRealFunc("sin(t)", true));
   std::unique_ptr<Go::SplineSurface> prjSrf(SplineUtils::project(srf, func , 1, 0.1));
   std::unique_ptr<Go::SplineSurface> prjSrf2(SplineUtils::project(srf, func2, 2, 0.1));
-  std::unique_ptr<Go::SplineSurface> prjSrf3(SplineUtils::project(srf, *func3, 2, 0.1, true));
+  std::unique_ptr<Go::SplineSurface> prjSrf3(SplineUtils::project(srf, *func3, 1, 0.1, true));
 
   Vec3 result1, result2, result3, result4, result5;
   SplineUtils::point(result1, 0.5, 0.5, prjSrf.get());
