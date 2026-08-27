@@ -90,7 +90,7 @@ GlobalNodes::getBoundaryNodes (const LR::LRSpline& lr,
         case 5: edge = LR::BOTTOM | LR::WEST; break;
         case 6: edge = LR::BOTTOM | LR::EAST; break;
         case 7: edge = LR::TOP | LR::WEST; break;
-        case 8: edge = LR::TOP | LR::WEST; break;
+        case 8: edge = LR::TOP | LR::EAST; break;
         case 9: edge = LR::SOUTH | LR::WEST; break;
         case 10: edge = LR::SOUTH | LR::EAST; break;
         case 11: edge = LR::NORTH | LR::WEST; break;
