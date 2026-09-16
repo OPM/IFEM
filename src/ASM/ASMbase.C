@@ -1265,6 +1265,9 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
       return false;
     }
 
+    if (this->isNormalDirichlet(cit.second))
+      continue; // Prescribed by the patch, direct evaluation would be wrong
+
     int node = cit.first->getSlave().node;
     if (g2l) node = utl::findKey(*g2l,node);
     Vec4 X(this->getCoord(inod),time,node);
