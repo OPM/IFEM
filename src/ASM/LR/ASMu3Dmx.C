@@ -669,7 +669,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           this->evaluateBasis(els[b-1]-1, fe, bfs[b-1].dNdu, b);
 
         // Compute basis function derivatives and the face normal
-        if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2))
+        if (fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2) < 0.0)
           ok = false;
 
         if (faceDir < 0) normal *= -1.0;

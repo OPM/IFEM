@@ -833,7 +833,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2))
+            if (fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2) < 0.0)
               ok = false;
 
             if (faceDir < 0) normal *= -1.0;
@@ -1057,7 +1057,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                 }
 
               // Compute basis function derivatives and the edge normal
-              if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2,nB))
+              if (fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2,nB) < 0.0)
                 ok = false;
 
               if (faceDir < 0) normal *= -1.0;

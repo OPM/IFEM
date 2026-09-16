@@ -504,7 +504,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
                 ok = false;
 
             // Compute basis function derivatives and the edge normal
-            if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2))
+            if (fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2) < 0.0)
               ok = false;
 
             if (faceDir < 0) normal *= -1.0;
