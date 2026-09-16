@@ -517,6 +517,16 @@ public:
   bool hasTimeDependentDirichlet(const std::map<int,RealFunc*>& func,
                                  const std::map<int,VecFunc*>& vfunc);
 
+  //! \brief Flags that a Dirichlet code prescribes the normal component.
+  //! \param[in] code The in-homogeneous Dirichlet condition code
+  //! \details The prescribed value is then the normal velocity, and for a
+  //! Piola mapped basis it has to be scaled by the boundary dilation to
+  //! become a coefficient of the reference basis.
+  void addNormalDirichlet(int code) { normalDirich.insert(abs(code)); }
+  //! \brief Returns \e true if the given code prescribes the normal component.
+  bool isNormalDirichlet(int code) const
+  { return normalDirich.find(abs(code)) != normalDirich.end(); }
+
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields
   //! \param[in] vfunc Vector property fields
@@ -1128,6 +1138,7 @@ protected:
   std::map<char,size_t> firstBp;
 
   ASM::PatchVec neighbors; //!< Patches having nodes in common with this one
+  std::set<int> normalDirich; //!< Dirichlet codes prescribing a normal component
 
   //! Auxilliary node number map used when establishing Dirichlet constraints
   static std::map<int,int> xNode;
