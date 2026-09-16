@@ -341,12 +341,12 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
           // A negated basis index marks a normal-direction condition, see
           // SIMinput::setPropertyType. The basis it resolved to is the one
           // carrying the normal component, and the patch is told that the
-          // prescribed value for this code is a normal velocity.
+          // prescribed value for this code lives in the physical frame.
           char pbasis = p.basis;
           if (pbasis < 0)
           {
             pbasis = -pbasis;
-            myModel[p.patch-1]->addNormalDirichlet(abs(code));
+            myModel[p.patch-1]->addPiolaDirichlet(abs(code));
           }
           if (this->addConstraint(p.patch,p.lindx,p.ldim,dofs,code,nGlbNodes,
                                   pbasis,overrideDirichlet))

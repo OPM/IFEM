@@ -856,15 +856,15 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.emplace_back(this->getBoundary(dir,basis),dir,dof,code);
+    dirich.emplace_back(this->getBoundary(dir,basis),dir,dof,code,basis);
   else if (code < 0)
     bcode = -code;
 
-  // The end points of a normal-direction condition also have to take their
-  // value from the projection. Evaluating the prescribed function directly
-  // there, as is done for an ordinary condition, would use the normal
+  // The end points of a condition on a Piola mapped basis also have to take
+  // their value from the projection. Evaluating the prescribed function
+  // directly there, as is done for an ordinary condition, would use a physical
   // velocity where a coefficient of the reference basis is wanted.
-  const bool normalBC = code > 0 && this->isNormalDirichlet(code);
+  const bool piolaBC = code > 0 && this->isPiolaDirichlet(code);
 
   switch (dir)
     {
@@ -874,7 +874,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       if (!open)
       {
         this->prescribe(node,dof,bcode);
-        if (normalBC)
+        if (piolaBC)
           dirich.back().nodes.emplace_back(1,node);
       }
       node += n1;
@@ -889,7 +889,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       if (!open)
       {
         this->prescribe(node,dof,bcode);
-        if (normalBC)
+        if (piolaBC)
           dirich.back().nodes.emplace_back(n2,node);
       }
       break;
@@ -900,7 +900,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       if (!open)
       {
         this->prescribe(node,dof,bcode);
-        if (normalBC)
+        if (piolaBC)
           dirich.back().nodes.emplace_back(1,node);
       }
       node++;
@@ -915,7 +915,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       if (!open)
       {
         this->prescribe(node,dof,bcode);
-        if (normalBC)
+        if (piolaBC)
           dirich.back().nodes.emplace_back(n1,node);
       }
       break;
@@ -1218,18 +1218,19 @@ void ASMs2D::setNodeNumbers (const IntVec& nodes)
 */
 
 /*!
-  The prescribed value of a normal-direction condition is the normal velocity
-  itself, whereas the constrained degree of freedom is a coefficient of the
-  reference basis. The contravariant Piola transform preserves the normal
-  flux, so the two are related by the dilation of the boundary, and the
-  scaled values are interpolated onto the boundary basis as usual.
+  On a Piola mapped basis the prescribed value lives in the physical frame
+  whereas the constrained degree of freedom is a coefficient of the reference
+  basis, so the value has to be pulled back before it is fitted along the
+  boundary. A prescribed velocity vector is pulled back by the adjugate of the
+  jacobian, and a prescribed normal velocity by the dilation of the boundary,
+  since the contravariant Piola transform preserves the normal flux.
 */
 
-Go::SplineCurve* ASMs2D::projectNormalDirichlet (const DirichletEdge& dedge,
-                                                 const RealFunc* sf,
-                                                 const VecFunc* vf,
-                                                 double time,
-                                                 bool tangent) const
+Go::SplineCurve* ASMs2D::projectPiolaDirichlet (const DirichletEdge& dedge,
+                                                const RealFunc* sf,
+                                                const VecFunc* vf,
+                                                double time,
+                                                bool tangent) const
 {
   const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   if (!geo || !dedge.curve)
@@ -1237,6 +1238,19 @@ Go::SplineCurve* ASMs2D::projectNormalDirichlet (const DirichletEdge& dedge,
 
   const int ndir = abs(dedge.dir);  // parameter direction of the normal
   const int tdir = 3 - ndir;        // parameter direction along the boundary
+  // The degrees of freedom of a div-compatible basis are the components of the
+  // reference velocity, one component per basis, so the basis being
+  // constrained says which component the prescribed value has to be pulled
+  // back to. On a boundary which is constant in the parameter direction of
+  // that same basis it is the normal component, otherwise the tangential one.
+  const int comp = dedge.basis;
+  if (sf && comp != ndir)
+  {
+    std::cerr <<" *** ASMs2D::projectPiolaDirichlet: A normal velocity was"
+              <<" prescribed on basis "<< comp <<", which does not carry the"
+              <<" normal component of this boundary."<< std::endl;
+    return nullptr;
+  }
   // The reference normal points along the parameter direction on the upper
   // boundary and against it on the lower one
   const double nsign = dedge.dir > 0 ? 1.0 : -1.0;
@@ -1268,7 +1282,7 @@ Go::SplineCurve* ASMs2D::projectNormalDirichlet (const DirichletEdge& dedge,
       const double dS = tv.length();
       if (dS <= 0.0)
       {
-        std::cerr <<" *** ASMs2D::projectNormalDirichlet: Degenerate boundary"
+        std::cerr <<" *** ASMs2D::projectPiolaDirichlet: Degenerate boundary"
                   <<" at parameter "<< t << std::endl;
         return false;
       }
@@ -1277,12 +1291,12 @@ Go::SplineCurve* ASMs2D::projectNormalDirichlet (const DirichletEdge& dedge,
     else
     {
       // The whole velocity is prescribed, so pull it back to the reference
-      // basis and keep the component this boundary constrains. The adjugate
+      // basis and keep the component this basis carries. The adjugate
       // of the jacobian is its inverse times the determinant, which is
       // exactly the factor of the contravariant Piola transform, leaving no
       // determinant and no inverse to compute.
       const Vec3 u = tangent ? vf->timeDerivative(Xt) : (*vf)(Xt);
-      value = ndir == 1 ? dXdv.y*u.x - dXdv.x*u.y
+      value = comp == 1 ? dXdv.y*u.x - dXdv.x*u.y
                         : dXdu.x*u.y - dXdu.y*u.x;
     }
     return true;
@@ -1343,7 +1357,7 @@ Go::SplineCurve* ASMs2D::projectNormalDirichlet (const DirichletEdge& dedge,
 
   if (!A.solve(B))
   {
-    std::cerr <<" *** ASMs2D::projectNormalDirichlet: Failed to solve the"
+    std::cerr <<" *** ASMs2D::projectPiolaDirichlet: Failed to solve the"
               <<" least-squares system."<< std::endl;
     return nullptr;
   }
@@ -1363,12 +1377,11 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
   {
     // Project the function onto the spline curve basis
     Go::SplineCurve* dcrv = nullptr;
-    if (this->isNormalDirichlet(dirich[i].code))
+    if (this->isPiolaDirichlet(dirich[i].code))
     {
-      // The prescribed value is the normal velocity. The Piola transform
-      // preserves the normal flux, u*n*dS = uhat*nhat*dShat, so the
-      // coefficient of the reference basis is the prescribed normal velocity
-      // scaled by the dilation of the boundary.
+      // The basis is Piola mapped, so the prescribed physical velocity has to
+      // be pulled back to a coefficient of the reference basis before it is
+      // fitted along the boundary.
       const RealFunc* sf = nullptr;
       const VecFunc*  vf = nullptr;
       if ((fit = func.find(dirich[i].code)) != func.end())
@@ -1381,7 +1394,7 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
                   <<" is not associated with any function."<< std::endl;
         return false;
       }
-      dcrv = this->projectNormalDirichlet(dirich[i],sf,vf,time,tangent);
+      dcrv = this->projectPiolaDirichlet(dirich[i],sf,vf,time,tangent);
     }
     else if ((fit = func.find(dirich[i].code)) != func.end())
       dcrv = SplineUtils::project(dirich[i].curve,*fit->second,1,time,tangent);

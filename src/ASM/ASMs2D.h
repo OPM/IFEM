@@ -137,12 +137,13 @@ private:
     int                dir;   //!< Parameter direction of the boundary {-2,-1,1,2}
     int                dof;   //!< Local DOF to constrain along the boundary
     int                code;  //!< Inhomogeneous Dirichlet condition code
+    char               basis; //!< Basis the constrained DOF belongs to
     std::vector<Ipair> nodes; //!< Nodes subjected to projection on the boundary
 
     //! \brief Default constructor.
     DirichletEdge(Go::SplineCurve* sc = nullptr, int dr = 0,
-                  int d = 0, int c = 0)
-    : curve(sc), dir(dr), dof(d), code(c) {}
+                  int d = 0, int c = 0, char b = 1)
+    : curve(sc), dir(dr), dof(d), code(c), basis(b) {}
   };
 
 public:
@@ -392,14 +393,14 @@ public:
                                const std::map<int,VecFunc*>& vfunc, double time,
                                const std::map<int,int>* g2l, bool tangent);
 
-  //! \brief Interpolates a normal-direction Dirichlet condition.
-  //! \param[in] dedge The boundary to interpolate along
+  //! \brief Fits a Dirichlet condition on a Piola mapped basis.
+  //! \param[in] dedge The boundary to fit along
   //! \param[in] sf Prescribed normal velocity, if given as a scalar function
   //! \param[in] vf Prescribed velocity, if given as a vector function
   //! \param[in] time Current time
   //! \param[in] tangent If \e true, use time-derivatives of prescribed values
   //! \return Spline curve with the resulting control point values
-  Go::SplineCurve* projectNormalDirichlet(const DirichletEdge& dedge,
+  Go::SplineCurve* projectPiolaDirichlet(const DirichletEdge& dedge,
                                           const RealFunc* sf,
                                           const VecFunc* vf,
                                           double time, bool tangent) const;
