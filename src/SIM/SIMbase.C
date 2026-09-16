@@ -338,8 +338,18 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 
         if (dofs > 0)
         {
+          // A negated basis index marks a normal-direction condition, see
+          // SIMinput::setPropertyType. The basis it resolved to is the one
+          // carrying the normal component, and the patch is told that the
+          // prescribed value for this code is a normal velocity.
+          char pbasis = p.basis;
+          if (pbasis < 0)
+          {
+            pbasis = -pbasis;
+            myModel[p.patch-1]->addPiolaDirichlet(code);
+          }
           if (this->addConstraint(p.patch,p.lindx,p.ldim,dofs,code,nGlbNodes,
-                                  p.basis,overrideDirichlet))
+                                  pbasis,overrideDirichlet))
             IFEM::cout << std::endl;
           else
             ++ierr;
