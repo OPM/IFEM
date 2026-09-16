@@ -89,8 +89,10 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& t, matrix<Real>& dNdX,
 
 Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
                     const matrix<Real>& X, const matrix<Real>& dNdu,
-                    size_t t1, size_t t2)
+                    size_t t1, size_t t2, Real* detJ)
 {
+  if (detJ) *detJ = Real(0);
+
   // Compute the Jacobian matrix, J = [dXdu]
   J.multiply(X,dNdu); // J = X * dNdu
 
@@ -120,7 +122,9 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
   }
 
   // Compute the Jacobian inverse
-  if (J.inverse(epsZ) == Real(0))
+  const Real Det = J.inverse(epsZ);
+  if (detJ) *detJ = Det;
+  if (Det == Real(0))
   {
     dS = Real(0);
     dNdX.clear();

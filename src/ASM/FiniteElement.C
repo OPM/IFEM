@@ -133,13 +133,15 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, const Matrix& Xnod,
   it is reset to the size of the \a dNxdu argument, which will fit normal cases.
 */
 
-bool MxFiniteElement::Jacobian (Matrix& Jac, Vec3& n,
-                                const Matrix& Xnod,
-                                unsigned short int gBasis,
-                                const BasisValuesPtrs& bfs,
-                                size_t t1, size_t t2, size_t nBasis,
-                                const Matrix* Xnod2)
+double MxFiniteElement::Jacobian (Matrix& Jac, Vec3& n,
+                                  const Matrix& Xnod,
+                                  unsigned short int gBasis,
+                                  const BasisValuesPtrs& bfs,
+                                  size_t t1, size_t t2, size_t nBasis,
+                                  const Matrix* Xnod2)
 {
+  double detJ = 0.0;
+
   if (nBasis == 0)
     nBasis = bfs.size();
 
@@ -163,17 +165,17 @@ bool MxFiniteElement::Jacobian (Matrix& Jac, Vec3& n,
     nBasis = this->getNoBasis();
 
   Matrix& dX = separateGeometry ? dummy : this->grad(gBasis);
-  detJxW = utl::Jacobian(Jac,n,dX,Xnod,bfs[gBasis-1]->dNdu,t1,t2);
+  detJxW = utl::Jacobian(Jac,n,dX,Xnod,bfs[gBasis-1]->dNdu,t1,t2,&detJ);
 
   for (size_t b = 1; b <= nBasis; ++b)
     if (b != gBasis || separateGeometry)
       this->grad(b).multiply(bfs[b-1]->dNdu,Jac);
 
-  if (detJxW > 0.0) return true;
+  if (detJxW > 0.0) return detJ;
 
   IFEM::cout <<"  ** Non-positive Jacobian |J|="<< detJxW
              <<" at itg.point "<< iGP <<" in element "<< iel << std::endl;
-  return false;
+  return -1.0;
 }
 
 

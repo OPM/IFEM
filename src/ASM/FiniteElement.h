@@ -155,10 +155,11 @@ public:
   //! \param[in] t2 Second parametric tangent direction of the boundary
   //! \param[in] nBasis Number of basis functions
   //! \param[in] Xnod2 Matrix of element nodal coordinates for neighbor element
-  bool Jacobian(Matrix& Jac, Vec3& n, const Matrix& Xnod,
-                unsigned short int gBasis, const BasisValuesPtrs& bfs,
-                size_t t1, size_t t2, size_t nBasis = 0,
-                const Matrix* Xnod2 = nullptr);
+  //! \return Determinant of the geometry mapping Jacobian, negative on error.
+  double Jacobian(Matrix& Jac, Vec3& n, const Matrix& Xnod,
+                  unsigned short int gBasis, const BasisValuesPtrs& bfs,
+                  size_t t1, size_t t2, size_t nBasis = 0,
+                  const Matrix* Xnod2 = nullptr);
 
   //! \brief Sets up the Hessian matrix of the coordinate mapping.
   //! \param[out] Hess The Hessian matrix

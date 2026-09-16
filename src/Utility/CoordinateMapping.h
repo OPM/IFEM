@@ -52,10 +52,11 @@ namespace utl
   //! \param[in] dNdu First order derivatives of basis functions
   //! \param[in] t1 First parametric tangent direction of the boundary
   //! \param[in] t2 Second parametric tangent direction of the boundary
+  //! \param[out] detJ Determinant of the Jacobian matrix, if requested.
   //! \return The surface/curve dilation of the boundary
   Real Jacobian(matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
                 const matrix<Real>& X, const matrix<Real>& dNdu,
-                size_t t1, size_t t2);
+                size_t t1, size_t t2, Real* detJ = nullptr);
 
   //! \brief Set up the Hessian matrix of the coordinate mapping.
   //! \param[out] H The Hessian matrix

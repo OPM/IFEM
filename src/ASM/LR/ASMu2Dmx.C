@@ -641,10 +641,15 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // Compute Jacobian inverse of the coordinate mapping and
       // basis function derivatives w.r.t. Cartesian coordinates
-      if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2))
+      const double detJ = fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2);
+      if (detJ < 0.0)
         ok = false;
-      else if (piolaMapping)
+      else if (piolaMapping) {
+        const double dS_ip = fe.detJxW;
+        fe.detJxW = detJ;
         fe.piolaMapping(Jac,Xnod,bfs);
+        fe.detJxW = dS_ip;
+      }
 
       if (edgeDir < 0)
         normal *= -1.0;
@@ -838,7 +843,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
             }
 
             // Compute basis function derivatives and the edge normal
-            if (!fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2,nB,&Xnod2))
+            if (fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2,nB,&Xnod2) < 0.0)
               ok = false;
 
             if (edgeDir < 0)
