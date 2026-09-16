@@ -526,7 +526,7 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet)
   {
     const tinyxml2::XMLNode* dval = nullptr;
-    int comp = 0, symm = 0, basis = 1;
+    int comp = 0, symm = 0, basis = 1, direction = -1;
     bool override = false, autodiff = false;
     std::string set, type, axes;
     utl::getAttribute(elem,"set",set);
@@ -549,6 +549,17 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
       utl::getAttribute(elem,"axes",axes,true);
       utl::getAttribute(elem,"component",comp);
       utl::getAttribute(elem,"comp",comp);
+      // As for tractions, direction 0 denotes the normal direction. For a
+      // div-compatible basis the normal component is carried by one basis
+      // alone, namely the one whose parameter is constant on the boundary,
+      // so which basis that is depends on the boundary itself.
+      // Flag it with a negative basis index and let setPropertyType resolve
+      // it for each boundary the property set expands into.
+      if (utl::getAttribute(elem,"direction",direction) && direction == 0)
+      {
+        basis = -1;
+        comp = 1; // a div-compatible velocity basis has a single component
+      }
     }
     const int bcComp = comp;
     int code = this->getUniquePropertyCode(set,comp);
@@ -1443,7 +1454,23 @@ size_t SIMinput::setPropertyType (int code, Property::Type ptype,
 
         ++nDefined;
         p->pcode = ptype;
-        p->basis = basis;
+        if (basis >= 0)
+          p->basis = basis;
+        else if (ASMbase* pch = this->getPatch(p->patch); pch &&
+                 abs(p->ldim)+1 == pch->getNoParamDim())
+          // Normal-direction condition, see parseBCTag. The normal component
+          // on a boundary which is constant in one parameter direction is
+          // carried by the basis of that direction.
+          // Negated to mark it as a normal-direction condition; the
+          // simulator normalises it in preprocessA once it has seen it.
+          p->basis = -(abs(p->lindx)+1)/2;
+        else
+        {
+          std::cerr <<" *** SIMinput::setPropertyType: Direction 0 is only"
+                    <<" available on a boundary of one less dimension than"
+                    <<" the patch itself."<< std::endl;
+          return 0;
+        }
 
         if (ptype == Property::MATERIAL && pindex >= 0)
           p->pindx = pindex; // Index to material property container
