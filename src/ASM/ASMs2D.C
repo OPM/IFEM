@@ -860,42 +860,64 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   else if (code < 0)
     bcode = -code;
 
+  // The end points of a normal-direction condition also have to take their
+  // value from the projection. Evaluating the prescribed function directly
+  // there, as is done for an ordinary condition, would use the normal
+  // velocity where a coefficient of the reference basis is wanted.
+  const bool normalBC = code > 0 && this->isNormalDirichlet(code);
+
   switch (dir)
     {
     case  1: // Right edge (positive I-direction)
       node += n1-1;
     case -1: // Left edge (negative I-direction)
       if (!open)
-	this->prescribe(node,dof,bcode);
+      {
+        this->prescribe(node,dof,bcode);
+        if (normalBC)
+          dirich.back().nodes.emplace_back(1,node);
+      }
       node += n1;
       for (int i2 = 2; i2 < n2; i2++, node += n1)
       {
-	// If the Dirichlet condition is to be projected, add this node to
-	// the set of nodes to receive prescribed value from the projection
-	// **unless this node already has a homogeneous constraint**
-	if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	  dirich.back().nodes.emplace_back(i2,node);
+        // If the Dirichlet condition is to be projected, add this node to
+        // the set of nodes to receive prescribed value from the projection
+        // **unless this node already has a homogeneous constraint**
+        if (this->prescribe(node,dof,-code) == 0 && code > 0)
+          dirich.back().nodes.emplace_back(i2,node);
       }
       if (!open)
-	this->prescribe(node,dof,bcode);
+      {
+        this->prescribe(node,dof,bcode);
+        if (normalBC)
+          dirich.back().nodes.emplace_back(n2,node);
+      }
       break;
 
     case  2: // Back edge (positive J-direction)
       node += n1*(n2-1);
     case -2: // Front edge (negative J-direction)
       if (!open)
-	this->prescribe(node,dof,bcode);
+      {
+        this->prescribe(node,dof,bcode);
+        if (normalBC)
+          dirich.back().nodes.emplace_back(1,node);
+      }
       node++;
       for (int i1 = 2; i1 < n1; i1++, node++)
       {
-	// If the Dirichlet condition is to be projected, add this node to
-	// the set of nodes to receive prescribed value from the projection
-	// **unless this node already has a homogeneous constraint**
-	if (this->prescribe(node,dof,-code) == 0 && code > 0)
-	  dirich.back().nodes.emplace_back(i1,node);
+        // If the Dirichlet condition is to be projected, add this node to
+        // the set of nodes to receive prescribed value from the projection
+        // **unless this node already has a homogeneous constraint**
+        if (this->prescribe(node,dof,-code) == 0 && code > 0)
+          dirich.back().nodes.emplace_back(i1,node);
       }
       if (!open)
-	this->prescribe(node,dof,bcode);
+      {
+        this->prescribe(node,dof,bcode);
+        if (normalBC)
+          dirich.back().nodes.emplace_back(n1,node);
+      }
       break;
     }
 
