@@ -718,9 +718,9 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
 }
 
 
-ASMu2D::DirichletEdge::DirichletEdge (LR::LRSplineSurface* sf,
-                                      int dir, int d, int c, int offset)
-  : lr(sf), edg(LR::NONE), dof(d), code(c)
+ASMu2D::DirichletEdge::DirichletEdge (LR::LRSplineSurface* sf, int dir,
+                                      int d, int c, int offset, int b)
+  : lr(sf), edg(LR::NONE), dof(d), code(c), basis(b)
 {
   // Figure out what edge we are at, and
   // find the corners since these are not to be included in the L2-fitting
@@ -777,13 +777,17 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
     offset += this->getNoNodes(i);
 
   // Figure out what edge we are at
-  DirichletEdge de(this->getBasis(basis), dir, dof, code, offset);
+  DirichletEdge de(this->getBasis(basis), dir, dof, code, offset, basis);
 
   // Get all basis functions on this edge
   std::vector<LR::Basisfunction*> edgeFunctions;
   de.lr->getEdgeFunctions(edgeFunctions,de.edg);
 
-  // Add constraints for all basis functions on the edge
+  // Add constraints for all basis functions on the edge. The end points are
+  // interpolatory, so they are given a positive code and evaluated directly
+  // rather than fitted, unless the basis is Piola mapped; the prescribed value
+  // then lives in the physical frame and updateDirichlet takes them from the
+  // fit along with the rest of the edge.
   for (LR::Basisfunction* b : edgeFunctions)
     if (!de.isCorner(b->getId()+offset))
       this->prescribe(b->getId()+offset, dof, -code);
@@ -2452,8 +2456,9 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     }
 
     // Loop over the (non-corner) nodes of this boundary curve
+    const bool piolaBC = this->isPiolaDirichlet(dedg.code);
     for (size_t j = 0; j < dedg.MLGN.size(); j++)
-      if (!dedg.isCorner(dedg.MLGN[j]))
+      if (piolaBC || !dedg.isCorner(dedg.MLGN[j]))
         for (int dofs = dedg.dof; dofs > 0; dofs /= 10)
         {
           int dof = dofs%10;
@@ -2463,7 +2468,8 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
           if (mit != mpcs.end())
           {
             // Now update the prescribed value in the constraint equation
-            if (fit != func.end()) dof = 1; // scalar condition
+            if (piolaBC || fit != func.end())
+              dof = 1; // a single value was fitted
             (*mit)->setSlaveCoeff(controlPts[dof-1][j]);
 #if SP_DEBUG > 1
             std::cout <<"Updated constraint: "<< **mit;
