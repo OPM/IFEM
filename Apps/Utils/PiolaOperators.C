@@ -113,12 +113,18 @@ void PiolaOperators::Weak::Laplacian (Matrices& EM,
                                       const std::array<std::array<int,3>,3>& idx,
                                       double scale, bool stress)
 {
-  if (stress) {
-    std::cerr << "Stress laplacian operator not implemented with piola" << std::endl;
-    exit(1);
-  }
   Matrix A;
   A.multiply(fe.dPdX, fe.dPdX, true, false, false, scale*fe.detJxW);
+  if (stress) {
+    const size_t nsd = fe.dNdX.cols();
+    Matrix dPdXT(fe.dPdX.rows(), fe.dPdX.cols());
+    for (size_t d = 1; d <= nsd; ++d)
+      for (size_t j = 1; j <= nsd; ++j) {
+        const Vector row = fe.dPdX.getRow((j-1)*nsd + d);
+        dPdXT.fillRow((d-1)*nsd + j, row.ptr());
+      }
+    A.multiply(fe.dPdX, dPdXT, true, false, true, scale*fe.detJxW);
+  }
   Copy(EM, fe, idx, A);
 }
 
