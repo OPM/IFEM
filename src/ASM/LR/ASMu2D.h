@@ -492,11 +492,12 @@ protected:
     IntMat              MNPC;      //!< Matrix of Nodal-Point Correpondanse
     int                 dof;       //!< Local DOF to constrain along the boundary
     int                 code;      //!< Inhomogeneous Dirichlet condition code
+    int                 basis;     //!< Basis the constrained DOF belongs to
     int                 corners[2];//!< Index of the two end-points of this line
 
     //! \brief The constructor detects the edge end points.
-    DirichletEdge(LR::LRSplineSurface* sf, int dir,
-                  int d = 0, int c = 0, int offset = 1);
+    DirichletEdge(LR::LRSplineSurface* sf, int dir, int d = 0, int c = 0,
+                  int offset = 1, int b = 1);
     //! \brief Returns \e true if basis function \a b is at a corner point.
     bool isCorner(int b) const { return b == corners[0] || b == corners[1]; }
   };
