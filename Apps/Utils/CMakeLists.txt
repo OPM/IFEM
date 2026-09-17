@@ -62,6 +62,7 @@ ifem_add_test_app(
     Test/TestCompatibleOperators.C
     Test/TestEqualOrderOperators.C
     Test/TestMeshUtils.C
+    Test/TestPiolaOperators.C
     Test/TestMultiPatchModelGenerator.C
     Test/TestSIMCoupled.C
     Test/TestSIMNodalConstraint.C
