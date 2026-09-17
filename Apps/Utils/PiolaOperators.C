@@ -21,13 +21,14 @@ void AdvectionConvInt (Matrix& C,
                        const FiniteElement& fe,
                        const Vec3& U, double scale)
 {
-  Matrix G1(2, fe.dPdX.cols()), G2(2, fe.dPdX.cols());
-  G1.fillRow(1, fe.dPdX.getRow(1).ptr());
-  G1.fillRow(2, fe.dPdX.getRow(3).ptr());
-  G2.fillRow(1, fe.dPdX.getRow(2).ptr());
-  G2.fillRow(2, fe.dPdX.getRow(4).ptr());
-  C.multiply(fe.P, G1, true, false, false, U[0] * scale * fe.detJxW);
-  C.multiply(fe.P, G2, true, false, true,  U[1] * scale * fe.detJxW);
+  const size_t nsd = fe.dNdX.cols();
+  Matrix G(nsd, fe.dPdX.cols());
+  for (size_t l = 1; l <= nsd; ++l)
+  {
+    for (size_t k = 1; k <= nsd; ++k)
+      G.fillRow(k, fe.dPdX.getRow((l-1)*nsd+k).ptr());
+    C.multiply(fe.P, G, true, false, l > 1, U[l-1] * scale * fe.detJxW);
+  }
 }
 
 }
