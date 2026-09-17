@@ -601,7 +601,30 @@ bool ASMbase::addMPC (MPC*& mpc, int code, bool verbose, bool overrideD)
 }
 
 
-bool ASMbase::add2PC (int slave, int dir, int master, int code)
+int ASMbase::pairedDirection (int lIndex, int nIndex, int norient, int dir)
+{
+  // The parameter each face holds constant
+  const int mine   = (lIndex%10 + 1)/2;
+  const int theirs = (nIndex%10 + 1)/2;
+  if (dir == mine)
+    return (lIndex+nIndex)%2 ? theirs : -theirs;
+
+  // The first of the two parameters along our face, and both of theirs,
+  // taking them in increasing order
+  const int m1 = mine   == 1 ? 2 : 1;
+  const int t1 = theirs == 1 ? 2 : 1, t2 = theirs == 3 ? 2 : 3;
+
+  // The left digit of the orientation swaps the two, and the middle and
+  // right digits reverse the first and the second of ours
+  const bool swapped = norient > 3;
+  const int  paired  = dir == m1 ? (swapped ? t2 : t1) : (swapped ? t1 : t2);
+  const int  reverse = dir == m1 ? (norient & 2) : (norient & 1);
+
+  return reverse ? -paired : paired;
+}
+
+
+bool ASMbase::add2PC (int slave, int dir, int master, int code, double coeff)
 {
   if (dir < 1 || dir > nf) return true;
   if (slave == master) return true;
@@ -610,7 +633,7 @@ bool ASMbase::add2PC (int slave, int dir, int master, int code)
   bool stat = this->addMPC(cons,code);
   if (cons)
   {
-    cons->addMaster(master,dir);
+    cons->addMaster(master,dir,coeff);
 #if SP_DEBUG > 1
     std::cout <<"Added constraint: "<< *cons;
 #endif

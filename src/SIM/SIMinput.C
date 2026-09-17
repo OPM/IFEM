@@ -15,6 +15,7 @@
 #include "SIMoptions.h"
 #include "ModelGenerator.h"
 #include "ASMbase.h"
+#include "Integrand.h"
 #include "ASMunstruct.h"
 #ifdef HAS_LRSPLINE
 #include "LR/ASMLRSpline.h"
@@ -1362,6 +1363,12 @@ bool SIMinput::createFEMmodel (char resetNumb)
   {
     myModel[i]->setGauss(opt.nGauss[0]); // in the case of immersed boundaries,
     // the number of Gauss quadrature points must be known at this point
+
+    // The patch interfaces are connected while the input is parsed,
+    // so the patch has to know before that.
+    myModel[i]->setPiolaMapped(myProblem &&
+                               (myProblem->getIntegrandType() &
+                                Integrand::PIOLA_MAPPING));
 
     if (myModel[i]->isShared() && myModel[i]->hasXNodes())
     {

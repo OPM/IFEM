@@ -378,3 +378,46 @@ TEST_CASE("TestASMs3D.ConstrainFaceLocal")
     }
   CHECK(prescribed == 16);
 }
+
+
+TEST_CASE("TestASMs3D.PairedDirection")
+{
+  // Faces 1 and 2 hold u constant, 3 and 4 hold v, 5 and 6 hold w. Patches
+  // meeting at opposite ends of their boxes run that parameter the same way
+  for (int face = 1; face <= 6; face++)
+  {
+    const int dir = (face+1)/2;
+    const int facing = face%2 ? face+1 : face-1;
+    REQUIRE(ASMbase::pairedDirection(face,facing,0,dir) == dir);
+    REQUIRE(ASMbase::pairedDirection(face,face,0,dir) == -dir);
+  }
+
+  // A face of constant u has v and w along it, in that order. Without the
+  // swap each pairs with the same parameter of the neighbour, and the two
+  // digits of the orientation reverse the first and the second
+  REQUIRE(ASMbase::pairedDirection(2,1,0,2) ==  2);
+  REQUIRE(ASMbase::pairedDirection(2,1,0,3) ==  3);
+  REQUIRE(ASMbase::pairedDirection(2,1,2,2) == -2);
+  REQUIRE(ASMbase::pairedDirection(2,1,2,3) ==  3);
+  REQUIRE(ASMbase::pairedDirection(2,1,1,2) ==  2);
+  REQUIRE(ASMbase::pairedDirection(2,1,1,3) == -3);
+
+  // The swap pairs each with the other one, which is a tie this patch
+  // cannot make: the bases are one per parameter and a connection ties a
+  // basis to the basis of the same number
+  REQUIRE(ASMbase::pairedDirection(2,1,4,2) ==  3);
+  REQUIRE(ASMbase::pairedDirection(2,1,4,3) ==  2);
+
+  // A face of constant v has u and w along it, and one of constant w has u
+  // and v, the normal never being among them
+  REQUIRE(ASMbase::pairedDirection(4,3,0,1) == 1);
+  REQUIRE(ASMbase::pairedDirection(4,3,0,3) == 3);
+  REQUIRE(ASMbase::pairedDirection(6,5,0,1) == 1);
+  REQUIRE(ASMbase::pairedDirection(6,5,0,2) == 2);
+
+  // Half a turn about the y axis: the second patch meets the interface at
+  // the same end of its box, with the first and third parameters reversed
+  REQUIRE(ASMbase::pairedDirection(2,2,1,1) == -1);
+  REQUIRE(ASMbase::pairedDirection(2,2,1,2) ==  2);
+  REQUIRE(ASMbase::pairedDirection(2,2,1,3) == -3);
+}

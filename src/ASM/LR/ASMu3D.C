@@ -411,16 +411,36 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
     return false;
   }
 
+  // A degree of freedom which follows the parametrization belongs to one of
+  // the three parameters and has the sign that parameter runs in. The two
+  // sides have to agree on which parameter it is, since a connection ties a
+  // basis to the basis of the same number and the bases here are one per
+  // parameter, and where they run opposite ways the pair describes the same
+  // velocity with two signs and is tied by a constraint rather than merged
+  // into one degree of freedom. Such a basis carries a single component per
+  // node, hence the local DOF is 1.
+  bool flipSign = false;
+  if (this->dofsFollowParametrization(basis))
+  {
+    const int paired = ASMbase::pairedDirection(face,nface,norient,basis);
+    if (paired != basis && paired != -basis)
+    {
+      std::cerr <<" *** ASMu3D::connectBasis: Parameter "<< basis <<" of face "
+                << face <<" meets parameter "<< (paired < 0 ? -paired : paired)
+                <<" of face "<< nface <<" of the neighbour.\n     The two"
+                <<" patches have to agree, there being a basis for each"
+                <<" parameter."<< std::endl;
+      return false;
+    }
+    flipSign = paired < 0;
+  }
+
   const double xtol = 1.0e-4;
   for (size_t i = 0; i < masterNodes.size(); i++)
   {
     int node = masterNodes[i];
     int slvn = slaveNodes[i];
-    if (!coordCheck)
-      ASMbase::collapseNodes(neighbor,node,*this,slvn);
-    else if (neighbor.getCoord(node).equal(this->getCoord(slvn),xtol))
-      ASMbase::collapseNodes(neighbor,node,*this,slvn);
-    else
+    if (coordCheck && !neighbor.getCoord(node).equal(this->getCoord(slvn),xtol))
     {
       std::cerr <<" *** ASMu3D::connectBasis: Non-matching nodes "
                 << node <<": "<< neighbor.getCoord(node)
@@ -428,6 +448,14 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
                 << slvn <<": "<< this->getCoord(slvn) << std::endl;
       return false;
     }
+    else if (flipSign)
+    {
+      if (!this->add2PC(this->getNodeID(slvn),1,
+                        neighbor.getNodeID(node),0,-1.0))
+        return false;
+    }
+    else
+      ASMbase::collapseNodes(neighbor,node,*this,slvn);
   }
 
   return true;
