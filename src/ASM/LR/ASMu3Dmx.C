@@ -107,6 +107,28 @@ void ASMu3Dmx::clear (bool retainGeometry)
 }
 
 
+bool ASMu3Dmx::connectPatch (int face, ASM3D& neighbor, int nface, int norient,
+                             int basis, bool coordCheck, int thick)
+{
+  ASMu3Dmx* neighMx = dynamic_cast<ASMu3Dmx*>(&neighbor);
+  if (!neighMx) return false;
+
+  // Asking for every basis means every basis that is tied at all: one left
+  // discontinuous across an interface has nothing to connect there. This is
+  // what ASMs3Dmx::connectPatch does, and what the caller does when it
+  // selects the bases itself.
+  for (size_t i = 1; i <= m_basis.size(); ++i)
+    if (basis == 0 ? this->isContinuousBasis(i)
+                   : i == static_cast<size_t>(basis))
+      if (!this->connectBasis(face,*neighMx,nface,norient,i,0,0,
+                              coordCheck,thick))
+        return false;
+
+  this->addNeighbor(neighMx);
+  return true;
+}
+
+
 size_t ASMu3Dmx::getNoNodes (int basis) const
 {
   if (basis > (int)nb.size() || basis < 1)

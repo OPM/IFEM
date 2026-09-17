@@ -375,6 +375,12 @@ public:
   const IntVec& getElementNodes(int iel) const;
   //! \brief Returns number of bases of this patch.
   virtual size_t getNoBasis() const { return 1; }
+
+  //! \brief Returns \e true if a basis is continuous across a patch interface.
+  //! \param[in] basis 1-based basis index
+  //! \details Only the continuous bases are tied together when a connection
+  //! does not say which bases to tie.
+  virtual bool isContinuousBasis(size_t basis) const { return true; }
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the total number of elements in this patch.

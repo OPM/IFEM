@@ -81,6 +81,24 @@ public:
   bool piola = false;    //!< True if last used integrand was Piola mapped
   static bool includeExtra; //!< True to include extra basis (geometry/projection) as FE basis
 
+  //! \brief Returns \e true if a mixed basis is continuous across an interface.
+  //! \param[in] basis 1-based basis index
+  //! \param[in] nsd Number of space dimensions
+  //! \details The pressure of a div-compatible space is the divergence of its
+  //! velocity space, which is taken patch by patch. A globally H(div) velocity
+  //! has no continuous divergence across an interface, so tying the pressure
+  //! there would leave the pressure space smaller than the divergence of the
+  //! velocity space, and the discrete velocity would no longer be point wise
+  //! divergence free.
+  //!
+  //! It is the pressure alone that this applies to, and not simply anything
+  //! past the velocity: with ASMmxBase::includeExtra the basis carrying the
+  //! geometry and the projections is appended after the pressure, and that
+  //! one is an ordinary continuous basis which has to be tied across an
+  //! interface like any other.
+  static bool mxContinuousBasis(size_t basis, size_t nsd)
+  { return Type != DIV_COMPATIBLE || basis != nsd + 1; }
+
 protected:
   typedef std::vector<std::shared_ptr<Go::SplineSurface>> SurfaceVec; //!< Convenience type
   typedef std::vector<std::shared_ptr<Go::SplineVolume>> VolumeVec; //!< Convenience type

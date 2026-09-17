@@ -61,7 +61,28 @@ public:
 
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return m_basis.size(); }
+
+  //! \brief Returns \e true if a basis is continuous across a patch interface.
+  //! \param[in] basis 1-based basis index
+  bool isContinuousBasis(size_t basis) const override
+  { return ASMmxBase::mxContinuousBasis(basis,nsd); }
   //! \brief Returns the total number of nodes in this patch.
+  //! \brief Connects all matching nodes on two adjacent boundary faces.
+  //! \param[in] face Local face index of this patch, in range [1,6]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nface Local face index of neighbor patch, in range [1,6]
+  //! \param[in] norient Relative face orientation flag, in range [0,7]
+  //! \param[in] basis Which basis to connect, zero for all of them
+  //! \param[in] coordCheck False to disable coordinate checks
+  //! \param[in] thick Thickness of connection
+  //!
+  //! \details The one inherited from ASMu3D connects the first basis
+  //! whichever is asked for, which leaves every other basis of a mixed
+  //! patch unconnected and the first one connected once per basis the
+  //! caller asks about.
+  virtual bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
+                            int basis, bool coordCheck, int thick);
+
   virtual size_t getNoNodes(int basis) const;
   //! \brief Returns the number of solution fields.
   virtual unsigned char getNoFields(int basis) const;
