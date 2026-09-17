@@ -695,16 +695,17 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
     return false;
   }
 
+  // The two sides traverse the interface in opposite directions, so a degree
+  // of freedom which follows the parametrization has the opposite sign on the
+  // two sides constraint rather than merged into one degree of freedom.
+  const bool flipSign = revers && this->dofsFollowParametrization(basis);
+
   const double xtol = 1.0e-4;
   for (size_t i = 0; i < masterNodes.size(); ++i)
   {
     int node = masterNodes[i];
     int slvn = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
-    if (!coordCheck)
-      ASMbase::collapseNodes(neighbor,node,*this,slvn);
-    else if (neighbor.getCoord(node).equal(this->getCoord(slvn),xtol))
-      ASMbase::collapseNodes(neighbor,node,*this,slvn);
-    else
+    if (coordCheck && !neighbor.getCoord(node).equal(this->getCoord(slvn),xtol))
     {
       std::cerr <<" *** ASMu2D::connectBasis: Non-matching nodes "
                 << node <<": "<< neighbor.getCoord(node)
@@ -712,6 +713,14 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
                 << slvn <<": "<< this->getCoord(slvn) << std::endl;
       return false;
     }
+    else if (flipSign)
+    {
+      if (!this->add2PC(this->getNodeID(slvn),1,
+                        neighbor.getNodeID(node),0,-1.0))
+        return false;
+    }
+    else
+      ASMbase::collapseNodes(neighbor,node,*this,slvn);
   }
 
   return true;

@@ -559,3 +559,35 @@ TEST_CASE("TestASMs3Dmx.WriteTH")
     REQUIRE(str.str() == cubeTH_2);
   }
 }
+
+
+TEST_CASE("TestASMs3Dmx.ContinuousBasis")
+{
+  const ASMmxBase::MixedType param = GENERATE(
+    ASMmxBase::DIV_COMPATIBLE,
+    ASMmxBase::CURL_COMPATIBLE
+  );
+
+  SECTION(param == ASMmxBase::DIV_COMPATIBLE ? "Div" : "Curl") {
+    ASMmxBase::Type = param;
+    ASMbase::resetNumbering();
+    ASMmxCube pch1({1,1,1});
+    pch1.raiseOrder(1,1,1);
+    REQUIRE(pch1.generateFEMTopology());
+
+    // The last basis of either pair is what the derivative of its vector
+    // space lands in, taken patch by patch, so it is tied to nothing
+    REQUIRE(pch1.isContinuousBasis(1));
+    REQUIRE(pch1.isContinuousBasis(2));
+    REQUIRE(pch1.isContinuousBasis(3));
+    REQUIRE(!pch1.isContinuousBasis(4));
+
+    // And either pair holds its vector DOFs as coefficients of a reference
+    // basis, which change sign with the parameter they belong to
+    pch1.setPiolaMapped(true);
+    REQUIRE(pch1.dofsFollowParametrization(1));
+    REQUIRE(pch1.dofsFollowParametrization(2));
+    REQUIRE(pch1.dofsFollowParametrization(3));
+    REQUIRE(!pch1.dofsFollowParametrization(4));
+  }
+}

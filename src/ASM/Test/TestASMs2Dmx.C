@@ -331,3 +331,46 @@ TEST_CASE("TestASMs2Dmx.WriteTH")
     REQUIRE(str.str() == squareTH_2);
   }
 }
+
+
+TEST_CASE("TestASMs2Dmx.ContinuousBasis")
+{
+  const ASMmxBase::MixedType param = GENERATE(
+    ASMmxBase::DIV_COMPATIBLE,
+    ASMmxBase::CURL_COMPATIBLE
+  );
+
+  SECTION(param == ASMmxBase::DIV_COMPATIBLE ? "Div" : "Curl") {
+    ASMmxBase::Type = param;
+    ASMbase::resetNumbering();
+    ASMmxSquare pch1({1,1,1});
+    pch1.raiseOrder(1,1);
+    REQUIRE(pch1.generateFEMTopology());
+
+    // The last basis of either pair is what the derivative of its vector
+    // space lands in, taken patch by patch, so it is tied to nothing
+    REQUIRE(pch1.isContinuousBasis(1));
+    REQUIRE(pch1.isContinuousBasis(2));
+    REQUIRE(!pch1.isContinuousBasis(3));
+
+    // And either pair holds its vector DOFs as coefficients of a reference
+    // basis, which change sign with the parameter they belong to
+    pch1.setPiolaMapped(true);
+    REQUIRE(pch1.dofsFollowParametrization(1));
+    REQUIRE(pch1.dofsFollowParametrization(2));
+    REQUIRE(!pch1.dofsFollowParametrization(3));
+  }
+
+  // A pair which is continuous in everything it has keeps every basis
+  ASMmxBase::Type = ASMmxBase::REDUCED_CONT_RAISE_BASIS1;
+  ASMbase::resetNumbering();
+  ASMmxSquare pch2({1,1});
+  REQUIRE(pch2.generateFEMTopology());
+
+  pch2.setPiolaMapped(true);
+  for (size_t b = 1; b <= 2; b++)
+  {
+    REQUIRE(pch2.isContinuousBasis(b));
+    REQUIRE(!pch2.dofsFollowParametrization(b));
+  }
+}

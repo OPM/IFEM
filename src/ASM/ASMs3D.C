@@ -771,6 +771,30 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
   if (norient > 3)
     std::swap(n1,n2);
 
+  // A degree of freedom which follows the parametrization belongs to one of
+  // the three parameters and has the sign that parameter runs in. The two
+  // sides have to agree on which parameter it is, since a connection ties a
+  // basis to the basis of the same number and the bases here are one per
+  // parameter, and where they run opposite ways the pair describes the same
+  // velocity with two signs and is tied by a constraint rather than merged
+  // into one degree of freedom. Such a basis carries a single component per
+  // node, hence the local DOF is 1.
+  bool flipSign = false;
+  if (this->dofsFollowParametrization(basis))
+  {
+    const int paired = ASMbase::pairedDirection(face,nface,norient,basis);
+    if (paired != basis && paired != -basis)
+    {
+      std::cerr <<" *** ASMs3D::connectBasis: Parameter "<< basis <<" of face "
+                << face <<" meets parameter "<< (paired < 0 ? -paired : paired)
+                <<" of face "<< nface <<" of the neighbour.\n     The two"
+                <<" patches have to agree, there being a basis for each"
+                <<" parameter."<< std::endl;
+      return false;
+    }
+    flipSign = paired < 0;
+  }
+
   const double xtol = 1.0e-4;
   int node = 1, failures = 0;
   for (int j = 0; j < n2; j++)
@@ -793,11 +817,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
       {
         int snode = slaveNodes[(l*m1+k)*thick+t];
         int mnode = masterNodes[(node-1)*thick+t];
-        if (!coordCheck)
-          ASMbase::collapseNodes(neighbor,mnode,*this,snode);
-        else if (neighbor.getCoord(mnode).equal(this->getCoord(snode),xtol))
-          ASMbase::collapseNodes(neighbor,mnode,*this,snode);
-        else
+        if (coordCheck && !neighbor.getCoord(mnode).equal(this->getCoord(snode),xtol))
         {
           std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
                     << mnode <<": "<< neighbor.getCoord(mnode) <<"\n"
@@ -805,6 +825,14 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
                     << snode <<": "<< this->getCoord(snode) << std::endl;
           failures++;
         }
+        else if (flipSign)
+        {
+          if (!this->add2PC(this->getNodeID(snode),1,
+                            neighbor.getNodeID(mnode),0,-1.0))
+            return false;
+        }
+        else
+          ASMbase::collapseNodes(neighbor,mnode,*this,snode);
       }
     }
 

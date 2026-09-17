@@ -379,6 +379,22 @@ public:
   //! \brief Returns \e true if a basis is continuous across a patch interface.
   //! \param[in] basis 1-based basis index
   virtual bool isContinuousBasis(size_t basis) const { return true; }
+
+  //! \brief Flags whether the integrand maps this patch with the Piola transform.
+  virtual void setPiolaMapped(bool) {}
+
+  //! \brief Returns \e true if the DOFs of a basis follow the parametrization.
+  //! \param[in] basis 1-based basis index
+  virtual bool dofsFollowParametrization(size_t basis) const { return false; }
+
+  //! \brief Returns which parameter of a neighbour a face pairs one with.
+  //! \param[in] lIndex Local index of the face of this patch
+  //! \param[in] nIndex Local index of the face of the neighbour
+  //! \param[in] norient Relative orientation of the two faces, in range [0,7]
+  //! \param[in] dir Parameter direction of this patch, in range [1,3]
+  //! \return The neighbour's direction, negated where the two run opposite
+  //! ways
+  static int pairedDirection(int lIndex, int nIndex, int norient, int dir);
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the total number of elements in this patch.
@@ -910,7 +926,9 @@ public:
   //! \param[in] dir Which local DOF to constrain (1, 2, 3)
   //! \param[in] master Global node number of the master node of the constraint
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
-  bool add2PC(int slave, int dir, int master, int code = 0);
+  //! \param[in] coeff Coefficient of the master DOF in the constraint
+  bool add2PC(int slave, int dir, int master, int code = 0,
+              double coeff = 1.0);
 
   //! \brief Adds a general multi-point-constraint (MPC) equation to this patch.
   //! \param mpc Pointer to an MPC object
