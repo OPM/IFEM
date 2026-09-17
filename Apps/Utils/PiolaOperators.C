@@ -12,6 +12,7 @@
 
 #include "PiolaOperators.h"
 #include "FiniteElement.h"
+#include "Tensor.h"
 #include "Vec3.h"
 
 
@@ -215,12 +216,15 @@ void PiolaOperators::Residual::Laplacian (Vectors& EV,
                                           const std::array<int,3>& idx,
                                           double scale, bool stress)
 {
-  if (stress) {
-    std::cerr << "Stress laplacian operator not implemented with piola" << std::endl;
-    exit(1);
-  }
   Vector diff;
   fe.dPdX.multiply(dUdX, diff, true);
+  if (stress) {
+    Tensor dUdXT(dUdX);
+    dUdXT.transpose();
+    Vector diffT;
+    fe.dPdX.multiply(dUdXT, diffT, true);
+    diff += diffT;
+  }
   diff *= -scale*fe.detJxW;
   Copy(EV, fe, idx, diff);
 }
