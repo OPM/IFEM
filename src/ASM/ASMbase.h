@@ -382,6 +382,14 @@ public:
   //! does not say which bases to tie.
   virtual bool isContinuousBasis(size_t basis) const { return true; }
 
+  //! \brief Connects a node in this patch to a node in a neighbor patch.
+  //! \param[in] lnode 1-based node index local to this patch
+  //! \param neighbor The neighbor patch
+  //! \param[in] nnode 1-based node index local to the neighbor patch
+  //! \param[in] coordCheck If \e false, skip the check for matching coordinates
+  bool connectNode(int lnode, ASMbase& neighbor, int nnode,
+                   bool coordCheck = true);
+
   //! \brief Flags whether the integrand maps this patch with the Piola transform.
   virtual void setPiolaMapped(bool) {}
 
