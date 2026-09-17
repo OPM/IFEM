@@ -15,6 +15,7 @@
 #include "SIMoptions.h"
 #include "ModelGenerator.h"
 #include "ASMbase.h"
+#include "Integrand.h"
 #include "ASMunstruct.h"
 #ifdef HAS_LRSPLINE
 #include "LR/ASMLRSpline.h"
@@ -1363,6 +1364,14 @@ bool SIMinput::createFEMmodel (char resetNumb)
     myModel[i]->setGauss(opt.nGauss[0]); // in the case of immersed boundaries,
     // the number of Gauss quadrature points must be known at this point
 
+    // The patch interfaces are connected while the input is parsed, and how
+    // the degrees of freedom on either side relate depends on whether the
+    // basis is Piola mapped, so the patch has to know before that
+    const bool piolaMapped = myProblem &&
+                             (myProblem->getIntegrandType() &
+                              Integrand::PIOLA_MAPPING);
+    myModel[i]->setPiolaMapped(piolaMapped);
+
     if (myModel[i]->isShared() && myModel[i]->hasXNodes())
     {
       // This patch shares its FE data with another patch, but has been assigned
@@ -1372,6 +1381,11 @@ bool SIMinput::createFEMmodel (char resetNumb)
       {
         IFEM::cout <<"\tNote: Unsharing FE data of P"<< 1+i << std::endl;
         newPatch->setGlobalNodeNums(myModel[i]->getMyNodeNums());
+        // The mixed copy constructors build their ASMmxBase from the field
+        // counts rather than from the patch they copy, so the replacement
+        // does not carry the flag set above and would meet the interface
+        // believing its degrees of freedom are ordinary ones
+        newPatch->setPiolaMapped(piolaMapped);
         delete myModel[i];
         myModel[i] = newPatch;
       }

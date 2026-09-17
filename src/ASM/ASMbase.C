@@ -601,7 +601,7 @@ bool ASMbase::addMPC (MPC*& mpc, int code, bool verbose, bool overrideD)
 }
 
 
-bool ASMbase::add2PC (int slave, int dir, int master, int code)
+bool ASMbase::add2PC (int slave, int dir, int master, int code, Real coeff)
 {
   if (dir < 1 || dir > nf) return true;
   if (slave == master) return true;
@@ -610,7 +610,7 @@ bool ASMbase::add2PC (int slave, int dir, int master, int code)
   bool stat = this->addMPC(cons,code);
   if (cons)
   {
-    cons->addMaster(master,dir);
+    cons->addMaster(master,dir,coeff);
 #if SP_DEBUG > 1
     std::cout <<"Added constraint: "<< *cons;
 #endif

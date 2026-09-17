@@ -728,16 +728,46 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
     return false;
   }
 
+  // The two sides traverse the interface in opposite directions, so a degree
+  // of freedom which follows the parametrization has the opposite sign on the
+  // two sides and describes the same velocity. Such a pair has to be tied by a
+  // constraint rather than merged into one degree of freedom. A div-compatible
+  // basis carries a single component per node, hence the local DOF is 1.
+  // The sign relating two such degrees of freedom has two sources, and this
+  // interface is only understood where they agree. One is the tangent: the
+  // reverse flag says the two sides run it opposite ways, and the basis
+  // belonging to it changes sign with that. The other is the normal: the
+  // degrees of freedom are coefficients of the reference basis, so the basis
+  // belonging to the normal parameter changes sign when the two sides put
+  // the same end of it against the interface -- both a maximum or both a
+  // minimum, which is the parity of the two edge numbers. A half turn
+  // reverses both at once, so the two sources agree in every model here and
+  // one flag has covered them. A mirror separates them, and nothing has been
+  // run that way, so it is refused rather than silently assembled with a
+  // continuity nothing has checked.
+  if (this->dofsFollowParametrization(basis) &&
+      ((edge % 2 == nedge % 2) != revers))
+  {
+    std::cerr <<" *** ASMs2D::connectBasis: The degrees of freedom of basis "
+              << basis <<" follow the\n     parametrization, and edges "
+              << edge <<" and "<< nedge <<" meet "
+              << (edge % 2 == nedge % 2 ? "end to end" : "head to tail")
+              <<" while the tangent\n     runs "
+              << (revers ? "opposite ways" : "the same way")
+              <<" on the two sides. The sign that pair wants has not\n"
+              <<"     been worked out for such an interface. Turn a patch"
+              <<" rather than mirroring it."<< std::endl;
+    return false;
+  }
+
+  const bool flipSign = revers && this->dofsFollowParametrization(basis);
+
   const double xtol = 1.0e-4;
   for (size_t i = 0; i < masterNodes.size(); i++)
   {
     int mnode = masterNodes[i];
     int snode = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
-    if (!coordCheck)
-      ASMbase::collapseNodes(neighbor,mnode,*this,snode);
-    else if (neighbor.getCoord(mnode).equal(this->getCoord(snode),xtol))
-      ASMbase::collapseNodes(neighbor,mnode,*this,snode);
-    else
+    if (coordCheck && !neighbor.getCoord(mnode).equal(this->getCoord(snode),xtol))
     {
       std::cerr <<" *** ASMs2D::connectBasis: Non-matching nodes "
                 << mnode <<": "<< neighbor.getCoord(mnode)
@@ -745,6 +775,14 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
                 << snode <<": "<< this->getCoord(snode) << std::endl;
       return false;
     }
+    else if (flipSign)
+    {
+      if (!this->add2PC(this->getNodeID(snode),1,
+                        neighbor.getNodeID(mnode),0,Real(-1)))
+        return false;
+    }
+    else
+      ASMbase::collapseNodes(neighbor,mnode,*this,snode);
   }
 
   return true;
