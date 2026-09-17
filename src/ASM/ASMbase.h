@@ -517,6 +517,17 @@ public:
   bool hasTimeDependentDirichlet(const std::map<int,RealFunc*>& func,
                                  const std::map<int,VecFunc*>& vfunc);
 
+  //! \brief Flags that a Dirichlet code prescribes a physical velocity.
+  //! \param[in] code The in-homogeneous Dirichlet condition code
+  //! \details The basis is then Piola mapped, so the prescribed value lives in
+  //! the physical frame while the degrees of freedom are coefficients of the
+  //! reference basis. The patch has to pull the value back before prescribing
+  //! it, rather than use it as it stands.
+  void addPiolaDirichlet(int code) { piolaDirich.insert(abs(code)); }
+  //! \brief Returns \e true if the given code prescribes a physical velocity.
+  bool isPiolaDirichlet(int code) const
+  { return piolaDirich.find(abs(code)) != piolaDirich.end(); }
+
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields
   //! \param[in] vfunc Vector property fields
@@ -1128,6 +1139,7 @@ protected:
   std::map<char,size_t> firstBp;
 
   ASM::PatchVec neighbors; //!< Patches having nodes in common with this one
+  std::set<int> piolaDirich; //!< Dirichlet codes prescribing a physical velocity
 
   //! Auxilliary node number map used when establishing Dirichlet constraints
   static std::map<int,int> xNode;

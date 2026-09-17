@@ -462,7 +462,12 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
                                bool tangent) const
 {
   size_t n = edge.MLGN.size();
-  size_t m = values.dim();
+  // On a Piola mapped basis the degrees of freedom are the components of the
+  // reference velocity, one component per basis, so the prescribed value is
+  // pulled back to the component belonging to the basis being constrained and
+  // a single value per node comes out of the fit whatever the function gives
+  const bool piola = this->isPiolaDirichlet(edge.code);
+  size_t m = piola ? 1 : values.dim();
   SparseMatrix A(SparseMatrix::SUPERLU);
   StdVector B(n*m);
   A.resize(n,n);
@@ -478,6 +483,16 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
     case LR::SOUTH: edgeDir = -2; t1 = 2; t2 = 1; break;
     case LR::NORTH: edgeDir =  2; t1 = 2; t2 = 1; break;
     default:        return false;
+  }
+
+  // A prescribed normal velocity is scaled by the dilation of the boundary, so
+  // it has to be given on the basis carrying the normal component there
+  if (piola && values.dim() < 2 && edge.basis != static_cast<int>(t1))
+  {
+    std::cerr <<" *** ASMu2D::edgeL2projection: A normal velocity was"
+              <<" prescribed on basis "<< edge.basis <<", which does not carry"
+              <<" the normal component of this boundary."<< std::endl;
+    return false;
   }
 
   // Get Gaussian quadrature points and weights
@@ -542,7 +557,9 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       SplineUtils::extractBasis(spline,N,dNdu);
 
       // Compute basis function derivatives
-      double detJxW = dS*utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2)*wg[j];
+      double detJ = 0.0;
+      double dSx = utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2,&detJ);
+      double detJxW = dS*dSx*wg[j];
       if (detJxW == 0.0) continue; // skip singular points
 
       // Cartesian coordinates of current integration point
@@ -571,6 +588,31 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       }
       if (val.empty())
         val = values.getValue(X);
+
+      if (piola)
+      {
+        if (values.dim() < 2)
+        {
+          // The prescribed value is the normal velocity itself. The Piola
+          // transform preserves the normal flux, u*n*dS = uhat*nhat*dShat, so
+          // scaling by the dilation of the boundary gives the coefficient.
+          val.front() *= (edgeDir > 0 ? dSx : -dSx);
+        }
+        else
+        {
+          // The whole velocity is prescribed, so pull it back to the reference
+          // basis and keep the component this basis carries. The adjugate of
+          // the jacobian is its inverse times the determinant, which is
+          // exactly the factor of the contravariant Piola transform.
+          // The inverse holds the parametric direction on the row and the
+          // physical one on the column, so the component this basis carries
+          // is the row belonging to it
+          double uhat = 0.0;
+          for (size_t k = 0; k < val.size(); k++)
+            uhat += Jac(edge.basis,1+k)*val[k];
+          val = { detJ*uhat };
+        }
+      }
 
       for (size_t il = 0; il < eMNPC.size(); il++) // local i-index
         if ((ig = 1+eMNPC[il]) > 0) {             // global i-index
