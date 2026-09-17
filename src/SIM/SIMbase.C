@@ -290,6 +290,10 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
   printNodalConnectivity(myModel,std::cout);
 #endif
 
+  // Has to be done before the nodes are renumbered, since it merges some
+  if (!this->connectCrossPoints())
+    return false;
+
   // Renumber the nodes to account for resolved patch topology
   if (!nGlbNodes) nGlbNodes = this->renumberNodes(fixDup);
   if (nGlbNodes < 0) return false;

@@ -18,6 +18,7 @@
 #include "FieldFunctions.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "Vec3Oper.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
 #include <fstream>
@@ -60,6 +61,132 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
   nsd = 2;
   nf.push_back(n);
   checkRHSys = check;
+}
+
+
+/*!
+  Where four patches meet, a basis which is not tied across the interfaces has
+  a mode that alternates in sign around the point. The continuous bases cannot
+  see it, since going once around the point returns to the same sign, so it is
+  left undetermined and comes out of the solver with an arbitrary amplitude.
+  For the pressure of a div-compatible space the mode is real: a two by two
+  patch grid gave a pressure of 1.98e+02 in the L2 norm against an exact
+  4.4e+01, while the velocity, its divergence and the integrated pressure were
+  all unharmed.
+
+  Tying the basis between two of the patches meeting at the point removes it,
+  provided the two share an interface there. Two patches diagonally across from
+  each other hold the same sign and would leave the mode untouched.
+*/
+
+bool SIM2D::connectCrossPoints ()
+{
+  // The bases which are left discontinuous at the interfaces
+  std::vector<size_t> dBases;
+  for (const ASMbase* pch : myModel)
+    if (!pch->empty())
+    {
+      for (size_t b = 1; b <= pch->getNoBasis(); b++)
+        if (!pch->isContinuousBasis(b))
+          dBases.push_back(b);
+      break;
+    }
+
+  if (dBases.empty() || myInterfaces.empty())
+    return true;
+
+  //! \brief A patch corner, as a patch index and a local vertex index.
+  using Corner = std::pair<size_t,int>;
+
+  auto&& corner = [](ASM2D* pch, int vertex, size_t basis)
+  {
+    return pch->getCorner((vertex-1)%2 ? 1 : -1,
+                          (vertex-1)/2 ? 1 : -1, basis);
+  };
+
+  // Gather the patch corners which sit at the same point
+  std::map<Vec3,std::vector<Corner>> points;
+  for (size_t ip = 0; ip < myModel.size(); ip++)
+    if (ASM2D* pch = dynamic_cast<ASM2D*>(myModel[ip]); pch &&
+        !myModel[ip]->empty())
+      for (int v = 1; v <= 4; v++)
+      {
+        int node = corner(pch,v,1);
+        if (node > 0)
+          points[Vec3(myModel[ip]->getCoord(node))].emplace_back(ip,v);
+      }
+
+  // The vertices of a local edge. Both are numbered in the order umin, umax
+  // for the vertices and umin, umax, vmin, vmax for the edges.
+  static const int edgeVertices[4][2] = {{1,3},{2,4},{1,2},{3,4}};
+  auto&& onEdge = [](int vertex, int edge)
+  {
+    return edge > 0 && edge < 5 && (edgeVertices[edge-1][0] == vertex ||
+                                    edgeVertices[edge-1][1] == vertex);
+  };
+
+  int nTied = 0;
+  for (const auto& [X,corners] : points)
+  {
+    // Two patches meeting is the interior of an interface, and there the
+    // discontinuous bases are meant to stay discontinuous
+    if (corners.size() < 3) continue;
+
+    // Walk the interfaces meeting at this point while keeping track of which
+    // patches they have joined up. One that joins two patches which are
+    // connected already closes a loop, and it is around a loop that the
+    // alternating mode lives, so that is where to tie the patches together.
+    std::map<size_t,size_t> group;
+    for (const Corner& c : corners)
+      group[c.first] = c.first;
+
+    auto&& root = [&group](size_t i)
+    {
+      while (group[i] != i) i = group[i];
+      return i;
+    };
+
+    for (const ASM::Interface& ifc : myInterfaces)
+    {
+      if (ifc.dim < 1) continue; // joins a single node, not a whole edge
+
+      int lmaster = this->getLocalPatchIndex(ifc.master);
+      int lslave  = this->getLocalPatchIndex(ifc.slave);
+      if (lmaster < 1 || lslave < 1) continue;
+
+      const Corner* mc = nullptr;
+      const Corner* sc = nullptr;
+      for (const Corner& c : corners)
+        if (c.first+1 == static_cast<size_t>(lmaster) && onEdge(c.second,ifc.midx))
+          mc = &c;
+        else if (c.first+1 == static_cast<size_t>(lslave) && onEdge(c.second,ifc.sidx))
+          sc = &c;
+
+      if (!mc || !sc) continue; // does not meet at this point
+
+      if (size_t rm = root(mc->first), rs = root(sc->first); rm != rs)
+      {
+        group[rs] = rm; // no loop closed yet
+        continue;
+      }
+
+      ASM2D* mpch = dynamic_cast<ASM2D*>(myModel[mc->first]);
+      ASM2D* spch = dynamic_cast<ASM2D*>(myModel[sc->first]);
+      for (size_t b : dBases)
+        if (!myModel[sc->first]->connectNode(corner(spch,sc->second,b),
+                                             *myModel[mc->first],
+                                             corner(mpch,mc->second,b)))
+          return false;
+
+      ++nTied;
+    }
+  }
+
+  if (nTied > 0)
+    IFEM::cout <<"\tTied the discontinuous bases at "<< nTied
+               <<" cross point"<< (nTied > 1 ? "s" : "") << std::endl;
+
+  return true;
 }
 
 
