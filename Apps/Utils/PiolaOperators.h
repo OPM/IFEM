@@ -86,7 +86,6 @@ public:
     //! \param[in] idx Matrix block indices
     //! \param[in] scale Scaling factor for contribution
     //! \param[in] stress Whether to add extra stress formulation terms
-    //! \details Only the upper blocks are added with the stress formulation
     static void Laplacian(Matrices& EM,
                           const FiniteElement& fe,
                           const std::array<std::array<int,3>,3>& idx,
