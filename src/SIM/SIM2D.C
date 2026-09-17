@@ -90,8 +90,13 @@ bool SIM2D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
     {
       std::set<int> bases;
       if (ifc.basis == 0)
+      {
+        // Only the continuous bases, since a basis that is discontinuous
+        // across the interface has nothing to tie there
         for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
-          bases.insert(b);
+          if (myModel[lslave-1]->isContinuousBasis(b))
+            bases.insert(b);
+      }
       else
         bases = utl::getDigits(ifc.basis);
 
