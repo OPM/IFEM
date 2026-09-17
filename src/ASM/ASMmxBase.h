@@ -88,6 +88,12 @@ public:
   bool piola = false;    //!< True if last used integrand was Piola mapped
   static bool includeExtra; //!< True to include extra basis (geometry/projection) as FE basis
 
+  //! \brief Returns \e true if a mixed basis is continuous across an interface.
+  //! \param[in] basis 1-based basis index
+  //! \param[in] nsd Number of space dimensions
+  static bool continuousBasis(size_t basis, size_t nsd)
+  { return !compatibleSpace() || basis <= nsd; }
+
 protected:
   typedef std::vector<std::shared_ptr<Go::SplineSurface>> SurfaceVec; //!< Convenience type
   typedef std::vector<std::shared_ptr<Go::SplineVolume>> VolumeVec; //!< Convenience type
