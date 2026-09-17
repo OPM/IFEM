@@ -728,16 +728,19 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
     return false;
   }
 
+  // The two sides traverse the interface in opposite directions, so a degree
+  // of freedom which follows the parametrization has the opposite sign on the
+  // two sides and describes the same velocity. Such a pair has to be tied by a
+  // constraint rather than merged into one degree of freedom. A div-compatible
+  // basis carries a single component per node, hence the local DOF is 1.
+  const bool flipSign = revers && this->dofsFollowParametrization(basis);
+
   const double xtol = 1.0e-4;
   for (size_t i = 0; i < masterNodes.size(); i++)
   {
     int mnode = masterNodes[i];
     int snode = slaveNodes[revers ? slaveNodes.size()-i-1 : i];
-    if (!coordCheck)
-      ASMbase::collapseNodes(neighbor,mnode,*this,snode);
-    else if (neighbor.getCoord(mnode).equal(this->getCoord(snode),xtol))
-      ASMbase::collapseNodes(neighbor,mnode,*this,snode);
-    else
+    if (coordCheck && !neighbor.getCoord(mnode).equal(this->getCoord(snode),xtol))
     {
       std::cerr <<" *** ASMs2D::connectBasis: Non-matching nodes "
                 << mnode <<": "<< neighbor.getCoord(mnode)
@@ -745,6 +748,14 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
                 << snode <<": "<< this->getCoord(snode) << std::endl;
       return false;
     }
+    else if (flipSign)
+    {
+      if (!this->add2PC(this->getNodeID(snode),1,
+                        neighbor.getNodeID(mnode),0,Real(-1)))
+        return false;
+    }
+    else
+      ASMbase::collapseNodes(neighbor,mnode,*this,snode);
   }
 
   return true;
