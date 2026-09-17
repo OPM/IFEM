@@ -176,15 +176,19 @@ TEST_CASE("TestPiolaOperators.AdvectionIsTheTangentOfConvection")
 
 TEST_CASE("TestPiolaOperators.LaplacianResidualMatchesItsMatrix")
 {
+  // Both forms of the viscous term: the plain gradient product, and the stress
+  // formulation which adds the transposed one to make up 2*eps(u):eps(v)
+  const bool stress = GENERATE(false, true);
+
   const PiolaFiniteElement fe;
   const Vector c = PiolaFiniteElement::coefficients();
   const Tensor dUdX = fe.gradient();
 
   Matrices EM = emptyMats();
-  PiolaOperators::Weak::Laplacian(EM, fe, matIdx, 1.0, false);
+  PiolaOperators::Weak::Laplacian(EM, fe, matIdx, 1.0, stress);
 
   Vectors EV = emptyVecs();
-  PiolaOperators::Residual::Laplacian(EV, fe, dUdX, vecIdx, 1.0, false);
+  PiolaOperators::Residual::Laplacian(EV, fe, dUdX, vecIdx, 1.0, stress);
 
   const Vector Au = applyMats(EM, c);
   const Vector r = join(EV);
