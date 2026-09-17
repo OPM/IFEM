@@ -15,6 +15,8 @@
 #include "Tensor.h"
 #include "Vec3.h"
 
+#include <utility>
+
 
 namespace {
 
@@ -32,6 +34,31 @@ void AdvectionConvInt (Matrix& C,
   }
 }
 
+
+//! \brief Contracts the gradient of the mapped basis with a vector.
+void GradientDotVector (Matrix& W,
+                        const FiniteElement& fe,
+                        const Vec3& U)
+{
+  const size_t nsd = fe.dNdX.cols();
+  W.resize(nsd, fe.dPdX.cols(), true);
+  for (size_t l = 1; l <= nsd; ++l)
+    for (size_t k = 1; k <= nsd; ++k)
+      for (size_t i = 1; i <= fe.dPdX.cols(); ++i)
+        W(l,i) += U[k-1] * fe.dPdX((l-1)*nsd+k, i);
+}
+
+
+//! \brief The weights of the convective and the conservative term in a form.
+std::pair<double,double> FormWeights (WeakOperators::ConvectionForm form)
+{
+  switch (form) {
+    case WeakOperators::CONSERVATIVE:  return { 0.0,  -1.0};
+    case WeakOperators::SKEWSYMMETRIC: return { 0.5,  -0.5};
+    default:                           return { 1.0,   0.0};
+  }
+}
+
 }
 
 
@@ -42,13 +69,15 @@ void PiolaOperators::Weak::Advection (Matrices& EM,
                                       double scale,
                                       WeakOperators::ConvectionForm cnvForm)
 {
-  if (cnvForm != WeakOperators::CONVECTIVE) {
-    std::cerr << "Only convective advection operator implemented with piola" << std::endl;
-    exit(1);
-  }
+  Matrix A;
+  AdvectionConvInt(A, fe, AC, scale);
 
-  Matrix C;
-  AdvectionConvInt(C, fe, AC, scale);
+  const auto [cw, tw] = FormWeights(cnvForm);
+  Matrix C(A.rows(), A.cols());
+  for (size_t i = 1; i <= C.rows(); ++i)
+    for (size_t j = 1; j <= C.cols(); ++j)
+      C(i,j) = cw*A(i,j) + tw*A(j,i);
+
   Copy(EM, fe, idx, C);
 }
 
@@ -61,19 +90,26 @@ void PiolaOperators::Weak::Convection (Matrices& EM,
                                        double scale,
                                        WeakOperators::ConvectionForm form)
 {
-  if (form != WeakOperators::CONVECTIVE) {
-    std::cerr << "Only convective convection operator implemented with piola" << std::endl;
-    exit(1);
-  }
+  Matrix A;
+  AdvectionConvInt(A, fe, U, scale);
 
-  Matrix C;
   Matrix dudx(dUdX.dim(), dUdX.dim());
   dudx = dUdX;
+  Matrix dudxP;
+  dudxP.multiply(dudx, fe.P);
+  Matrix N;
+  N.multiply(fe.P, dudxP, true, false, false, scale*fe.detJxW);
 
-  Matrix C1;
-  C1.multiply(dudx, fe.P);
-  AdvectionConvInt(C, fe, U, scale);
-  C.multiply(fe.P, C1, true, false, true, scale*fe.detJxW);
+  Matrix W, M;
+  GradientDotVector(W, fe, U);
+  M.multiply(W, fe.P, true, false, false, scale*fe.detJxW);
+
+  const auto [cw, tw] = FormWeights(form);
+  Matrix C(A.rows(), A.cols());
+  for (size_t i = 1; i <= C.rows(); ++i)
+    for (size_t j = 1; j <= C.cols(); ++j)
+      C(i,j) = cw*(A(i,j) + N(i,j)) + tw*(A(j,i) + M(i,j));
+
   Copy(EM, fe, idx, C);
 }
 
@@ -182,17 +218,31 @@ void PiolaOperators::Residual::Convection (Vectors& EV, const FiniteElement& fe,
                                            const std::array<int,3>& idx, double scale,
                                            WeakOperators::ConvectionForm form)
 {
-  if (form != WeakOperators::CONVECTIVE) {
-    std::cerr << "Only convective convection implemented with piola" << std::endl;
-     exit(1);
+  const size_t nsd = fe.grad(1).cols();
+  const auto [cw, tw] = FormWeights(form);
+
+  Vector r(fe.dPdX.cols());
+
+  if (cw != 0.0) {
+    Matrix C(nsd,1);
+    C.fillColumn(1, (dUdX*UC).ptr());
+    Matrix T;
+    T.multiply(fe.P, C, true, false, false, -cw*scale*fe.detJxW);
+    r.add(T, 1.0);
   }
 
-  size_t nsd = fe.grad(1).cols();
-  Matrix C(nsd,1);
-  C.fillColumn(1, (dUdX*UC).ptr());
-  Matrix T;
-  T.multiply(fe.P, C, true, false, false, -scale*fe.detJxW);
-  Copy(EV, fe, idx, T);
+  if (tw != 0.0) {
+    Tensor UUC(nsd);
+    for (size_t l = 1; l <= nsd; ++l)
+      for (size_t k = 1; k <= nsd; ++k)
+        UUC(k,l) = U[k-1] * UC[l-1];
+
+    Vector diff;
+    fe.dPdX.multiply(UUC, diff, true);
+    r.add(diff, -tw*scale*fe.detJxW);
+  }
+
+  Copy(EV, fe, idx, r);
 }
 
 

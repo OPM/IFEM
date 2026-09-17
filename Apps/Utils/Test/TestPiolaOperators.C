@@ -133,7 +133,8 @@ Vectors emptyVecs()
 }
 
 //! \brief The convective residual for a given set of coefficients.
-Vector convectionResidual(const PiolaFiniteElement& fe, const Vector& c)
+Vector convectionResidual(const PiolaFiniteElement& fe, const Vector& c,
+                          WeakOperators::ConvectionForm form)
 {
   Vector u;
   fe.P.multiply(c, u);
@@ -145,9 +146,22 @@ Vector convectionResidual(const PiolaFiniteElement& fe, const Vector& c)
   dUdX = dV;
 
   Vectors EV = emptyVecs();
-  PiolaOperators::Residual::Convection(EV, fe, U, dUdX, U, vecIdx, 1.0);
+  PiolaOperators::Residual::Convection(EV, fe, U, dUdX, U, vecIdx, 1.0, form);
   return join(EV);
 }
+
+}
+
+
+namespace {
+
+//! \brief The three forms of the convective term.
+const auto convectionForms = []()
+{
+  return GENERATE(WeakOperators::CONVECTIVE,
+                  WeakOperators::CONSERVATIVE,
+                  WeakOperators::SKEWSYMMETRIC);
+};
 
 }
 
@@ -156,16 +170,21 @@ TEST_CASE("TestPiolaOperators.AdvectionIsTheTangentOfConvection")
 {
   // The residual of a convective term is the advection matrix, built with the
   // same advecting field, applied to the coefficients of the advected one.
+  // This holds for each of the three forms, the conservative one being the
+  // negated transpose of the convective one and the skew symmetric one their
+  // mean, on both sides of the identity.
+  const WeakOperators::ConvectionForm form = convectionForms();
+
   const PiolaFiniteElement fe;
   const Vector c = PiolaFiniteElement::coefficients();
   const Vec3 U = fe.value();
   const Tensor dUdX = fe.gradient();
 
   Matrices EM = emptyMats();
-  PiolaOperators::Weak::Advection(EM, fe, U, matIdx, 1.0);
+  PiolaOperators::Weak::Advection(EM, fe, U, matIdx, 1.0, form);
 
   Vectors EV = emptyVecs();
-  PiolaOperators::Residual::Convection(EV, fe, U, dUdX, U, vecIdx, 1.0);
+  PiolaOperators::Residual::Convection(EV, fe, U, dUdX, U, vecIdx, 1.0, form);
 
   const Vector Au = applyMats(EM, c);
   const Vector r = join(EV);
@@ -203,21 +222,23 @@ TEST_CASE("TestPiolaOperators.ConvectionIsTheTangentOfItsResidual")
   // residual, so differencing the residual has to reproduce it. The residual
   // is quadratic in the coefficients, which makes a central difference exact
   // up to round-off, hence the tight tolerance.
+  const WeakOperators::ConvectionForm form = convectionForms();
+
   const PiolaFiniteElement fe;
   const Vector c = PiolaFiniteElement::coefficients();
   const Vec3 U = fe.value();
   const Tensor dUdX = fe.gradient();
 
   Matrices EM = emptyMats();
-  PiolaOperators::Weak::Convection(EM, fe, U, dUdX, matIdx, 1.0);
+  PiolaOperators::Weak::Convection(EM, fe, U, dUdX, matIdx, 1.0, form);
 
   const double h = 1.0e-3;
   for (size_t j = 1; j <= 6; ++j) {
     Vector cp(c), cm(c);
     cp(j) += h;
     cm(j) -= h;
-    const Vector rp = convectionResidual(fe, cp);
-    const Vector rm = convectionResidual(fe, cm);
+    const Vector rp = convectionResidual(fe, cp, form);
+    const Vector rm = convectionResidual(fe, cm, form);
 
     // Column j of the tangent, which the residual carries with a minus sign
     Vector col(6);
