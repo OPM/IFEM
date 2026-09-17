@@ -1265,7 +1265,7 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
       return false;
     }
 
-    if (this->isNormalDirichlet(cit.second))
+    if (this->isPiolaDirichlet(cit.second))
       continue; // Prescribed by the patch, direct evaluation would be wrong
 
     int node = cit.first->getSlave().node;

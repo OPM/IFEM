@@ -18,6 +18,8 @@
 #include "GoTools/geometry/RectDomain.h"
 
 #include "ASMs2D.h"
+
+#include <memory>
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
@@ -853,15 +855,15 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.emplace_back(this->getBoundary(dir,basis),dof,code);
+    dirich.emplace_back(this->getBoundary(dir,basis),dir,dof,code,basis);
   else if (code < 0)
     bcode = -code;
 
-  // The end points of a normal-direction condition also have to take their
-  // value from the projection. Evaluating the prescribed function directly
-  // there, as is done for an ordinary condition, would use the normal
+  // The end points of a condition on a Piola mapped basis also have to take
+  // their value from the projection. Evaluating the prescribed function
+  // directly there, as is done for an ordinary condition, would use a physical
   // velocity where a coefficient of the reference basis is wanted.
-  const bool normalBC = code > 0 && this->isNormalDirichlet(code);
+  const bool piolaBC = code > 0 && this->isPiolaDirichlet(code);
 
   switch (dir)
     {
@@ -871,7 +873,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       if (!open)
       {
         this->prescribe(node,dof,bcode);
-        if (normalBC)
+        if (piolaBC)
           dirich.back().nodes.emplace_back(1,node);
       }
       node += n1;
@@ -886,7 +888,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       if (!open)
       {
         this->prescribe(node,dof,bcode);
-        if (normalBC)
+        if (piolaBC)
           dirich.back().nodes.emplace_back(n2,node);
       }
       break;
@@ -897,7 +899,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       if (!open)
       {
         this->prescribe(node,dof,bcode);
-        if (normalBC)
+        if (piolaBC)
           dirich.back().nodes.emplace_back(1,node);
       }
       node++;
@@ -912,7 +914,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       if (!open)
       {
         this->prescribe(node,dof,bcode);
-        if (normalBC)
+        if (piolaBC)
           dirich.back().nodes.emplace_back(n1,node);
       }
       break;
@@ -1051,7 +1053,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.emplace_back(edge,dof,code);
+    dirich.emplace_back(edge,dir,dof,code);
   else if (code < 0)
     bcode = -code;
 
@@ -1207,13 +1209,6 @@ void ASMs2D::setNodeNumbers (const IntVec& nodes)
 }
 
 
-/*!
-  This method projects the function describing the in-homogeneous Dirichlet
-  boundary condition onto the spline basis defining the boundary curve,
-  in order to find the control point values which are used as the prescribed
-  values of the boundary DOFs.
-*/
-
 bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
                               const std::map<int,int>* g2l, bool tangent)
@@ -1225,7 +1220,26 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
   {
     // Project the function onto the spline curve basis
     Go::SplineCurve* dcrv = nullptr;
-    if ((fit = func.find(dirich[i].code)) != func.end())
+    if (this->isPiolaDirichlet(dirich[i].code))
+    {
+      // The basis is Piola mapped, so the prescribed physical velocity has to
+      // be pulled back to a coefficient of the reference basis before it is
+      // fitted along the boundary.
+      const RealFunc* sf = nullptr;
+      const VecFunc*  vf = nullptr;
+      if ((fit = func.find(dirich[i].code)) != func.end())
+        sf = fit->second;
+      else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
+        vf = vfit->second;
+      else
+      {
+        std::cerr <<" *** ASMs2D::updateDirichlet: Code "<< dirich[i].code
+                  <<" is not associated with any function."<< std::endl;
+        return false;
+      }
+      dcrv = this->projectPiolaDirichlet(dirich[i],sf,vf,time,tangent);
+    }
+    else if ((fit = func.find(dirich[i].code)) != func.end())
       dcrv = SplineUtils::project(dirich[i].curve,*fit->second,1,time,tangent);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
       dcrv = SplineUtils::project(dirich[i].curve,*vfit->second,
