@@ -18,12 +18,15 @@
 #include "GoTools/geometry/RectDomain.h"
 
 #include "ASMs2D.h"
+
+#include <memory>
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
 #include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
+#include "SparseMatrix.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
 #include "SplineField2D.h"
@@ -853,7 +856,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.emplace_back(this->getBoundary(dir,basis),dof,code);
+    dirich.emplace_back(this->getBoundary(dir,basis),dir,dof,code);
   else if (code < 0)
     bcode = -code;
 
@@ -1029,7 +1032,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.emplace_back(edge,dof,code);
+    dirich.emplace_back(edge,dir,dof,code);
   else if (code < 0)
     bcode = -code;
 
@@ -1192,6 +1195,141 @@ void ASMs2D::setNodeNumbers (const IntVec& nodes)
   values of the boundary DOFs.
 */
 
+/*!
+  The prescribed value of a normal-direction condition is the normal velocity
+  itself, whereas the constrained degree of freedom is a coefficient of the
+  reference basis. The contravariant Piola transform preserves the normal
+  flux, so the two are related by the dilation of the boundary, and the
+  scaled values are interpolated onto the boundary basis as usual.
+*/
+
+Go::SplineCurve* ASMs2D::projectNormalDirichlet (const DirichletEdge& dedge,
+                                                 const RealFunc* sf,
+                                                 const VecFunc* vf,
+                                                 double time,
+                                                 bool tangent) const
+{
+  const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  if (!geo || !dedge.curve)
+    return nullptr;
+
+  const int ndir = abs(dedge.dir);  // parameter direction of the normal
+  const int tdir = 3 - ndir;        // parameter direction along the boundary
+  // The reference normal points along the parameter direction on the upper
+  // boundary and against it on the lower one
+  const double nsign = dedge.dir > 0 ? 1.0 : -1.0;
+
+  double par[2] = { 0.0, 0.0 };
+  par[ndir-1] = dedge.dir < 0 ? (ndir == 1 ? geo->startparam_u()
+                                           : geo->startparam_v())
+                              : (ndir == 1 ? geo->endparam_u()
+                                           : geo->endparam_v());
+
+  // The prescribed value converted to a coefficient of the reference basis
+  std::vector<Go::Point> pts(3);
+  auto&& refValue = [&](double t, double& value) -> bool
+  {
+    par[tdir-1] = t;
+    geo->point(pts,par[0],par[1],1);
+
+    const Vec3 X    = SplineUtils::toVec3(pts[0],nsd);
+    const Vec3 dXdu = SplineUtils::toVec3(pts[1],nsd);
+    const Vec3 dXdv = SplineUtils::toVec3(pts[2],nsd);
+
+    const Vec4 Xt(X,time,&t);
+    if (sf)
+    {
+      // The prescribed value is the normal velocity itself. The Piola
+      // transform preserves the normal flux, u*n*dS = uhat*nhat*dShat, so
+      // scaling by the dilation of the boundary gives the coefficient.
+      const Vec3& tv = ndir == 1 ? dXdv : dXdu;
+      const double dS = tv.length();
+      if (dS <= 0.0)
+      {
+        std::cerr <<" *** ASMs2D::projectNormalDirichlet: Degenerate boundary"
+                  <<" at parameter "<< t << std::endl;
+        return false;
+      }
+      value = nsign * dS * (tangent ? sf->timeDerivative(Xt) : (*sf)(Xt));
+    }
+    else
+    {
+      // The whole velocity is prescribed, so pull it back to the reference
+      // basis and keep the component this boundary constrains. The adjugate
+      // of the jacobian is its inverse times the determinant, which is
+      // exactly the factor of the contravariant Piola transform, leaving no
+      // determinant and no inverse to compute.
+      const Vec3 u = tangent ? vf->timeDerivative(Xt) : (*vf)(Xt);
+      value = ndir == 1 ? dXdv.y*u.x - dXdv.x*u.y
+                        : dXdu.x*u.y - dXdu.y*u.x;
+    }
+    return true;
+  };
+
+  // Fit it in the parametric least-squares sense along the boundary. The
+  // normal degrees of freedom of a div-compatible basis are fluxes rather
+  // than point values, so interpolating the converted values leaves an error
+  // in the flux and the discrete field is then not divergence free.
+  const Go::BsplineBasis& basis = dedge.curve->basis();
+  const int ncoef = basis.numCoefs();
+  const int order = basis.order();
+  const RealArray knots(basis.begin(),basis.end());
+
+  const int nGP = this->getNoGaussPt(order,true);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return nullptr;
+
+  // Banded with the order as bandwidth, so keep it sparse
+  SparseMatrix A(SparseMatrix::SUPERLU);
+  StdVector B(ncoef);
+  A.resize(ncoef,ncoef);
+  RealArray Nval(2*order);
+
+  for (size_t is = order-1; is+order < knots.size(); is++)
+  {
+    const double t0 = knots[is], t1 = knots[is+1];
+    if (t1 <= t0) continue; // skip the repeated knots
+
+    const double dt = 0.5*(t1-t0), tm = 0.5*(t1+t0);
+    for (int ig = 0; ig < nGP; ig++)
+    {
+      double t = tm + dt*xg[ig]; // not const, knotIntervalFuzzy may snap it
+      double value = 0.0;
+      if (!refValue(t,value))
+        return nullptr;
+
+      const int ki = basis.knotIntervalFuzzy(t);
+      basis.computeBasisValues(t,Nval.data(),1);
+
+      const double w = dt*wg[ig];
+      for (int a = 0; a < order; a++)
+      {
+        const int ia = ki-order+1+a;
+        if (ia < 0 || ia >= ncoef) continue;
+
+        B(1+ia) += Nval[2*a]*value*w;
+        for (int b = 0; b < order; b++)
+        {
+          const int ib = ki-order+1+b;
+          if (ib >= 0 && ib < ncoef)
+            A(1+ia,1+ib) += Nval[2*a]*Nval[2*b]*w;
+        }
+      }
+    }
+  }
+
+  if (!A.solve(B))
+  {
+    std::cerr <<" *** ASMs2D::projectNormalDirichlet: Failed to solve the"
+              <<" least-squares system."<< std::endl;
+    return nullptr;
+  }
+
+  return new Go::SplineCurve(ncoef,order,knots.begin(),B.begin(),1);
+}
+
+
 bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
                               const std::map<int,int>* g2l, bool tangent)
@@ -1203,7 +1341,27 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
   {
     // Project the function onto the spline curve basis
     Go::SplineCurve* dcrv = nullptr;
-    if ((fit = func.find(dirich[i].code)) != func.end())
+    if (this->isNormalDirichlet(dirich[i].code))
+    {
+      // The prescribed value is the normal velocity. The Piola transform
+      // preserves the normal flux, u*n*dS = uhat*nhat*dShat, so the
+      // coefficient of the reference basis is the prescribed normal velocity
+      // scaled by the dilation of the boundary.
+      const RealFunc* sf = nullptr;
+      const VecFunc*  vf = nullptr;
+      if ((fit = func.find(dirich[i].code)) != func.end())
+        sf = fit->second;
+      else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
+        vf = vfit->second;
+      else
+      {
+        std::cerr <<" *** ASMs2D::updateDirichlet: Code "<< dirich[i].code
+                  <<" is not associated with any function."<< std::endl;
+        return false;
+      }
+      dcrv = this->projectNormalDirichlet(dirich[i],sf,vf,time,tangent);
+    }
+    else if ((fit = func.find(dirich[i].code)) != func.end())
       dcrv = SplineUtils::project(dirich[i].curve,*fit->second,1,time,tangent);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
       dcrv = SplineUtils::project(dirich[i].curve,*vfit->second,
