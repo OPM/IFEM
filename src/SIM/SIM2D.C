@@ -78,12 +78,6 @@ bool SIM2D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
   int lslave  = this->getLocalPatchIndex(ifc.slave);
   if (lmaster > 0 && lslave > 0)
   {
-    if (ifc.dim < 1) return true; // ignored in serial
-
-    IFEM::cout <<"\tConnecting P"<< ifc.slave <<" E"<< ifc.sidx
-               <<" to P"<< ifc.master <<" E"<< ifc.midx
-               <<" reversed? "<< ifc.orient << std::endl;
-
     ASM2D* spch = dynamic_cast<ASM2D*>(myModel[lslave-1]);
     ASM2D* mpch = dynamic_cast<ASM2D*>(myModel[lmaster-1]);
     if (spch && mpch)
@@ -100,10 +94,47 @@ bool SIM2D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
       else
         bases = utl::getDigits(ifc.basis);
 
-      for (int b : bases)
-        if (!spch->connectPatch(ifc.sidx,*mpch,ifc.midx,
-                                ifc.orient,b,coordCheck,ifc.thick))
-          return false;
+      if (ifc.dim < 1)
+      {
+        IFEM::cout <<"\tConnecting P"<< ifc.slave <<" V"<< ifc.sidx
+                   <<" to P"<< ifc.master <<" V"<< ifc.midx << std::endl;
+
+        // A vertex is a single node on each side. The vertices are numbered
+        // umin/vmin, umax/vmin, umin/vmax, umax/vmax.
+        auto&& corner = [](ASM2D* pch, int vertex, int basis)
+        {
+          return pch->getCorner((vertex-1)%2 ? 1 : -1,
+                                (vertex-1)/2 ? 1 : -1, basis);
+        };
+
+        for (int b : bases)
+          if (myModel[lslave-1]->dofsFollowParametrization(b))
+          {
+            // The sign relating two such DOFs comes from the direction the two
+            // patches traverse the interface, which a single point does not
+            // give, and the edge connection has tied them already
+            std::cerr <<" *** SIM2D::connectPatches: Basis "<< b <<" cannot be"
+                      <<" tied at a vertex, as its degrees of freedom follow"
+                      <<" the parametrization."<< std::endl;
+            return false;
+          }
+          else if (!myModel[lslave-1]->connectNode(corner(spch,ifc.sidx,b),
+                                                   *myModel[lmaster-1],
+                                                   corner(mpch,ifc.midx,b),
+                                                   coordCheck))
+            return false;
+      }
+      else
+      {
+        IFEM::cout <<"\tConnecting P"<< ifc.slave <<" E"<< ifc.sidx
+                   <<" to P"<< ifc.master <<" E"<< ifc.midx
+                   <<" reversed? "<< ifc.orient << std::endl;
+
+        for (int b : bases)
+          if (!spch->connectPatch(ifc.sidx,*mpch,ifc.midx,
+                                  ifc.orient,b,coordCheck,ifc.thick))
+            return false;
+      }
     }
 
     myInterfaces.push_back(ifc);
