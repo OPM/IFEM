@@ -263,19 +263,57 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 
   if (fixDup)
   {
+    // Which basis a node belongs to. A patch numbers its nodes one basis
+    // after another, so the counts of each say where the boundaries are.
+    auto&& basisOf = [](const ASMbase* pch, size_t node)
+    {
+      size_t first = 1;
+      for (size_t b = 1; b <= pch->getNoBasis(); b++)
+      {
+        const size_t nnod = pch->getNoNodes(b);
+        if (node < first + nnod)
+          return b;
+        first += nnod;
+      }
+      return static_cast<size_t>(0);
+    };
+
     // Check for duplicated nodes (missing topology)
+    //
+    // Two nodes at the same point need not be the same node. They may
+    // belong to different bases of a mixed patch, carrying different
+    // fields, so the search is per basis rather than over the coordinates
+    // alone.
+    //
+    // Two bases are not merged at all. One is a basis left discontinuous
+    // across an interface, which is a node of its own on each side sitting
+    // at the very same point: the merge happens before connectCrossPoints,
+    // and nothing afterwards could put such a discontinuity back. The
+    // other is a basis whose degrees of freedom follow the parametrization,
+    // where the coordinates say the two nodes are in the same place and say
+    // nothing about the values -- the pair may describe the same velocity
+    // with opposite signs, which is why a reversed interface ties them with
+    // a constraint rather than merging them. Merging by coordinate here
+    // would put that constraint back to one between a node and itself, and
+    // there is nothing in a coordinate to tell the two cases apart.
     int nDupl = 0;
-    std::map<Vec3,int> globalNodes;
+    std::map<std::pair<size_t,Vec3>,int> globalNodes;
     for (ASMbase* pch : myModel)
       if (!pch->empty())
       {
         IFEM::cout <<"   * Checking Patch "<< pch->idx+1 << std::endl;
         for (size_t node = 1; node <= pch->getNoNodes(); node++)
         {
-          Vec3 X(pch->getCoord(node));
-          std::map<Vec3,int>::const_iterator xit = globalNodes.find(X);
+          const size_t basis = basisOf(pch,node);
+          if (basis > 0 && (!pch->isContinuousBasis(basis) ||
+                            pch->dofsFollowParametrization(basis)))
+            continue;
+
+          std::pair<size_t,Vec3> key(basis,pch->getCoord(node));
+          std::map<std::pair<size_t,Vec3>,int>::const_iterator xit =
+            globalNodes.find(key);
           if (xit == globalNodes.end())
-            globalNodes.emplace(X,pch->getNodeID(node));
+            globalNodes.emplace(key,pch->getNodeID(node));
           else if (pch->mergeNodes(node,xit->second))
           {
             nDupl++;
@@ -290,6 +328,10 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 #if SP_DEBUG > 2
   printNodalConnectivity(myModel,std::cout);
 #endif
+
+  // Has to be done before the nodes are renumbered, since it merges some
+  if (!this->connectCrossPoints())
+    return false;
 
   // Renumber the nodes to account for resolved patch topology
   if (!nGlbNodes) nGlbNodes = this->renumberNodes(fixDup);

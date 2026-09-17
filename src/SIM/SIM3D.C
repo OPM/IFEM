@@ -18,7 +18,12 @@
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
+#include <algorithm>
+#include <array>
 #include <fstream>
+#include <map>
+#include <utility>
+#include <vector>
 
 
 SIM3D::SIM3D (unsigned char n1, bool check)
@@ -98,7 +103,248 @@ bool SIM3D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
     myInterfaces.push_back(ifc);
   }
   else
+  {
+    // The basis selection above does not reach the distributed topology:
+    // DomainDecomposition reads a zero basis as every basis, so an interface
+    // handed over with one would tie a discontinuous basis across the ranks
+    // and leave the space, and the answer, depending on how the model was
+    // partitioned. Until the selection is carried through, a model with such
+    // a basis is refused here rather than solved differently on every
+    // partition.
+    const ASMbase* pch = lslave > 0 ? myModel[lslave-1]
+                       : lmaster > 0 ? myModel[lmaster-1] : nullptr;
+    if (pch)
+      for (size_t b = 1; b <= pch->getNoBasis(); b++)
+      {
+        // A basis whose degrees of freedom follow the parametrization is
+        // tied across a turned face with a sign, and the distributed
+        // topology equates node numbers and carries no sign, so it cannot
+        // say what this interface needs. Unlike the selection below, this
+        // holds whether the bases were chosen here or named in the
+        // interface, so it is asked of both.
+        if (ifc.orient != 0 && pch->dofsFollowParametrization(b) &&
+            (ifc.basis == 0 || utl::getDigits(ifc.basis).count(b)))
+        {
+          std::cerr <<" *** SIM3D::connectPatches: The degrees of freedom of"
+                    <<" basis "<< b <<" follow the\n     parametrization,"
+                    <<" and the face between P"<< ifc.master <<" and P"
+                    << ifc.slave <<" is turned over\n     and shared with"
+                    <<" another process, whose topology carries no sign."
+                    <<" Run this\n     model on one process."<< std::endl;
+          return false;
+        }
+
+        // A basis this interface leaves untied, and which is meant to
+        // stay that way, is two things the distributed topology cannot
+        // carry. The selection itself is one: a zero reaches
+        // DomainDecomposition as every basis, so it would tie the basis
+        // after all. The other is what is left undetermined by not tying
+        // it -- the mode around a loop of patches, which connectCrossPoints
+        // walks for and ties. That walk reads the interfaces of this
+        // process, and an interface shared with another is not among them,
+        // so a loop which crosses the partition is neither seen nor tied.
+        if (!pch->isContinuousBasis(b) &&
+            (ifc.basis == 0 || !utl::getDigits(ifc.basis).count(b)))
+        {
+          std::cerr <<" *** SIM3D::connectPatches: Basis "<< b <<" is"
+                    <<" discontinuous across an interface,\n     and the "
+                    "face between P"<< ifc.master <<" and P"<< ifc.slave
+                    <<" is shared with another\n     process. Neither which"
+                    <<" bases are tied nor the mode left untied where"
+                    <<"\n     patches close a loop survives into the"
+                    <<" topology of a run on several\n     processes. Run"
+                    <<" this model on one."<< std::endl;
+          return false;
+        }
+      }
+
     adm.dd.ghostConnections.insert(ifc);
+  }
+
+  return true;
+}
+
+
+/*!
+  Where more than two patches meet around a common edge, a basis which is not
+  tied across the interfaces has a mode that alternates in sign around the
+  edge, exactly as it does around a cross point in two dimensions -- extruding
+  the four-patch grid SIM2D::connectCrossPoints is written for produces four
+  patches around an edge and the very same mode. Tying the basis between two
+  of the patches meeting there removes it, and that is what the two
+  dimensional case does; nothing here does it yet.
+
+  Rather than hand the solver a model with an undetermined mode in it, such a
+  model is refused. The patches meeting around an edge are found from the
+  geometry, by the midpoint of each of the twelve edges of each patch: an edge
+  shared by more than two patches is a cross edge.
+*/
+
+bool SIM3D::connectCrossPoints ()
+{
+  // The bases which are left discontinuous at the interfaces
+  std::vector<size_t> dBases;
+  for (const ASMbase* pch : myModel)
+    if (!pch->empty())
+    {
+      for (size_t b = 1; b <= pch->getNoBasis(); b++)
+        if (!pch->isContinuousBasis(b))
+          dBases.push_back(b);
+      break;
+    }
+
+  if (dBases.empty() || myInterfaces.empty())
+    return true;
+
+  // The two ends of each edge, and which patch it belongs to. Two patches
+  // are connected when their coordinates agree to the tolerance the
+  // connection itself accepts, so the ends are matched by that same
+  // tolerance rather than rounded onto a grid: a grid separates two points
+  // which fall either side of a line between cells however close they are,
+  // and would then miss the very edge it is looking for. There are twelve
+  // edges to a patch, so comparing them all against each other is nothing.
+  //
+  // It takes both ends to say which edge this is. A midpoint alone is the
+  // same for every edge through it, so two edges of different patches
+  // crossing at their middles -- which a symmetric model has plenty of --
+  // would be counted as one and the model refused for a cross edge it does
+  // not have.
+  //! \brief A patch meeting an edge, and the two faces of it the edge is on.
+  struct Incident { size_t patch; int face[2]; };
+
+  const double xtol = 1.0e-4;
+  std::vector<std::pair<std::array<Vec3,2>,std::vector<Incident>>> edges;
+  for (size_t p = 0; p < myModel.size(); p++)
+  {
+    const ASM3D* pch = dynamic_cast<const ASM3D*>(myModel[p]);
+    if (!pch || myModel[p]->empty())
+      continue;
+
+    for (int dir = 0; dir < 3; dir++)
+      for (int a = -1; a <= 1; a += 2)
+        for (int b = -1; b <= 1; b += 2)
+        {
+          // The two ends of one edge: the direction it runs along takes
+          // both values, the other two are fixed at a corner
+          int ijk[2][3];
+          for (int e = 0; e < 2; e++)
+          {
+            ijk[e][dir] = e ? 1 : -1;
+            ijk[e][(dir+1)%3] = a;
+            ijk[e][(dir+2)%3] = b;
+          }
+
+          const int n1 = pch->getCorner(ijk[0][0],ijk[0][1],ijk[0][2],1);
+          const int n2 = pch->getCorner(ijk[1][0],ijk[1][1],ijk[1][2],1);
+          if (n1 < 1 || n2 < 1)
+            continue;
+
+          const Vec3 X1 = myModel[p]->getCoord(n1);
+          const Vec3 X2 = myModel[p]->getCoord(n2);
+
+          // The two patches sharing an edge may run it either way round
+          auto&& same = [&X1,&X2,xtol](const std::array<Vec3,2>& known)
+          {
+            return (known[0].equal(X1,xtol) && known[1].equal(X2,xtol)) ||
+                   (known[0].equal(X2,xtol) && known[1].equal(X1,xtol));
+          };
+
+          // The faces this edge lies on: the one across each of the two
+          // directions it does not run along, at the side it sits at.
+          // Faces are numbered umin, umax, vmin, vmax, wmin, wmax.
+          const Incident here = {p, {2*((dir+1)%3) + (a < 0 ? 1 : 2),
+                                     2*((dir+2)%3) + (b < 0 ? 1 : 2)}};
+
+          auto it = std::find_if(edges.begin(), edges.end(),
+                                 [&same](const auto& known)
+                                 { return same(known.first); });
+          if (it == edges.end())
+            edges.push_back({{X1,X2},{here}});
+          else
+            it->second.push_back(here);
+        }
+  }
+
+  for (const auto& known : edges)
+  {
+    // Named rather than bound structurally: the lambdas below
+    // capture this, and capturing a structured binding is C++20
+    const std::vector<Incident>& incident = known.second;
+
+    // Two patches meeting is the interior of an interface, and there the
+    // discontinuous bases are meant to stay discontinuous
+    if (incident.size() < 3)
+      continue;
+
+    // Walk the interfaces meeting along this edge while keeping track of
+    // which patches they have joined up, as SIM2D::connectCrossPoints does
+    // at a point. It is around a loop that the alternating mode lives, and
+    // a loop is closed by an interface joining two patches which are
+    // connected already. Patches which merely touch along the edge, or
+    // which are joined in a chain, carry no such mode and are left alone.
+    std::map<size_t,size_t> group;
+    for (const Incident& i : incident)
+      group[i.patch] = i.patch;
+
+    auto&& onEdge = [&incident](int lpatch, int face)
+    {
+      for (const Incident& i : incident)
+        if (i.patch + 1 == static_cast<size_t>(lpatch) &&
+            (i.face[0] == face || i.face[1] == face))
+          return true;
+      return false;
+    };
+
+    // One basis at a time. An interface which names the bases it ties can
+    // name a discontinuous one, and connectPatches then connects it: that
+    // basis is tied along that interface and the loop is broken for it,
+    // whatever the others do. So the walk is per basis, over the
+    // interfaces which leave that basis free.
+    for (size_t dBasis : dBases)
+    {
+      std::map<size_t,size_t> group0(group);
+      auto&& root = [&group0](size_t i)
+      {
+        while (group0[i] != i) i = group0[i];
+        return i;
+      };
+
+      for (const ASM::Interface& ifc : myInterfaces)
+      {
+        if (ifc.dim < 2) continue; // joins less than a whole face
+
+        // Named bases are tied as named; a zero leaves out the ones which
+        // are discontinuous, which is this one
+        if (ifc.basis != 0 && utl::getDigits(ifc.basis).count(dBasis))
+          continue;
+
+        const int lmaster = this->getLocalPatchIndex(ifc.master);
+        const int lslave  = this->getLocalPatchIndex(ifc.slave);
+        if (lmaster < 1 || lslave < 1)
+          continue;
+        if (!onEdge(lmaster,ifc.midx) || !onEdge(lslave,ifc.sidx))
+          continue;
+
+        const size_t rm = root(lmaster-1);
+        const size_t rs = root(lslave-1);
+        if (rm != rs)
+        {
+          group0[rm] = rs;
+          continue;
+        }
+
+        std::cerr <<" *** SIM3D::connectCrossPoints: "<< incident.size()
+                  <<" patches close a loop around one edge,\n     and basis "
+                  << dBasis <<" is not tied across their interfaces,"
+                  <<" which leaves a mode\n     alternating in sign around"
+                  <<" that edge with nothing to determine it. Tying it\n"
+                  <<"     there is what SIM2D::connectCrossPoints does in two"
+                  <<" dimensions, and it is\n     not written for three."
+                  << std::endl;
+        return false;
+      }
+    }
+  }
 
   return true;
 }

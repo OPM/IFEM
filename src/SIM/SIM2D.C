@@ -18,6 +18,7 @@
 #include "FieldFunctions.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "Vec3Oper.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
 #include <fstream>
@@ -60,6 +61,195 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
   nsd = 2;
   nf.push_back(n);
   checkRHSys = check;
+}
+
+
+/*!
+  Where four patches meet, a basis which is not tied across the interfaces has
+  a mode that alternates in sign around the point. The continuous bases cannot
+  see it, since going once around the point returns to the same sign, so it is
+  left undetermined and comes out of the solver with an arbitrary amplitude.
+  For the pressure of a div-compatible space the mode is real: a two by two
+  patch grid gave a pressure of 1.98e+02 in the L2 norm against an exact
+  4.4e+01, while the velocity, its divergence and the integrated pressure were
+  all unharmed.
+
+  Tying the basis between two of the patches meeting at the point removes it,
+  provided the two share an interface there. Two patches diagonally across from
+  each other hold the same sign and would leave the mode untouched.
+*/
+
+bool SIM2D::connectCrossPoints ()
+{
+  // The bases which are left discontinuous at the interfaces
+  std::vector<size_t> dBases;
+  for (const ASMbase* pch : myModel)
+    if (!pch->empty())
+    {
+      for (size_t b = 1; b <= pch->getNoBasis(); b++)
+        if (!pch->isContinuousBasis(b))
+          dBases.push_back(b);
+      break;
+    }
+
+  if (dBases.empty() || myInterfaces.empty())
+    return true;
+
+  //! \brief A patch corner, as a patch index and a local vertex index.
+  using Corner = std::pair<size_t,int>;
+
+  auto&& corner = [](ASM2D* pch, int vertex, size_t basis)
+  {
+    return pch->getCorner((vertex-1)%2 ? 1 : -1,
+                          (vertex-1)/2 ? 1 : -1, basis);
+  };
+
+  // Gather the patch corners which sit at the same point. Two patches are
+  // connected when their coordinates agree to the tolerance the connection
+  // accepts, so the corners are gathered by that same tolerance rather than
+  // by the exact ordering of Vec3: two corners a connection has already
+  // tied, but which differ in their last digits, would otherwise be taken
+  // for different points and the cross point between them never found.
+  const double xtol = 1.0e-4;
+  std::vector<std::pair<Vec3,std::vector<Corner>>> points;
+  for (size_t ip = 0; ip < myModel.size(); ip++)
+    if (ASM2D* pch = dynamic_cast<ASM2D*>(myModel[ip]); pch &&
+        !myModel[ip]->empty())
+      for (int v = 1; v <= 4; v++)
+      {
+        int node = corner(pch,v,1);
+        if (node < 1)
+          continue;
+
+        const Vec3 X = myModel[ip]->getCoord(node);
+        auto it = std::find_if(points.begin(), points.end(),
+                               [&X,xtol](const auto& known)
+                               { return known.first.equal(X,xtol); });
+        if (it == points.end())
+          points.push_back({X,{Corner(ip,v)}});
+        else
+          it->second.emplace_back(ip,v);
+      }
+
+  // The vertices of a local edge. Both are numbered in the order umin, umax
+  // for the vertices and umin, umax, vmin, vmax for the edges.
+  static const int edgeVertices[4][2] = {{1,3},{2,4},{1,2},{3,4}};
+  auto&& onEdge = [](int vertex, int edge)
+  {
+    return edge > 0 && edge < 5 && (edgeVertices[edge-1][0] == vertex ||
+                                    edgeVertices[edge-1][1] == vertex);
+  };
+
+  int nTied = 0;
+  for (const auto& point : points)
+  {
+    // Named rather than bound structurally: a lambda below captures
+    // this, and capturing a structured binding is C++20
+    const std::vector<Corner>& corners = point.second;
+
+    // Two patches meeting is the interior of an interface, and there the
+    // discontinuous bases are meant to stay discontinuous
+    if (corners.size() < 3) continue;
+
+    // Walk the interfaces meeting at this point while keeping track of which
+    // patches they have joined up. One that joins two patches which are
+    // connected already closes a loop, and it is around a loop that the
+    // alternating mode lives, so that is where to tie the patches together.
+    std::map<size_t,size_t> group;
+    for (const Corner& c : corners)
+      group[c.first] = c.first;
+
+    auto&& root = [&group](size_t i)
+    {
+      while (group[i] != i) i = group[i];
+      return i;
+    };
+
+    for (const ASM::Interface& ifc : myInterfaces)
+    {
+      if (ifc.dim < 1) continue; // joins a single node, not a whole edge
+
+      int lmaster = this->getLocalPatchIndex(ifc.master);
+      int lslave  = this->getLocalPatchIndex(ifc.slave);
+      if (lmaster < 1 || lslave < 1) continue;
+
+      const Corner* mc = nullptr;
+      const Corner* sc = nullptr;
+      for (const Corner& c : corners)
+        if (c.first+1 == static_cast<size_t>(lmaster) && onEdge(c.second,ifc.midx))
+          mc = &c;
+        else if (c.first+1 == static_cast<size_t>(lslave) && onEdge(c.second,ifc.sidx))
+          sc = &c;
+
+      if (!mc || !sc) continue; // does not meet at this point
+
+      if (size_t rm = root(mc->first), rs = root(sc->first); rm != rs)
+      {
+        group[rs] = rm; // no loop closed yet
+        continue;
+      }
+
+      // An interface may name the bases it ties, and a named basis is tied
+      // as named even where it is one of the discontinuous ones -- at a
+      // single point as much as along a whole edge. Where the topology has
+      // already done that here the mode is gone, and tying it again would
+      // leave the basis with one constraint more than the mode needs,
+      // which takes a direction it is entitled to and stops the velocity
+      // being divergence free.
+      auto&& meets = [&onEdge](const Corner& c, const ASM::Interface& i,
+                               bool master)
+      {
+        const int idx = master ? i.midx : i.sidx;
+        return i.dim < 1 ? c.second == idx : onEdge(c.second,idx);
+      };
+
+      auto&& tiedHere = [this,&corners,&meets](size_t b)
+      {
+        for (const ASM::Interface& other : myInterfaces)
+        {
+          if (other.basis == 0 || !utl::getDigits(other.basis).count(b))
+            continue;
+
+          const int om = this->getLocalPatchIndex(other.master);
+          const int os = this->getLocalPatchIndex(other.slave);
+          if (om < 1 || os < 1) continue;
+
+          bool onMaster = false, onSlave = false;
+          for (const Corner& c : corners)
+          {
+            if (c.first+1 == static_cast<size_t>(om) && meets(c,other,true))
+              onMaster = true;
+            if (c.first+1 == static_cast<size_t>(os) && meets(c,other,false))
+              onSlave = true;
+          }
+          if (onMaster && onSlave)
+            return true;
+        }
+        return false;
+      };
+
+      ASM2D* mpch = dynamic_cast<ASM2D*>(myModel[mc->first]);
+      ASM2D* spch = dynamic_cast<ASM2D*>(myModel[sc->first]);
+      bool tied = false;
+      for (size_t b : dBases)
+        if (!tiedHere(b))
+        {
+          if (!myModel[sc->first]->connectNode(corner(spch,sc->second,b),
+                                               *myModel[mc->first],
+                                               corner(mpch,mc->second,b)))
+            return false;
+          tied = true;
+        }
+
+      if (tied) ++nTied;
+    }
+  }
+
+  if (nTied > 0)
+    IFEM::cout <<"\tTied the discontinuous bases at "<< nTied
+               <<" cross point"<< (nTied > 1 ? "s" : "") << std::endl;
+
+  return true;
 }
 
 
@@ -140,7 +330,63 @@ bool SIM2D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
     myInterfaces.push_back(ifc);
   }
   else
+  {
+    // The basis selection above does not reach the distributed topology:
+    // DomainDecomposition reads a zero basis as every basis, so an interface
+    // handed over with one would tie a discontinuous basis across the ranks
+    // and leave the space, and the answer, depending on how the model was
+    // partitioned. Until the selection is carried through, a model with such
+    // a basis is refused here rather than solved differently on every
+    // partition.
+    const ASMbase* pch = lslave > 0 ? myModel[lslave-1]
+                       : lmaster > 0 ? myModel[lmaster-1] : nullptr;
+    if (pch)
+      for (size_t b = 1; b <= pch->getNoBasis(); b++)
+      {
+        // A basis whose degrees of freedom follow the parametrization is
+        // tied across a turned edge with a sign, and the distributed
+        // topology equates node numbers and carries no sign, so it cannot
+        // say what this interface needs. Unlike the selection below, this
+        // holds whether the bases were chosen here or named in the
+        // interface, so it is asked of both.
+        if (ifc.orient && pch->dofsFollowParametrization(b) &&
+            (ifc.basis == 0 || utl::getDigits(ifc.basis).count(b)))
+        {
+          std::cerr <<" *** SIM2D::connectPatches: The degrees of freedom of"
+                    <<" basis "<< b <<" follow the\n     parametrization,"
+                    <<" and the edge between P"<< ifc.master <<" and P"
+                    << ifc.slave <<" is turned over\n     and shared with"
+                    <<" another process, whose topology carries no sign."
+                    <<" Run this\n     model on one process."<< std::endl;
+          return false;
+        }
+
+        // A basis this interface leaves untied, and which is meant to
+        // stay that way, is two things the distributed topology cannot
+        // carry. The selection itself is one: a zero reaches
+        // DomainDecomposition as every basis, so it would tie the basis
+        // after all. The other is what is left undetermined by not tying
+        // it -- the mode around a loop of patches, which connectCrossPoints
+        // walks for and ties. That walk reads the interfaces of this
+        // process, and an interface shared with another is not among them,
+        // so a loop which crosses the partition is neither seen nor tied.
+        if (!pch->isContinuousBasis(b) &&
+            (ifc.basis == 0 || !utl::getDigits(ifc.basis).count(b)))
+        {
+          std::cerr <<" *** SIM2D::connectPatches: Basis "<< b <<" is"
+                    <<" discontinuous across an interface,\n     and the "
+                    "edge between P"<< ifc.master <<" and P"<< ifc.slave
+                    <<" is shared with another\n     process. Neither which"
+                    <<" bases are tied nor the mode left untied where"
+                    <<"\n     patches close a loop survives into the"
+                    <<" topology of a run on several\n     processes. Run"
+                    <<" this model on one."<< std::endl;
+          return false;
+        }
+      }
+
     adm.dd.ghostConnections.insert(ifc);
+  }
 
   return true;
 }

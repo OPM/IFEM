@@ -144,6 +144,10 @@ protected:
   virtual bool connectPatches(const ASM::Interface& ifc,
                               bool coordCheck = true);
 
+  //! \brief Refuses a model with a basis left discontinuous around an edge.
+  //! \details See SIM2D::connectCrossPoints for the mode this is about.
+  virtual bool connectCrossPoints();
+
 protected:
   CharVec nf;         //!< Number of scalar fields
   bool    checkRHSys; //!< Check if all patches are in a right-hand system
