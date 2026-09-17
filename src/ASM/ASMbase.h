@@ -517,7 +517,7 @@ public:
   bool hasTimeDependentDirichlet(const std::map<int,RealFunc*>& func,
                                  const std::map<int,VecFunc*>& vfunc);
 
-  //! \brief Flags that a Dirichlet code prescribes the normal component.
+  //! \brief Flags that a Dirichlet code prescribes a physical velocity.
   //! \param[in] code The in-homogeneous Dirichlet condition code
   //!
   //! \details The prescribed value is then the normal velocity, and for a
