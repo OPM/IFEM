@@ -236,8 +236,8 @@ void PiolaOperators::Copy (Matrices& EM,
     return;
   size_t ofs = 1;
   for (size_t b = 1; b <= nsd; ++b) {
-    size_t ofs2 = ofs;
-    for (size_t d = b; d <= nsd; ++d) {
+    size_t ofs2 = 1;
+    for (size_t d = 1; d <= nsd; ++d) {
       if (!EM[idx[b-1][d-1]].empty())
         A.extractBlock(EM[idx[b-1][d-1]], ofs, ofs2, true);
       ofs2 += fe.basis(d).size();
