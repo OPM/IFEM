@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "ASMuCube.h"
+#include "ASMumxTests.h"
 
 #include "Catch2Support.h"
 
@@ -633,4 +634,10 @@ TEST_CASE("TestASMu3Dm.xWriteTH")
     REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
     REQUIRE(str.str() == cubeTH_2);
   }
+}
+
+
+TEST_CASE("TestASMu3Dmx.SolutionTransfer")
+{
+  ASMumxTests<ASMmxuCube>::SolutionTransfer();
 }

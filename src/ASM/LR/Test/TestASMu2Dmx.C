@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "ASMmxBase.h"
+#include "ASMumxTests.h"
 #include "ASMuSquare.h"
 
 #include "Test/ASM2DmxTests.h"
@@ -392,4 +393,10 @@ TEST_CASE("TestASMu2Dmx.WriteTH")
 TEST_CASE("TestASMu2Dmx.AddInterfaceElms")
 {
   ASM2DmxTests<ASMmxuSquare>::AddInterfaceElms();
+}
+
+
+TEST_CASE("TestASMu2Dmx.SolutionTransfer")
+{
+  ASMumxTests<ASMmxuSquare>::SolutionTransfer();
 }

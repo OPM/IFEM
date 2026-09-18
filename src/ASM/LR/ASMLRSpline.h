@@ -39,7 +39,7 @@ namespace LR //! Utilities for LR-splines.
   //! \param[out] v Vector containing the extracted basis coefficients
   //! \param[in] nf Number of fields in the given vector
   //! \param[in] ofs Offset in vector
-  void contractControlPoints(LRSpline* basis, Vector& v,
+  bool contractControlPoints(LRSpline* basis, Vector& v,
                              int nf, int ofs = 0);
 
   //! \brief Extracts parameter values of the Gauss points in one direction.

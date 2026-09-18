@@ -1303,12 +1303,16 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm, Vectors& sol)
       len += nfx[j]*nb[j];
     }
 
-    size_t ofs = 0;
+    // The control points of each basis carry the nodal values of every
+    // solution vector, appended one vector after the other, so they are taken
+    // off in the reverse order. The offset is the one within a vector, the
+    // bases following each other there, and starts afresh for each of them.
     for (int i = sol.size()-1; i >= 0; i--)
-      for (size_t j = 0; j < m_basis.size(); ++j) {
+      for (size_t j = 0, ofs = 0; j < m_basis.size(); ++j) {
         sol[i].resize(len);
-        if (ASMmxBase::Type != ASMmxBase::SUBGRID || j > 0)
-          LR::contractControlPoints(m_basis[j].get(), sol[i], nfx[j], ofs);
+        if ((ASMmxBase::Type != ASMmxBase::SUBGRID || j > 0) &&
+            !LR::contractControlPoints(m_basis[j].get(), sol[i], nfx[j], ofs))
+          return false;
         ofs += nfx[j]*nb[j];
       }
 
