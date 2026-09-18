@@ -4,6 +4,7 @@ project(IFEMAppUtils LANGUAGES C CXX)
 
 # Todo: Remove list when we can drop support for cmake 3.22
 set(APPUTILS_PUBLIC_HEADERS
+  AndersonAcceleration.h
   CompatibleOperators.h
   EqualOrderOperators.h
   ISolver.h
@@ -33,6 +34,7 @@ ifem_add_library(
   ALIAS
     IFEM::AppUtils
   SOURCES
+    AndersonAcceleration.C
     CompatibleOperators.C
     EqualOrderOperators.C
     MeshUtils.C
@@ -59,6 +61,7 @@ ifem_add_test_app(
   NAME
     IFEMAppUtils
   SOURCES
+    Test/TestAndersonAcceleration.C
     Test/TestCompatibleOperators.C
     Test/TestEqualOrderOperators.C
     Test/TestMeshUtils.C
