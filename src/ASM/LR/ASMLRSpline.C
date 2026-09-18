@@ -55,8 +55,18 @@ int LR::extendControlPoints (LRSpline* basis, const Vector& v, int nf, int ofs)
 }
 
 
-void LR::contractControlPoints (LRSpline* basis, Vector& v, int nf, int ofs)
+bool LR::contractControlPoints (LRSpline* basis, Vector& v, int nf, int ofs)
 {
+  const size_t need = static_cast<size_t>(ofs) +
+                      static_cast<size_t>(basis->nBasisFunctions())*nf;
+  if (v.size() < need) {
+    std::cerr <<" *** LR::contractControlPoints: Invalid vector size "
+              << v.size() <<", "<< need <<" needed for "
+              << basis->nBasisFunctions() <<" basis functions with "<< nf
+              <<" field(s) at offset "<< ofs << std::endl;
+    return false;
+  }
+
   RealArray cpts, cpp;
   for (LR::Basisfunction* b : basis->getAllBasisfunctions()) {
     int istart = ofs + b->getId()*nf;
@@ -67,6 +77,7 @@ void LR::contractControlPoints (LRSpline* basis, Vector& v, int nf, int ofs)
   }
   basis->rebuildDimension(basis->dimension()-nf);
   basis->setControlPoints(cpts);
+  return true;
 }
 
 
@@ -251,7 +262,8 @@ bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
   for (int i = sol.size()-1; i >= 0; i--)
     if (nf[i] > 0) {
       sol[i].resize(nf[i]*nnod);
-      LR::contractControlPoints(geomB.get(),sol[i],nf[i]);
+      if (!LR::contractControlPoints(geomB.get(),sol[i],nf[i]))
+        return false;
     }
 
   bool linIndepTest = prm.options.size() > 3 ? prm.options[3] != 0 : false;

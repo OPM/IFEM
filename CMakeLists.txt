@@ -679,6 +679,7 @@ if(TARGET IFEM-test)
           HEADERS
         FILES
           src/ASM/LR/Test/ASMuCube.h
+          src/ASM/LR/Test/ASMumxTests.h
           src/ASM/LR/Test/ASMuSquare.h
           src/ASM/LR/Test/ASMuTrap.h
           src/ASM/LR/Test/ASMuTrap3.h
