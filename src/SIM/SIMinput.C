@@ -830,12 +830,13 @@ bool SIMinput::parseICTag (const tinyxml2::XMLElement* elem)
     utl::getAttribute(elem,"file_level",info.file_level);
     utl::getAttribute(elem,"file_basis",info.file_basis);
     utl::getAttribute(elem,"geo_level",info.geo_level);
+    utl::getAttribute(elem,"component",info.component);
+    utl::getAttribute(elem,"comp",info.component);
   }
   else if (elem->FirstChild()) // function
   {
     info.function = elem->FirstChild()->Value();
     info.file_field = type;
-    // Both long and short form supported, short prioritized
     utl::getAttribute(elem,"component",info.component);
     utl::getAttribute(elem,"comp",info.component);
   }
@@ -1926,6 +1927,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
   std::map<std::string,PatchVec> basisMap;
 
   // Loop over the initial conditions
+  bool ok = true;
   for (const ICInfo& it : info)
   {
     // Do we have this field?
@@ -1951,8 +1953,28 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
             basisVec.push_back(this->readPatch(spg2,i,nf));
           }
 
+      const int ibas = it.basis < 1 ? 1 : it.basis;
+
+      const bool isSol = field->size() == this->getNoDOFs();
+      size_t ncmpF = 0;
+      if (!isSol)
+      {
+        const size_t gnod = this->getNoNodes(ibas);
+        if (gnod > 0 && field->size()%gnod == 0)
+          ncmpF = field->size()/gnod;
+
+        if (ncmpF < 1 || ncmpF > 0xff)
+        {
+          std::cerr <<" *** SIMinput::setInitialCondition: \""<< it.sim_field
+                    <<"\" holds "<< field->size() <<" value(s), which is not a"
+                    <<" whole\n     number of components over the "<< gnod
+                    <<" node(s) of basis "<< ibas <<"."<< std::endl;
+          ok = false;
+        }
+      }
+
       // Load result field, patch by patch
-      for (int i = 0; i < nPatches; i++)
+      for (int i = 0; ok && i < nPatches; i++)
       {
         int p = this->getLocalPatchIndex(i+1);
         if (p <= 0) continue;
@@ -1964,15 +1986,102 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
             << it.file_basis <<"/fields/"
             << it.file_field <<"/"<< i+1;
         hdf5reader.readVector(str.str(), loc);
+
+        const size_t srcNod = basisVec[p-1]->getNoNodes(1);
+        if (srcNod < 1 || loc.size() < srcNod || loc.size()%srcNod > 0)
+        {
+          std::cerr <<" *** SIMinput::setInitialCondition: \""<< it.file_field
+                    <<"\" holds "<< loc.size() <<" value(s), which is not a"
+                    <<" whole\n     number of components over the "<< srcNod
+                    <<" node(s) it is stored on."<< std::endl;
+          ok = false;
+          break;
+        }
+
         basisVec[p-1]->copyParameterDomain(pch);
-        if (pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
-          pch->injectNodeVec(newloc, *field,
-                             newloc.size()/pch->getNoNodes(it.basis), it.basis);
+        if (!pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
+          continue;
+
+        const size_t nnod = pch->getNoNodes(ibas);
+        const size_t ofs = it.component > 0 ? it.component-1 : 0;
+
+        if (pch->getNoBasis() > 1 && it.basis < 1)
+        {
+          std::cerr <<" *** SIMinput::setInitialCondition: \""<< it.sim_field
+                    <<"\" names no basis, which the mixed patch "<< i+1
+                    <<" needs it to."<< std::endl;
+          ok = false;
+          break;
+        }
+
+        if (!isSol && pch->getNoBasis() > 1)
+        {
+          std::cerr <<" *** SIMinput::setInitialCondition: \""<< it.sim_field
+                    <<"\" is not the solution, which is the only vector a"
+                    <<" mixed\n     basis can read an initial condition onto."
+                    << std::endl;
+          ok = false;
+          break;
+        }
+
+        const unsigned char nndof = isSol ? pch->getNoFields(it.basis) : ncmpF;
+
+        if (nnod < 1 || newloc.size()%nnod > 0)
+        {
+          std::cerr <<" *** SIMinput::setInitialCondition: \""<< it.file_field
+                    <<"\" has "<< newloc.size() <<" value(s), which is not a"
+                    <<" whole\n     number of components over the "<< nnod
+                    <<" node(s) of basis "<< static_cast<int>(it.basis)
+                    <<"."<< std::endl;
+          ok = false;
+          break;
+        }
+
+        const size_t ncmp = newloc.size()/nnod;
+        if (ncmp < 1 || ofs + ncmp > nndof)
+        {
+          std::cerr <<" *** SIMinput::setInitialCondition: \""<< it.file_field
+                    <<"\" has "<< ncmp <<" component(s), which do not fit in"
+                    <<" the\n     "<< static_cast<int>(nndof) <<" of basis "
+                    << static_cast<int>(it.basis) <<" from component "
+                    << ofs+1 <<" on."<< std::endl;
+          ok = false;
+          break;
+        }
+
+        if (ncmp == nndof && ofs == 0)
+          pch->injectNodeVec(newloc, *field, nndof, it.basis);
+        else
+        {
+          Vector nodal;
+          pch->extractNodeVec(*field, nodal, nndof, it.basis);
+          for (size_t n = 0; n < nnod; n++)
+            for (size_t c = 0; c < ncmp; c++)
+              nodal[n*nndof+ofs+c] = newloc[n*ncmp+c];
+          pch->injectNodeVec(nodal, *field, nndof, it.basis);
+        }
       }
     }
 
     if (adm.dd.isPartitioned())
-      adm.broadcast(*field, 0);
+    {
+      IntVec status(1, ok ? 1 : 0);
+      adm.broadcast(status, 0);
+      if (status.front() != 0)
+        adm.broadcast(*field, 0);
+      else
+        ok = false;
+    }
+#ifdef HAVE_MPI
+    // Every rank reads the patches it holds, so one of them refusing has to
+    // refuse for all of them. They enter whatever comes after this together
+    // or not at all, and what comes after is another simulator's collectives
+    else if (adm.isParallel())
+      ok = adm.allReduce(ok ? 1 : 0, MPI_MIN) != 0;
+#endif
+
+    if (!ok)
+      break;
   }
 
   // Clean up basis patches
@@ -1980,7 +2089,7 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
     for (ASMbase* pch : itb.second)
       delete pch;
 
-  return true;
+  return ok;
 }
 
 
