@@ -199,7 +199,65 @@ void EqualOrderOperators::Weak::LaplacianCoeff (Matrix& EM, const Matrix& K,
 {
   Matrix KB;
   KB.multiply(K,fe.grad(basis),false,true).multiply(scale*fe.detJxW);
-  EM.multiply(fe.grad(basis),KB,false,false,true);
+
+  const size_t cmp = EM.rows() / fe.basis(basis).size();
+  if (cmp > 1)
+  {
+    Matrix A;
+    A.multiply(fe.grad(basis),KB,false,false);
+    for (size_t k = 1; k <= cmp; ++k)
+      addComponent(EM, A, k, k, cmp);
+  }
+  else
+    EM.multiply(fe.grad(basis),KB,false,false,true);
+}
+
+
+void EqualOrderOperators::Weak::LaplacianStreamline (Matrix& EM,
+                                                     const FiniteElement& fe,
+                                                     const Vec3& AC,
+                                                     double scale, int basis)
+{
+  const Matrix& dNdX = fe.grad(basis);
+  const size_t nbf = fe.basis(basis).size();
+  const size_t cmp = EM.rows() / nbf;
+  const size_t nsd = dNdX.cols();
+
+  // The streamline derivative of each test function
+  Vector w(nbf);
+  for (size_t k = 1; k <= nsd; ++k)
+    w.add(dNdX.getColumn(k), AC[k-1]);
+
+  for (size_t j = 1; j <= nbf; ++j)
+  {
+    double lap = 0.0;
+    for (size_t k = 1; k <= nsd; ++k)
+      lap += fe.hess(basis)(j,k,k);
+
+    for (size_t i = 1; i <= nbf; ++i)
+    {
+      const double v = scale*w(i)*lap*fe.detJxW;
+      for (size_t k = 1; k <= cmp; ++k)
+        EM(cmp*(i-1)+k, cmp*(j-1)+k) += v;
+    }
+  }
+}
+
+
+void EqualOrderOperators::Weak::SourceStreamline (Vector& EV,
+                                                  const FiniteElement& fe,
+                                                  const Vec3& AC, const Vec3& f,
+                                                  double scale, int basis)
+{
+  const Matrix& dNdX = fe.grad(basis);
+  const size_t cmp = EV.size() / fe.basis(basis).size();
+
+  Vector w(dNdX.rows());
+  for (size_t k = 1; k <= dNdX.cols(); ++k)
+    w.add(dNdX.getColumn(k), AC[k-1]);
+
+  for (size_t k = 1; k <= cmp; ++k)
+    EV.add(w, scale*f[k-1]*fe.detJxW, 0, 1, k-1, cmp);
 }
 
 
