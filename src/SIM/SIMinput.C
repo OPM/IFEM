@@ -1975,9 +1975,39 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
             << it.file_field <<"/"<< i+1;
         hdf5reader.readVector(str.str(), loc);
         basisVec[p-1]->copyParameterDomain(pch);
-        if (pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
+        if (!pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
+          continue;
+
+        const size_t nnod = pch->getNoNodes(it.basis);
+        const size_t ncmp = nnod > 0 ? newloc.size()/nnod : 0;
+        const size_t ntot = this->getNoNodes(it.basis);
+        const size_t nndof = ntot > 0 && field->size()%ntot == 0
+                           ? field->size()/ntot : 0;
+        if (nndof <= ncmp)
           pch->injectNodeVec(newloc, *field,
-                             newloc.size()/pch->getNoNodes(it.basis), it.basis);
+                             static_cast<unsigned char>(ncmp), it.basis);
+        else
+        {
+          const size_t ofs = it.component > 0 ? it.component-1 : 0;
+          if (ncmp < 1 || ofs + ncmp > nndof)
+          {
+            std::cerr <<" *** SIMinput::setInitialCondition: \""<< it.file_field
+                      <<"\" has "<< ncmp <<" component(s), which do not fit in"
+                      <<" the\n     "<< static_cast<int>(nndof) <<" of basis "
+                      << static_cast<int>(it.basis) <<" from component "
+                      << ofs+1 <<" on."<< std::endl;
+            return false;
+          }
+
+          Vector nodal;
+          pch->extractNodeVec(*field, nodal,
+                              static_cast<unsigned char>(nndof), it.basis);
+          for (size_t n = 0; n < nnod; n++)
+            for (size_t c = 0; c < ncmp; c++)
+              nodal[n*nndof+ofs+c] = newloc[n*ncmp+c];
+          pch->injectNodeVec(nodal, *field,
+                             static_cast<unsigned char>(nndof), it.basis);
+        }
       }
     }
 
