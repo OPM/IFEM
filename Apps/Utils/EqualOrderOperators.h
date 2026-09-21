@@ -119,6 +119,27 @@ public:
     static void LaplacianCoeff(Matrix& EM, const Matrix& K, const FiniteElement& fe,
                                double scale=1.0, int basis=1);
 
+    //! \brief Tests the laplacian in strong form against a streamline derivative.
+    //! \param[out] EM The element matrix to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] AC Field whose streamline the test function is taken along
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
+    static void LaplacianStreamline(Matrix& EM, const FiniteElement& fe,
+                                    const Vec3& AC,
+                                    double scale=1.0, int basis=1);
+
+    //! \brief Tests a source term against a streamline derivative.
+    //! \param[out] EV The element vector to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] AC Field whose streamline the test function is taken along
+    //! \param[in] f Vector with contributions
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
+    static void SourceStreamline(Vector& EV, const FiniteElement& fe,
+                                 const Vec3& AC, const Vec3& f,
+                                 double scale=1.0, int basis=1);
+
     //! \brief Compute a heterogeneous coefficient laplacian.
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] K The diagonal coefficient matrix
