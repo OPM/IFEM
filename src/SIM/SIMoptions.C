@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <functional>
+#include <iostream>
 
 namespace eig { extern bool verbose; }
 
@@ -62,7 +63,7 @@ SIMoptions::SIMoptions ()
 }
 
 
-void SIMoptions::setLinearSolver (const std::string& eqsolver)
+bool SIMoptions::setLinearSolver (const std::string& eqsolver)
 {
   if (eqsolver == "dense")
     solver = LinAlg::DENSE;
@@ -78,6 +79,15 @@ void SIMoptions::setLinearSolver (const std::string& eqsolver)
     solver = LinAlg::PETSC;
   else if (eqsolver == "istl")
     solver = LinAlg::ISTL;
+  else
+  {
+    std::cerr <<" *** SIMoptions::setLinearSolver: \""<< eqsolver
+              <<"\" is not a linear equation solver. The ones there are:"
+              <<" dense, spr, superlu, umfpack, samg, petsc, istl."<< std::endl;
+    return false;
+  }
+
+  return true;
 }
 
 
