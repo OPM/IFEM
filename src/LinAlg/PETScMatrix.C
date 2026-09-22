@@ -1043,7 +1043,24 @@ bool PETScMatrix::setParameters (bool setup)
     else
       PCFieldSplitSetSchurFactType(pc,PC_FIELDSPLIT_SCHUR_FACT_UPPER);
 
-    PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELFP,nullptr);
+    // Which matrix the preconditioner of the Schur block is built from.
+    // The default is the assembled approximation B diag(A)^-1 B^T, which a
+    // preconditioner can be applied to directly.
+    const std::string& schurPre = solParams.getStringValue("schur_precondition");
+    if (schurPre == "selfp")
+      PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELFP,nullptr);
+    else if (schurPre == "self")
+      PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELF,nullptr);
+    else if (schurPre == "a11")
+      PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_A11,nullptr);
+    else if (schurPre == "full")
+      PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_FULL,nullptr);
+    else {
+      std::cerr <<" *** PETScMatrix: Unknown schur_precondition: "<< schurPre
+                <<".\n     is one of\n     selfp, self, a11 and full."
+                << std::endl;
+      return false;
+    }
 
     PCSetFromOptions(pc);
     if (setup &&
