@@ -27,8 +27,10 @@ public:
   //! \param blocks The matrix blocks
   //! \param params Linear solver parameters
   //! \param adm Processes administrator
+  //! \param verbosity Print the solvers that are set up if this is positive
   PETScSchurPC(PC& pc_init, const std::vector<Mat>& blocks,
-               const LinSolParams::BlockParams& params, const ProcessAdm& adm);
+               const LinSolParams::BlockParams& params, const ProcessAdm& adm,
+               int verbosity = 0);
 
   //! \brief The destructor frees the PETSc structures.
   ~PETScSchurPC();
