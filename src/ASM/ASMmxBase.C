@@ -155,10 +155,12 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
     const SplineUtils::AdjustOp other = type == DIV_COMPATIBLE ?
       SplineUtils::AdjustOp::Lower : SplineUtils::AdjustOp::Original;
     result.resize(3);
-    result[0].reset(ASMmxBase::adjustBasis(*surf,{keep,other}));
-    result[1].reset(ASMmxBase::adjustBasis(*surf,{other,keep}));
+    // The spaces of these pairs are the polynomial ones of the parameter domain
+    result[0].reset(ASMmxBase::adjustBasis(*surf,{keep,other},false));
+    result[1].reset(ASMmxBase::adjustBasis(*surf,{other,keep},false));
     result[2].reset(ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Lower,
-                                                  SplineUtils::AdjustOp::Lower}));
+                                                  SplineUtils::AdjustOp::Lower},
+                                           false));
     itgBasis = 3;
   } else if (type == SUBGRID) {
     // basis1 should be one degree higher than basis2 and C^p-1 continuous
@@ -220,13 +222,15 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases (Go::SplineVolume* svol,
       SplineUtils::AdjustOp::Original : SplineUtils::AdjustOp::Lower;
     const SplineUtils::AdjustOp other = type == DIV_COMPATIBLE ?
       SplineUtils::AdjustOp::Lower : SplineUtils::AdjustOp::Original;
+    // The spaces of these pairs are the polynomial ones of the parameter domain
     result.resize(4);
-    result[0].reset(ASMmxBase::adjustBasis(*svol,{keep,other,other}));
-    result[1].reset(ASMmxBase::adjustBasis(*svol,{other,keep,other}));
-    result[2].reset(ASMmxBase::adjustBasis(*svol,{other,other,keep}));
+    result[0].reset(ASMmxBase::adjustBasis(*svol,{keep,other,other},false));
+    result[1].reset(ASMmxBase::adjustBasis(*svol,{other,keep,other},false));
+    result[2].reset(ASMmxBase::adjustBasis(*svol,{other,other,keep},false));
     result[3].reset(ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Lower,
                                                   SplineUtils::AdjustOp::Lower,
-                                                  SplineUtils::AdjustOp::Lower}));
+                                                  SplineUtils::AdjustOp::Lower},
+                                           false));
     itgBasis = 4;
   } else if (type == SUBGRID) {
     // basis1 should be one degree higher than basis2 and C^p-1 continuous
@@ -258,7 +262,8 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases (Go::SplineVolume* svol,
 
 
 Go::SplineSurface* ASMmxBase::adjustBasis (const Go::SplineSurface& surf,
-                                           const std::array<SplineUtils::AdjustOp,2>& ops)
+                                           const std::array<SplineUtils::AdjustOp,2>& ops,
+                                           bool rational)
 {
   // Create a surface with adjusted basis from surf
   // while keeping lines of reduced continuity
@@ -276,7 +281,7 @@ Go::SplineSurface* ASMmxBase::adjustBasis (const Go::SplineSurface& surf,
   }
 
   int ndim = surf.dimension();
-  if (surf.rational())
+  if (surf.rational() && rational)
   {
     std::vector<double> rCoefs(surf.rcoefs_begin(), surf.rcoefs_end());
 
@@ -312,7 +317,8 @@ Go::SplineSurface* ASMmxBase::adjustBasis (const Go::SplineSurface& surf,
 
 
 Go::SplineVolume* ASMmxBase::adjustBasis (const Go::SplineVolume& svol,
-                                          const std::array<SplineUtils::AdjustOp,3>& ops)
+                                          const std::array<SplineUtils::AdjustOp,3>& ops,
+                                          bool rational)
 {
   // Create a volume with adjusted orders from svol
   // while keeping lines of reduced continuity
@@ -331,7 +337,7 @@ Go::SplineVolume* ASMmxBase::adjustBasis (const Go::SplineVolume& svol,
   }
 
   int ndim = svol.dimension();
-  if (svol.rational())
+  if (svol.rational() && rational)
   {
     std::vector<double> rCoefs(svol.rcoefs_begin(), svol.rcoefs_end());
 
