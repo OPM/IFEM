@@ -105,11 +105,19 @@ protected:
   static VolumeVec establishBases(Go::SplineVolume* svol, MixedType type);
 
   //! \brief Returns a C^p-1 basis of one degree higher than \a *surf.
+  //! \param[in] surf The basis to adjust
+  //! \param[in] ops What to do in each direction
+  //! \param[in] rational Carry the weights of \a surf into the new basis
   static Go::SplineSurface* adjustBasis(const Go::SplineSurface& surf,
-                                        const std::array<SplineUtils::AdjustOp,2>& ops);
+                                        const std::array<SplineUtils::AdjustOp,2>& ops,
+                                        bool rational = true);
   //! \brief Returns a C^p-1 basis of one degree higher than \a *svol.
+  //! \param[in] svol The basis to adjust
+  //! \param[in] ops What to do in each direction
+  //! \param[in] rational Carry the weights of \a svol into the new basis
   static Go::SplineVolume* adjustBasis(const Go::SplineVolume& svol,
-                                       const std::array<SplineUtils::AdjustOp,3>& ops);
+                                       const std::array<SplineUtils::AdjustOp,3>& ops,
+                                       bool rational = true);
 
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
