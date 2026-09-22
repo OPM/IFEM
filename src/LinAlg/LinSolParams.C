@@ -74,6 +74,7 @@ LinSolParams::LinSolParams (LinAlg::LinearSystemType ls) : blocks(1), linSys(ls)
   this->addValue("maxits", "1000");
   this->addValue("gmres_restart_iterations", "100");
   this->addValue("verbosity", "1");
+  this->addValue("schur_precondition", "selfp");
 }
 
 LinSolParams::LinSolParams (const LinSolParams& p, LinAlg::LinearSystemType ls)
@@ -174,6 +175,8 @@ bool LinSolParams::read (const tinyxml2::XMLElement* elem)
       this->addValue("pc", value);
     else if ((value = utl::getValue(child,"schur")))
       this->addValue("schur", value);
+    else if ((value = utl::getValue(child,"schur_precondition")))
+      this->addValue("schur_precondition", value);
     else if (!strcasecmp(child->Value(),"block")) {
       blocks.resize(++parseblock);
       blocks.back().read(child);
