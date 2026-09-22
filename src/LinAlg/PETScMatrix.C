@@ -1104,7 +1104,8 @@ bool PETScMatrix::setParameters (bool setup)
 
       KSPGetPC(subksp[m],&subpc[m]);
       if (blockParams.getStringValue("pc") == "schur")
-        new PETScSchurPC(subpc[m], matvec, blockParams, adm);
+        new PETScSchurPC(subpc[m], matvec, blockParams, adm,
+                         solParams.getIntValue("verbosity"));
       else
         solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m), setup);
 
