@@ -65,6 +65,8 @@ void PETScSolParams::setupPC(PC& pc,
     setMLOptions(prefix, params.getBlock(block));
   else if (prec == "gamg")
     setGAMGOptions(prefix, params.getBlock(block));
+  else if (prec == "lsc")
+    setLSCOptions(prefix, params.getBlock(block));
   else if (prec == "ilu")
     PCFactorSetLevels(pc,params.getBlock(block).getIntValue("ilu_fill_level"));
 
@@ -162,6 +164,19 @@ void PETScSolParams::setMLOptions(const std::string& prefix, const SettingMap& m
   condSetup(prefix, "pc_ml_Reusable", "ml_reusable", map);
   condSetup(prefix, "pc_ml_Aux", "ml_aux", map);
   condSetup(prefix, "pc_ml_AuxThreshold", "ml_aux_threshold", map);
+}
+
+
+void PETScSolParams::setLSCOptions(const std::string& prefix, const SettingMap& map)
+{
+  condSetup(prefix, "lsc_ksp_type", "lsc_ksp", map);
+  condSetup(prefix, "lsc_ksp_rtol", "lsc_rtol", map);
+  condSetup(prefix, "lsc_ksp_max_it", "lsc_maxits", map);
+  condSetup(prefix, "lsc_pc_type", "lsc_pc", map);
+
+  // Whether the commutator is scaled by the diagonal of the mass matrix of
+  // the first block, which is what makes it hold up on a graded mesh
+  condSetup(prefix, "pc_lsc_scale_diag", "lsc_scale_diag", map);
 }
 
 

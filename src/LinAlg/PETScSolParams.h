@@ -114,6 +114,11 @@ protected:
   //! \param[in] map The settings to apply
   void setHypreOptions(const std::string& prefix, const SettingMap& map);
 
+  //! \brief Set least-squares commutator options
+  //! \param[in] prefix The prefix of the block to set parameters for
+  //! \param[in] map The settings to apply
+  void setLSCOptions(const std::string& prefix, const SettingMap& map);
+
   //! \brief Setup the coarse solver in a multigrid
   //! \param[in] pc The preconditioner to set coarse solver for
   //! \param[in] prefix The prefix of the block to set parameters for
