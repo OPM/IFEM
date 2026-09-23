@@ -122,6 +122,23 @@ void CompatibleOperators::Weak::Laplacian (std::vector<Matrix>& EM,
 }
 
 
+bool CompatibleOperators::Weak::MassCoeff (std::vector<Matrix>& EM,
+                                           const Matrix& C,
+                                           const FiniteElement& fe,
+                                           const std::array<std::array<int,3>,3>& idx,
+                                           double scale)
+{
+  const size_t nsd = fe.grad(1).cols();
+  for (size_t k = 1; k <= nsd; ++k)
+    for (size_t l = 1; l <= nsd; ++l)
+      if (C(k,l) != 0.0 && !EM[idx[k-1][l-1]].empty())
+        EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.basis(l), true,
+                                        scale*fe.detJxW*C(k,l));
+
+  return true;
+}
+
+
 void CompatibleOperators::Weak::Mass (std::vector<Matrix>& EM,
                                       const FiniteElement& fe,
                                       const std::array<std::array<int,3>,3>& idx,
@@ -130,6 +147,7 @@ void CompatibleOperators::Weak::Mass (std::vector<Matrix>& EM,
   for (size_t k = 1; k <= fe.grad(1).cols(); ++k)
     EqualOrderOperators::Weak::Mass(EM[idx[k-1][k-1]], fe, scale, k);
 }
+
 
 void CompatibleOperators::Weak::Source (Vectors& EV,
                                         const FiniteElement& fe,
@@ -142,10 +160,10 @@ void CompatibleOperators::Weak::Source (Vectors& EV,
 }
 
 
-void CompatibleOperators::Weak::Source(Vectors& EV,
-                                       const FiniteElement& fe,
-                                       const std::array<int, 3>& idx,
-                                       double scale)
+void CompatibleOperators::Weak::Source (Vectors& EV,
+                                        const FiniteElement& fe,
+                                        const std::array<int, 3>& idx,
+                                        double scale)
 {
   for (size_t k = 1; k <= fe.grad(1).cols(); ++k)
     EqualOrderOperators::Weak::Source(EV[idx[k-1]], fe, scale, 1, k);
