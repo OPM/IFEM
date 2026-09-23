@@ -144,6 +144,21 @@ public:
     static void Mass(Matrix& EM, const FiniteElement& fe,
                      double scale=1.0, int basis=1);
 
+    //! \brief Compute a mass term with a tensor coefficient.
+    //! \param[out] EM The element matrix to add contribution to
+    //! \param[in] C The coefficient tensor
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
+    //!
+    //! \details The mass term couples each component of the trial function
+    //! to the same component of the test function; this one couples them
+    //! through \a C, so that a term whose coefficient is a tensor rather
+    //! than a scalar is the same operator with the coupling written down.
+    static void MassCoeff(Matrix& EM, const Matrix& C,
+                          const FiniteElement& fe,
+                          double scale=1.0, int basis=1);
+
     //! \brief Compute a source term.
     //! \param[out] EV The element vector to add contribution to
     //! \param[in] fe The finite element to evaluate for

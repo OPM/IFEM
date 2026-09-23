@@ -93,6 +93,18 @@ public:
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] idx Matrix block indices
     //! \param[in] scale Scaling factor for contribution
+    //! \brief Compute a mass term with a tensor coefficient.
+    //! \param[out] EM The element matrices to add contribution to
+    //! \param[in] C The coefficient tensor
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] idx Index matrix for the blocks
+    //! \param[in] scale Scaling factor for contribution
+    //! \copydetails EqualOrderOperators::Weak::MassCoeff
+    static void MassCoeff(std::vector<Matrix>& EM, const Matrix& C,
+                          const FiniteElement& fe,
+                          const std::array<std::array<int,3>,3>& idx,
+                          double scale = 1.0);
+
     static void Mass(std::vector<Matrix>& EM,
                      const FiniteElement& fe,
                      const std::array<std::array<int,3>,3>& idx,

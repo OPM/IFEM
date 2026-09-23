@@ -122,6 +122,20 @@ void CompatibleOperators::Weak::Laplacian (std::vector<Matrix>& EM,
 }
 
 
+void CompatibleOperators::Weak::MassCoeff (std::vector<Matrix>& EM,
+                                           const Matrix& C,
+                                           const FiniteElement& fe,
+                                           const std::array<std::array<int,3>,3>& idx,
+                                           double scale)
+{
+  const size_t nsd = fe.grad(1).cols();
+  for (size_t k = 1; k <= nsd; ++k)
+    for (size_t l = 1; l <= nsd; ++l)
+      if (C(k,l) != 0.0 && !EM[idx[k-1][l-1]].empty())
+        EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.basis(l), true,
+                                        scale*fe.detJxW*C(k,l));
+}
+
 void CompatibleOperators::Weak::Mass (std::vector<Matrix>& EM,
                                       const FiniteElement& fe,
                                       const std::array<std::array<int,3>,3>& idx,

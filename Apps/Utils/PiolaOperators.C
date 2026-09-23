@@ -136,6 +136,21 @@ void PiolaOperators::Weak::Laplacian (Matrices& EM,
 }
 
 
+void PiolaOperators::Weak::MassCoeff (Matrices& EM,
+                                      const Matrix& C,
+                                      const FiniteElement& fe,
+                                      const std::array<std::array<int,3>,3>& idx,
+                                      double scale)
+{
+  // The Piola basis carries the field itself, so a tensor between the test
+  // and the trial field sits between the two of them: P^T C P.
+  Matrix CP, M;
+  CP.multiply(C, fe.P);
+  M.multiply(fe.P, CP, true, false, false, scale*fe.detJxW);
+  Copy(EM, fe, idx, M);
+}
+
+
 void PiolaOperators::Weak::Mass (Matrices& EM,
                                  const FiniteElement& fe,
                                  const std::array<std::array<int,3>,3>& idx,
