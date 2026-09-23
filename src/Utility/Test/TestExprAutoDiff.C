@@ -11,9 +11,12 @@
 //==============================================================================
 
 #include "ExprFunctions.h"
+#include "Functions.h"
 
 #include <autodiff/reverse/var.hpp>
 #include <expreval.h>
+
+#include <memory>
 
 #include"Catch2Support.h"
 
@@ -205,5 +208,39 @@ TEST_CASE("TestExprAutoDiff.Derivatives")
     REQUIRE_THAT(uxy.expr->val, WithinRel(param.vals[4]));
     REQUIRE_THAT(uyx.expr->val, WithinRel(param.vals[4]));
     REQUIRE_THAT(uyy.expr->val, WithinRel(param.vals[5]));
+  }
+}
+
+
+/*!
+  The error counter of the expression library is global, and is incremented by
+  run-time evaluation errors as well as by parse errors. The constructors of the
+  expression function classes give up silently when they see it set on entry,
+  leaving a function that evaluates to zero everywhere. The parse helpers must
+  therefore clear it first, or an unrelated evaluation error earlier in the run
+  - an analytical solution sampled at a point where it is singular, say - turns
+  every function parsed afterwards into a silent zero.
+*/
+
+TEST_CASE("TestExprAutoDiff.StaleErrorCounter")
+{
+  for (bool autodiff : {false, true})
+  {
+    // Emulate a run-time evaluation error having occurred earlier
+    ExprEval::numError = 1;
+
+    std::unique_ptr<RealFunc> f(utl::parseExprRealFunc("2.0*x+y",autodiff));
+    REQUIRE(f != nullptr);
+    REQUIRE_THAT((*f)(Vec3(1.0,2.0,0.0)), WithinRel(4.0));
+
+    std::unique_ptr<VecFunc> v(utl::parseExprVecFunc("x|2.0*y",autodiff));
+    REQUIRE(v != nullptr);
+    const Vec3 vv = (*v)(Vec3(1.0,2.0,0.0));
+    REQUIRE_THAT(vv.x, WithinRel(1.0));
+    REQUIRE_THAT(vv.y, WithinRel(4.0));
+
+    // A genuinely faulty expression is reported as a null pointer
+    ExprEval::numError = 0;
+    REQUIRE(utl::parseExprRealFunc("2.0*(x+y",autodiff) == nullptr);
   }
 }
