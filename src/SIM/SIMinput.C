@@ -2035,15 +2035,33 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
       result &= this->setInitialCondition(fieldHolder,it.first,it.second);
     else for (const ICInfo& ic : it.second)
     {
-      // Do we have this field?
       RealArray* field = fieldHolder->getField(ic.sim_field);
-      if (!field) continue;
+      if (!field)
+      {
+        std::cerr <<" *** SIMinput::setInitialConditions: There is no field"
+                  <<" \""<< ic.sim_field <<"\" to apply an initial condition"
+                  <<" to.\n     The fields there are:";
+        for (const std::string& name : fieldHolder->getFieldNames())
+          std::cerr <<" "<< name;
+        std::cerr std::endl;
+        result = false;
+        continue;
+      }
 
       IFEM::cout <<"\nLoading initial condition for \""<< ic.sim_field
                  <<"\" component "<< (int)ic.component
                  <<"\nfrom "<< ic.file_field <<" function";
       RealFunc* fn = utl::parseRealFunc(ic.function,ic.file_field);
       IFEM::cout << std::endl;
+      if (!fn)
+      {
+        std::cerr <<" *** SIMinput::setInitialConditions: The initial"
+                  <<" condition for \""<< ic.sim_field <<"\" is not a"
+                  <<" function that could be parsed."<< std::endl;
+        result = false;
+        continue;
+      }
+
       result &= this->project(*field,fn,ic.basis,ic.component-1,
                               this->getNoFields(ic.basis));
       delete fn;
