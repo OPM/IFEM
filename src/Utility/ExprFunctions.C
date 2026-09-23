@@ -22,7 +22,8 @@
 
 
 namespace ExprEval {
-  int numError = 0; //!< Error counter - set by the exception handler
+  //! The error counter is global, and is incremented by run-time evaluation errors.
+  int numError = 0;
 }
 
 
@@ -681,19 +682,37 @@ evalTimeDerivative (const Vec3& X) const
 
 RealFunc* utl::parseExprRealFunc (const std::string& function, bool autodiff)
 {
+  ExprEval::numError = 0;
+
+  RealFunc* f;
   if (autodiff)
-    return new EvalFuncSpatial<autodiff::var>(function.c_str());
+    f = new EvalFuncSpatial<autodiff::var>(function.c_str());
   else
-    return new EvalFunction(function.c_str());
+    f = new EvalFunction(function.c_str());
+
+  if (ExprEval::numError == 0)
+    return f;
+
+  delete f;
+  return nullptr;
 }
 
 
 VecFunc* utl::parseExprVecFunc (const std::string& function, bool autodiff)
 {
+  ExprEval::numError = 0;
+
+  VecFunc* f;
   if (autodiff)
-    return new EvalMultiFunction<VecFunc,Vec3,autodiff::var>(function, "");
+    f = new EvalMultiFunction<VecFunc,Vec3,autodiff::var>(function, "");
   else
-    return new EvalMultiFunction<VecFunc,Vec3,Real>(function, "");
+    f = new EvalMultiFunction<VecFunc,Vec3,Real>(function, "");
+
+  if (ExprEval::numError == 0)
+    return f;
+
+  delete f;
+  return nullptr;
 }
 
 
