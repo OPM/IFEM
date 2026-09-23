@@ -252,3 +252,58 @@ TEST_CASE("TestPiolaOperators.ConvectionIsTheTangentOfItsResidual")
       REQUIRE_THAT(Ae(i), WithinAbs(col(i), 1.0e-7));
   }
 }
+
+
+TEST_CASE("TestPiolaOperators.LaplacianCoeffWithTheIdentityIsTheLaplacian")
+{
+  const PiolaFiniteElement fe;
+  const size_t nsd = fe.dNdX.cols();
+
+  // The identity tensor contracts the two Piola gradients as they are, so
+  // the term is the plain laplacian and is checked against it rather than
+  // against numbers of its own
+  Matrix K(nsd,nsd);
+  for (size_t i = 1; i <= nsd; ++i)
+    K(i,i) = 1.0;
+
+  Matrices EM = emptyMats();
+  PiolaOperators::Weak::LaplacianCoeff(EM, K, fe, matIdx, 2.0);
+
+  Matrices EM_ref = emptyMats();
+  PiolaOperators::Weak::Laplacian(EM_ref, fe, matIdx, 2.0, false);
+
+  const Vector c = PiolaFiniteElement::coefficients();
+  const Vector Au = applyMats(EM, c);
+  const Vector Au_ref = applyMats(EM_ref, c);
+  for (size_t i = 1; i <= 6; ++i)
+    REQUIRE_THAT(Au(i), WithinAbs(Au_ref(i), 1.0e-10));
+
+  // An anisotropic tensor is checked against the contraction written out by
+  // hand, which is the only way to catch the two indices of a gradient row
+  // being taken the wrong way round: the identity is blind to that, and so
+  // is any check which only asks that the answer moved.
+  K(1,2) = 0.5;
+  K(2,1) = 0.25;
+  Matrices EM_aniso = emptyMats();
+  PiolaOperators::Weak::LaplacianCoeff(EM_aniso, K, fe, matIdx, 2.0);
+
+  // Row (d-1)*nsd+c of the Piola gradient holds the derivative of component
+  // c along direction d, so the term is sum_c sum_{d,e} K(d,e) g(e,c) g(d,c)
+  const Matrix& G = fe.P_contra.dNdX;
+  const size_t n = G.cols();
+  Matrix ref(n,n);
+  for (size_t cc = 1; cc <= nsd; ++cc)
+    for (size_t d = 1; d <= nsd; ++d)
+      for (size_t e = 1; e <= nsd; ++e)
+        if (K(d,e) != 0.0)
+          for (size_t i = 1; i <= n; ++i)
+            for (size_t j = 1; j <= n; ++j)
+              ref(i,j) += 2.0 * fe.detJxW * K(d,e) *
+                          G((d-1)*nsd + cc, i) * G((e-1)*nsd + cc, j);
+
+  const Vector Au_aniso = applyMats(EM_aniso, c);
+  Vector ref_u(n);
+  ref.multiply(c, ref_u);
+  for (size_t i = 1; i <= 6; ++i)
+    REQUIRE_THAT(Au_aniso(i), WithinAbs(ref_u(i), 1.0e-10));
+}

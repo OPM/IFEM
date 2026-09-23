@@ -104,6 +104,17 @@ public:
                           const std::array<std::array<int,3>,3>& idx,
                           double scale = 1.0);
 
+    //! \brief Compute a laplacian with a coefficient tensor.
+    //! \param[out] EM The element matrices to add contribution to
+    //! \param[in] K The coefficient tensor
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] idx Index matrix for the blocks
+    //! \param[in] scale Scaling factor for contribution
+    static void LaplacianCoeff(std::vector<Matrix>& EM, const Matrix& K,
+                               const FiniteElement& fe,
+                               const std::array<std::array<int,3>,3>& idx,
+                               double scale = 1.0);
+
     //! \brief Compute a mass term.
     //! \param[out] EM The element matrices to add contribution to
     //! \param[in] fe The finite element to evaluate for
