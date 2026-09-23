@@ -136,6 +136,21 @@ void PiolaOperators::Weak::Laplacian (Matrices& EM,
 }
 
 
+bool PiolaOperators::Weak::MassCoeff (Matrices& EM,
+                                      const Matrix& C,
+                                      const FiniteElement& fe,
+                                      const std::array<std::array<int,3>,3>& idx,
+                                      double scale)
+{
+  Matrix CP, M;
+  CP.multiply(C, fe.P);
+  M.multiply(fe.P, CP, true, false, false, scale*fe.detJxW);
+  Copy(EM, fe, idx, M);
+
+  return true;
+}
+
+
 void PiolaOperators::Weak::Mass (Matrices& EM,
                                  const FiniteElement& fe,
                                  const std::array<std::array<int,3>,3>& idx,

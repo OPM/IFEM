@@ -92,6 +92,22 @@ public:
                           const std::array<std::array<int,3>,3>& idx,
                           double scale, bool stress);
 
+    //! \brief Compute a mass term with a tensor coefficient.
+    //! \param[out] EM The element matrices to add contribution to
+    //! \param[in] C The coefficient tensor
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] idx Matrix block indices
+    //! \param[in] scale Scaling factor for contribution
+    //!
+    //! \details The mass term couples each component of the trial function
+    //! to the same component of the test function; this one couples them
+    //! through \a C, a term whose coefficient is a tensor rather
+    //! than a scalar.
+    static bool MassCoeff(Matrices& EM, const Matrix& C,
+                          const FiniteElement& fe,
+                          const std::array<std::array<int,3>,3>& idx,
+                          double scale = 1.0);
+
     //! \brief Compute a mass term.
     //! \param[out] EM The element matrices to add contribution to
     //! \param[in] fe The finite element to evaluate for
