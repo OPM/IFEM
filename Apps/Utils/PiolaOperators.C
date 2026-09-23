@@ -200,6 +200,36 @@ void PiolaOperators::Weak::Laplacian (Matrices& EM,
 }
 
 
+void PiolaOperators::Weak::LaplacianCoeff (Matrices& EM,
+                                           const Matrix& K,
+                                           const FiniteElement& fe,
+                                           const std::array<std::array<int,3>,3>& idx,
+                                           double scale)
+{
+  // Rows of the Piola gradient are ordered as (derivative direction,
+  // component), the row of direction d and component c being (d-1)*nsd+c.
+  // The tensor contracts the derivative directions of the test field with
+  // those of the trial field, component by component, so it is applied to
+  // the directions of each component in turn and the two gradients are then
+  // contracted as they are without one.
+  const size_t nsd = fe.dNdX.cols();
+  Matrix KP(fe.P_contra.dNdX.rows(), fe.P_contra.dNdX.cols());
+  for (size_t c = 1; c <= nsd; ++c)
+    for (size_t d = 1; d <= nsd; ++d)
+    {
+      Vector row(fe.P_contra.dNdX.cols());
+      for (size_t e = 1; e <= nsd; ++e)
+        if (K(d,e) != 0.0)
+          row.add(fe.P_contra.dNdX.getRow((e-1)*nsd + c), K(d,e));
+      KP.fillRow((d-1)*nsd + c, row.ptr());
+    }
+
+  Matrix A;
+  A.multiply(fe.P_contra.dNdX, KP, true, false, false, scale*fe.detJxW);
+  Copy(EM, fe, idx, A);
+}
+
+
 bool PiolaOperators::Weak::MassCoeff (Matrices& EM,
                                       const Matrix& C,
                                       const FiniteElement& fe,

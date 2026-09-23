@@ -252,3 +252,77 @@ TEST_CASE("TestCompatibleOperators.Source")
     REQUIRE_THAT(EV_scalar[2](i), WithinRel(4.0*fe.basis(2)(i)));
   }
 }
+
+
+TEST_CASE("TestCompatibleOperators.LaplacianCoeff")
+{
+  MyFiniteElement fe;
+
+  static constexpr auto idx = std::array{
+      std::array{1, 4, 5},
+      std::array{6, 2, 7},
+      std::array{8, 9, 3},
+  };
+
+  // The identity tensor contracts the two gradients as they are, so the
+  // term is the plain laplacian and is checked against it rather than
+  // against numbers of its own
+  const size_t nsd = fe.dNdX.cols();
+  Matrix K(nsd,nsd);
+  for (size_t i = 1; i <= nsd; ++i)
+    K(i,i) = 1.0;
+
+  std::vector<Matrix> EM(10), EM_ref(10);
+  for (size_t b = 1; b <= 2; ++b) {
+    EM[b].resize(6,6);
+    EM_ref[b].resize(6,6);
+  }
+
+  CompatibleOperators::Weak::LaplacianCoeff(EM, K, fe, idx, 2.0);
+  CompatibleOperators::Weak::Laplacian(EM_ref, fe, idx, 2.0);
+
+  for (size_t b = 1; b <= 2; ++b)
+    for (size_t i = 1; i <= 6; ++i)
+      for (size_t j = 1; j <= 6; ++j)
+        REQUIRE_THAT(EM[b](i,j), WithinAbs(EM_ref[b](i,j), 1e-13));
+
+  // A tensor which is not a multiple of the identity has to differ from it
+  K(1,2) = K(2,1) = 0.5;
+  std::vector<Matrix> EM_skew(10);
+  for (size_t b = 1; b <= 2; ++b)
+    EM_skew[b].resize(6,6);
+
+  CompatibleOperators::Weak::LaplacianCoeff(EM_skew, K, fe, idx, 2.0);
+
+  double diff = 0.0;
+  for (size_t b = 1; b <= 2; ++b)
+    for (size_t i = 1; i <= 6; ++i)
+      for (size_t j = 1; j <= 6; ++j)
+        diff += std::abs(EM_skew[b](i,j) - EM_ref[b](i,j));
+
+  REQUIRE(diff > 1.0);
+
+  // The blocks the contributions land in are the ones idx names, so a
+  // remapped diagonal has to move them and not merely relabel them. Back to
+  // the identity, which is what the plain laplacian compares against.
+  K(1,2) = K(2,1) = 0.0;
+  static constexpr auto swapped = std::array{
+      std::array{3, 4, 5},
+      std::array{6, 1, 7},
+      std::array{8, 9, 2},
+  };
+
+  std::vector<Matrix> EM_swap(10), EM_swap_ref(10);
+  for (size_t b = 1; b <= 3; ++b) {
+    EM_swap[b].resize(6,6);
+    EM_swap_ref[b].resize(6,6);
+  }
+
+  CompatibleOperators::Weak::LaplacianCoeff(EM_swap, K, fe, swapped, 2.0);
+  CompatibleOperators::Weak::Laplacian(EM_swap_ref, fe, swapped, 2.0);
+
+  for (size_t b = 1; b <= 3; ++b)
+    for (size_t i = 1; i <= 6; ++i)
+      for (size_t j = 1; j <= 6; ++j)
+        REQUIRE_THAT(EM_swap[b](i,j), WithinAbs(EM_swap_ref[b](i,j), 1e-13));
+}

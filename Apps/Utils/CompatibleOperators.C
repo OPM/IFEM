@@ -139,6 +139,18 @@ bool CompatibleOperators::Weak::MassCoeff (std::vector<Matrix>& EM,
 }
 
 
+void CompatibleOperators::Weak::LaplacianCoeff (std::vector<Matrix>& EM,
+                                                const Matrix& K,
+                                                const FiniteElement& fe,
+                                                const std::array<std::array<int,3>,3>& idx,
+                                                double scale)
+{
+  const size_t nsd = fe.grad(1).cols();
+  for (size_t n = 1; n <= nsd; ++n)
+    EqualOrderOperators::Weak::LaplacianCoeff(EM[idx[n-1][n-1]], K, fe, scale, n);
+}
+
+
 void CompatibleOperators::Weak::Mass (std::vector<Matrix>& EM,
                                       const FiniteElement& fe,
                                       const std::array<std::array<int,3>,3>& idx,
