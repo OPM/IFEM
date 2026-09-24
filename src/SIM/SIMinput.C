@@ -2121,7 +2121,7 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
                   <<" to.\n     The fields there are:";
         for (const std::string& name : fieldHolder->getFieldNames())
           std::cerr <<" "<< name;
-        std::cerr std::endl;
+        std::cerr << std::endl;
         result = false;
         continue;
       }
