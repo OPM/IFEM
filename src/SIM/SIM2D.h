@@ -133,6 +133,11 @@ protected:
   virtual bool connectPatches(const ASM::Interface& ifc,
                               bool coordCheck = true);
 
+  //! \brief Ties the bases that are discontinuous at the patch interfaces.
+  //! \details This is done where more than two patches meet, to remove the
+  //! mode such a basis has around such a point.
+  virtual bool connectCrossPoints();
+
 protected:
   CharVec nf;         //!< Number of scalar fields
   bool    checkRHSys; //!< Check if all patches are in a right-hand system
