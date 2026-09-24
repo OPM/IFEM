@@ -186,6 +186,11 @@ public:
   //! \param[in] sol Vectors to interpolate onto refined mesh
   bool refine(const LR::RefineData& prm, Vectors& sol);
 
+  //! \brief Initializes the property containers of the model.
+  //! \details This method is overridden to also clear the
+  //!          \ref myInterfaces container of this class.
+  virtual void clearProperties();
+
   //! \brief Refines the mesh based on a mesh density function.
   //! \param[in] refC Mesh refinement criteria function
   //! \param[in] refTol Mesh refinement threshold

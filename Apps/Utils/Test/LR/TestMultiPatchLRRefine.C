@@ -63,6 +63,11 @@ TEST_CASE("TestMultiPatchLRRefine.2D")
     REQUIRE(sim.parse(doc.RootElement()));
     REQUIRE(sim.preprocess());
 
+    // The topological connections are established when the model is parsed,
+    // so re-reading it must not leave a second copy of them behind.
+    const size_t nInterfaces = sim.getInterfaces().size();
+    REQUIRE(nInterfaces > 0);
+
     srand(0);
 
     for (size_t i = 0; i < 4; ++i) {
@@ -78,6 +83,7 @@ TEST_CASE("TestMultiPatchLRRefine.2D")
 
       REQUIRE(gen.createTopology(sim));
       REQUIRE(sim.preprocess());
+      REQUIRE(sim.getInterfaces().size() == nInterfaces);
     }
   }
 }
@@ -103,6 +109,11 @@ TEST_CASE("TestMultiPatchLRRefine.3D")
     REQUIRE(sim.parse(doc.RootElement()));
     REQUIRE(sim.preprocess());
 
+    // The topological connections are established when the model is parsed,
+    // so re-reading it must not leave a second copy of them behind.
+    const size_t nInterfaces = sim.getInterfaces().size();
+    REQUIRE(nInterfaces > 0);
+
     srand(0);
 
     for (size_t i = 0; i < 3; ++i) {
@@ -118,6 +129,7 @@ TEST_CASE("TestMultiPatchLRRefine.3D")
 
       REQUIRE(gen.createTopology(sim));
       REQUIRE(sim.preprocess());
+      REQUIRE(sim.getInterfaces().size() == nInterfaces);
     }
   }
 }
