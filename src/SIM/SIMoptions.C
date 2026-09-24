@@ -122,8 +122,16 @@ bool SIMoptions::parseDiscretizationTag (const tinyxml2::XMLElement* elem)
         discretization = ASM::LRSpline;
       else if (discr == "triangular")
         discretization = ASM::Triangle;
+      else {
+        std::cerr <<" *** SIMoptions::parseDiscretizationTag: \""<< discr
+                  <<"\" is not a discretization. The ones there are:"
+                  <<" lagrange spectral splines lrsplines triangular"
+                  << std::endl;
+        return false;
+      }
     }
-    if (utl::getAttribute(elem,"cache_policy",cpolicy)) {
+    bool given = utl::getAttribute(elem,"cache_policy",cpolicy);
+    if (given) {
       if (cpolicy == "disable")
         ASM::cachePolicy = ASM::NO_CACHE;
       else if (cpolicy == "full")
@@ -132,11 +140,18 @@ bool SIMoptions::parseDiscretizationTag (const tinyxml2::XMLElement* elem)
         ASM::cachePolicy = ASM::ON_THE_FLY;
       else if (cpolicy == "precalc")
         ASM::cachePolicy = ASM::PRE_CACHE;
-      else
-        cpolicy.clear();
+      else {
+        std::cerr <<" *** SIMoptions::parseDiscretizationTag: \""<< cpolicy
+                  <<"\" is not a basis function cache policy. The ones there"
+                  <<" are: disable precalc onthefly full"<< std::endl;
+        return false;
+      }
     }
-    if (cpolicy.empty() && discretization < ASM::Spline)
-      ASM::cachePolicy = ASM::NO_CACHE; // Default no cache for Lagrange
+    // A Lagrange basis is cheap enough to evaluate that caching it does not
+    // pay, so it is left uncached unless the input asks for a policy. Asking
+    // for one and getting it wrong is not the same as not asking.
+    if (!given && discretization < ASM::Spline)
+      ASM::cachePolicy = ASM::NO_CACHE;
   }
 
   else if (!strcasecmp(elem->Value(),"geometry")) {
