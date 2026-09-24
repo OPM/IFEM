@@ -50,16 +50,16 @@ TEST_CASE("TestMatrix.AddBlock")
   std::iota(b.begin(),b.end(),1);
 
   a.addBlock(b, 2, 2, 2, false);
-  REQUIRE(a(2,2) == 7);
-  REQUIRE(a(3,2) == 10);
-  REQUIRE(a(2,3) == 14);
-  REQUIRE(a(3,3) == 17);
+  CHECK(a(2,2) == 7);
+  CHECK(a(3,2) == 10);
+  CHECK(a(2,3) == 14);
+  CHECK(a(3,3) == 17);
 
   a.addBlock(b, 1, 1, 1, true);
-  REQUIRE(a(1,1) == 2);
-  REQUIRE(a(2,1) == 5);
-  REQUIRE(a(1,2) == 6);
-  REQUIRE(a(2,2) == 11);
+  CHECK(a(1,1) == 2);
+  CHECK(a(2,1) == 5);
+  CHECK(a(1,2) == 6);
+  CHECK(a(2,2) == 11);
 }
 
 
@@ -70,16 +70,16 @@ TEST_CASE("TestMatrix.ExtractBlock")
   std::iota(a.begin(), a.end(), 1);
 
   a.extractBlock(b,1,1);
-  REQUIRE(b(1,1) == 1);
-  REQUIRE(b(2,1) == 2);
-  REQUIRE(b(1,2) == 4);
-  REQUIRE(b(2,2) == 5);
+  CHECK(b(1,1) == 1);
+  CHECK(b(2,1) == 2);
+  CHECK(b(1,2) == 4);
+  CHECK(b(2,2) == 5);
 
   a.extractBlock(b,2,2,true);
-  REQUIRE(b(1,1) == 1+5);
-  REQUIRE(b(2,1) == 2+6);
-  REQUIRE(b(1,2) == 4+8);
-  REQUIRE(b(2,2) == 5+9);
+  CHECK(b(1,1) == 1+5);
+  CHECK(b(2,1) == 2+6);
+  CHECK(b(1,2) == 4+8);
+  CHECK(b(2,2) == 5+9);
 }
 
 
@@ -95,8 +95,8 @@ TEST_CASE("TestMatrix.AddRows")
   for (size_t j = 1; j <= a.cols(); j++)
   {
     for (size_t i = 1; i <= 3; i++, fasit++)
-      REQUIRE(a(i,j) == fasit);
-    REQUIRE(a(4,j) == 0);
+      CHECK(a(i,j) == fasit);
+    CHECK(a(4,j) == 0);
   }
 
   a.expandRows(-2);
@@ -104,7 +104,7 @@ TEST_CASE("TestMatrix.AddRows")
   fasit = 1;
   for (size_t j = 1; j <= a.cols(); j++, fasit++)
     for (size_t i = 1; i <= 2; i++, fasit++)
-      REQUIRE(a(i,j) == fasit);
+      CHECK(a(i,j) == fasit);
 
   a.expandRows(3,true);
   std::cout <<"D:"<< a;
@@ -112,15 +112,15 @@ TEST_CASE("TestMatrix.AddRows")
   for (size_t j = 1; j <= a.cols(); j++, fasit++)
   {
     for (size_t i = 1; i <= 2; i++, fasit++)
-      REQUIRE(a(i,j) == fasit);
-    REQUIRE(a(3,j) == 0);
+      CHECK(a(i,j) == fasit);
+    CHECK(a(3,j) == 0);
   }
 
   a.expandRows(1,true);
   std::cout <<"E:"<< a;
   fasit = 1;
   for (size_t j = 1; j <= a.cols(); j++, fasit += 3)
-    REQUIRE(a(1,j) == fasit);
+    CHECK(a(1,j) == fasit);
 }
 
 
@@ -140,19 +140,19 @@ TEST_CASE("TestMatrix.AugmentRows")
   for (size_t j = 1; j <= a.cols(); j++)
     for (size_t i = 1; i <= a.rows(); i++)
       if (i <= na)
-        REQUIRE(a(i,j) == static_cast<int>(i+na*(j-1)));
+        CHECK(a(i,j) == static_cast<int>(i+na*(j-1)));
       else
-        REQUIRE(a(i,j) == static_cast<int>(nA-na+i+nb*(j-1)));
+        CHECK(a(i,j) == static_cast<int>(nA-na+i+nb*(j-1)));
   REQUIRE(a.augmentRows(b,true));
   std::cout <<"C:"<< a;
   for (size_t j = 1; j <= a.cols(); j++)
     for (size_t i = 1; i <= a.rows(); i++)
       if (i <= nb)
-        REQUIRE(a(i,j) == b(i,j));
+        CHECK(a(i,j) == b(i,j));
       else if (i > nb+na)
-        REQUIRE(a(i,j) == b(i-nb-na,j));
+        CHECK(a(i,j) == b(i-nb-na,j));
       else
-        REQUIRE(a(i,j) == static_cast<int>(i-nb+na*(j-1)));
+        CHECK(a(i,j) == static_cast<int>(i-nb+na*(j-1)));
 }
 
 
@@ -169,7 +169,7 @@ TEST_CASE("TestMatrix.AugmentCols")
   int fasit = 1;
   for (size_t j = 1; j <= a.cols(); j++)
     for (size_t i = 1; i <= a.rows(); i++, fasit++)
-      REQUIRE(a(i,j) == fasit);
+      CHECK(a(i,j) == fasit);
 }
 
 
@@ -178,17 +178,17 @@ TEST_CASE("TestMatrix.SumCols")
   utl::matrix<int> a(5,3);
   std::iota(a.begin(),a.end(),1);
   std::cout <<"A:"<< a;
-  REQUIRE(a.sum(-1) == 15);
-  REQUIRE(a.sum(-2) == 40);
-  REQUIRE(a.sum(-3) == 65);
+  CHECK(a.sum(-1) == 15);
+  CHECK(a.sum(-2) == 40);
+  CHECK(a.sum(-3) == 65);
 
   int fasit = 15;
   for (size_t i = 1; i <= a.cols(); i++, fasit += 25)
-    REQUIRE(a.colsum(i) == fasit);
+    CHECK(a.colsum(i) == fasit);
 
   fasit = 18;
   for (size_t i = 1; i <= a.rows(); i++, fasit += a.cols())
-    REQUIRE(a.rowsum(i) == fasit);
+    CHECK(a.rowsum(i) == fasit);
 }
 
 
@@ -199,23 +199,51 @@ TEST_CASE("TestMatrix.Fill")
   std::iota(v.begin(),v.end(),1);
   a.fill(v,3,4);
   std::cout <<"a:"<< a;
-  REQUIRE(a(3,1) == 3);
+  CHECK(a(3,1) == 3);
   a.fill(v,4,4);
   std::cout <<"a:"<< a;
-  REQUIRE(a(4,1) == 4);
+  CHECK(a(4,1) == 4);
   a.fill(v,5,4);
   std::cout <<"a:"<< a;
-  REQUIRE(a(5,1) == 0);
+  CHECK(a(5,1) == 0);
 }
 
 
 TEST_CASE("TestMatrix.Zero")
 {
   utl::matrix<double> A(4,5);
-  REQUIRE(A.zero());
+  CHECK(A.zero());
   A(1,2) = 1.0e-8;
-  REQUIRE(!A.zero());
-  REQUIRE(A.zero(1.0e-6));
+  CHECK(!A.zero());
+  CHECK(A.zero(1.0e-6));
+}
+
+
+TEST_CASE("TestMatrix.Transpose")
+{
+  utl::matrix<int> A(4,5);
+  std::iota(A.begin(),A.end(),1);
+  utl::matrix<int> B(A,true);
+  std::cout <<"A:"<< A <<"B:"<< B;
+  REQUIRE(A.rows() == B.cols());
+  REQUIRE(A.cols() == B.rows());
+  for (size_t i = 1; i <= A.rows(); i++)
+    for (size_t j = 1; j <= A.cols(); j++)
+      CHECK(A(i,j) == B(j,i));
+}
+
+
+TEST_CASE("TestMatrix.External")
+{
+  utl::vector<int> a(6);
+  std::iota(a.begin(),a.end(),1);
+  utl::matrix<int> A(a);
+  A.resize(2,3);
+  std::cout <<"A:"<< A;
+  int value = 1;
+  for (size_t j = 1; j <= A.cols(); j++)
+    for (size_t i = 1; i <= A.rows(); i++, value++)
+      CHECK(A(i,j) == value);
 }
 
 
@@ -254,7 +282,7 @@ TEST_CASE("TestMatrix.Read")
     std::cout <<"b:"<< b;
     REQUIRE(a.size() == b.size());
     for (size_t i = 1; i <= a.size(); i++)
-      REQUIRE_THAT(a(i), WithinRel(b(i), 1.0e-13));
+      CHECK_THAT(a(i), WithinRel(b(i), 1.0e-13));
   };
 
   auto&& checkMatrix = [&A](const char* fname)
@@ -267,7 +295,7 @@ TEST_CASE("TestMatrix.Read")
     REQUIRE(A.cols() == B.cols());
     for (size_t i = 1; i <= A.rows(); i++)
       for (size_t j = 1; j <= A.cols(); j++)
-        REQUIRE_THAT(A(i,j), WithinRel(B(i,j), 1.0e-13));
+        CHECK_THAT(A(i,j), WithinRel(B(i,j), 1.0e-13));
   };
 
   const char* fname0 = "/tmp/testVector.dat";
@@ -328,7 +356,7 @@ TEST_CASE("TestMatrix3D.Trace")
   std::cout <<"A:"<< a;
 
   for (size_t i = 1; i <= 4; i++)
-    REQUIRE_THAT(a.trace(i), WithinRel(3.0*i+48.0));
+    CHECK_THAT(a.trace(i), WithinRel(3.0*i+48.0));
 }
 
 
@@ -345,10 +373,10 @@ TEST_CASE("TestMatrix3D.GetColumn")
       utl::vector<int> column = A.getColumn(r,c);
       REQUIRE(column.size() == A.dim(1));
       for (size_t i = 0; i < column.size(); i++, value++)
-        REQUIRE(value == column[i]);
+        CHECK(value == column[i]);
     }
 
-  REQUIRE(value == static_cast<int>(1+A.size()));
+  CHECK(value == static_cast<int>(1+A.size()));
 }
 
 
@@ -364,7 +392,7 @@ TEST_CASE("TestMatrix3D.DumpRead")
   std::ifstream is(fname,std::ios::in);
   utl::matrix3d<double> B(is);
   B -= A;
-  REQUIRE_THAT(B.norm2(), WithinAbs(0.0, 1.0e-13));
+  CHECK_THAT(B.norm2(), WithinAbs(0.0, 1.0e-13));
 }
 
 
