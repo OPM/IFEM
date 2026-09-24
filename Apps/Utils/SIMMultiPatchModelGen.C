@@ -23,7 +23,6 @@
 namespace
 {
   //! \brief Private helper defining if the multi-patch generator must be used.
-  //! \param[in] geo XML element containing geometry definition
   bool useMultiPatchGen(const tinyxml2::XMLElement* geo)
   {
     if (!geo) return false;
@@ -31,10 +30,10 @@ namespace
     // If any of these attribute keywords are present on the geometry tag,
     // the multi-patch model generator must be used.
     // Otherwise, use the standard single-patch generators.
-    static const char* keywords[9] = {
+    static const char* keywords[8] = {
       "nx", "ny", "nz",
-      "periodic_x", "periodic_x", "periodic_x",
-      "subdivision", "sets", nullptr
+      "periodic_x", "periodic_y", "periodic_z",
+      "subdivision", nullptr
     };
 
     for (const char** q = keywords; *q; ++q)
