@@ -624,7 +624,8 @@ protected:
                              int& ngnod, char basis = 1, bool ovrD = false);
 
   //! \brief Preprocessing performed before the FEM model generation.
-  virtual void preprocessA() {}
+  //! \return \e false if the model asks for something that cannot be honoured
+  virtual bool preprocessA() { return true; }
   //! \brief Specialized preprocessing performed before assembly initialization.
   virtual bool preprocessBeforeAsmInit(int&) { return true; }
   //! \brief Preprocessing performed after the system assembly initialization.
