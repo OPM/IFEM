@@ -228,7 +228,8 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
     mySol->setupSecondarySolutions();
 
   // Perform some sub-class specific pre-preprocessing, if any
-  this->preprocessA();
+  if (!this->preprocessA())
+    return false;
 
   // Create the classical FE data structures
   if (!this->createFEMmodel('Y'))
