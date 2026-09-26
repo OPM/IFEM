@@ -63,9 +63,9 @@ PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
   KSPSetTolerances(outer_ksp, rtol, atol, dtol, maxits);
 
   MatCreate(*adm.getCommunicator(), &outer_mat);
-  PetscInt r;
-  MatGetSize(blocks[3], &r, &r);
-  MatSetSizes(outer_mat, r, r, PETSC_DETERMINE, PETSC_DETERMINE);
+  PetscInt m, n;
+  MatGetLocalSize(blocks[3], &m, &n);
+  MatSetSizes(outer_mat, m, n, PETSC_DETERMINE, PETSC_DETERMINE);
   MatSetFromOptions(outer_mat);
   MatSetType(outer_mat, MATSHELL);
   MatShellSetContext(outer_mat, this);
@@ -80,11 +80,8 @@ PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
     KSPView(outer_ksp, PETSC_VIEWER_STDOUT_(*adm.getCommunicator()));
   PCSetUp(pc_init);
 
-  VecCreate(*adm.getCommunicator(), &tmp);
-  VecSetFromOptions(tmp);
-  MatGetSize(blocks[0], &r, &r);
-  VecSetSizes(tmp, r, PETSC_DETERMINE);
-  VecSetUp(tmp);
+  // The inner solve works on the rows of the momentum operator
+  MatCreateVecs(blocks[0], nullptr, &tmp);
 }
 
 
