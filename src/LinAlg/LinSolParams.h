@@ -104,6 +104,8 @@ public:
 
   //! \brief Obtain settings for a given block
   const BlockParams& getBlock(size_t i) const { return blocks[i]; }
+  //! \brief Obtain settings for a given block
+  BlockParams& getBlock(size_t i) { return blocks[i]; }
 
   //! \brief Returns the linear system type.
   LinAlg::LinearSystemType getLinSysType() const { return linSys; }
