@@ -55,6 +55,9 @@ protected:
   KSP inner_ksp; //!< The KSP for the approximation of inner matrix inverse
   KSP outer_ksp; //!< The KSP for the approximated Schur complement
   Mat outer_mat; //!< Matrix shell describing the Schur complement
+  //! What the solve against that shell is preconditioned with, which is an
+  //! approximation of the Schur complement with its sign turned round
+  Mat prec = nullptr;
   Vec tmp; //!< Temporary vector
   const std::vector<Mat>* m_blocks; //!< Matrix blocks in system
 };
