@@ -1114,9 +1114,12 @@ bool PETScMatrix::setParameters (bool setup)
                          maxits > 0 ? maxits : PETSC_DEFAULT);
 
       KSPGetPC(subksp[m],&subpc[m]);
+      // The inner solve of the Schur preconditioner approximates the inverse
+      // of matvec[0]
       if (blockParams.getStringValue("pc") == "schur")
         new PETScSchurPC(subpc[m], matvec, blockParams, adm,
-                         solParams.getIntValue("verbosity"));
+                         solParams.getIntValue("verbosity"),
+                         this->getSchurPrecond(m));
       else
         solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m), setup);
 
@@ -1134,6 +1137,23 @@ bool PETScMatrix::setParameters (bool setup)
   return true;
 }
 
+
+Mat PETScMatrix::getDiagonalBlock (size_t block) const
+{
+  if (matvec.empty())
+    return block == 0 ? pA : nullptr;
+
+  const size_t nb = solParams.getNoBlocks();
+  return block < nb ? matvec[block*nb+block] : nullptr;
+}
+
+
+SchurComplementPrecond* PETScMatrix::getSchurPrecond (size_t block) const
+{
+  std::map<size_t,SchurComplementPrecond*>::const_iterator it;
+  it = schurPrecond.find(block);
+  return it == schurPrecond.end() ? nullptr : it->second;
+}
 
 const DomainDecomposition& PETScMatrix::getDD () const
 {

@@ -326,6 +326,7 @@ set(IFEM_PUBLIC_HEADERS
   src/LinAlg/ProcessAdm.h
   src/LinAlg/readIntVec.h
   src/LinAlg/SAM.h
+  src/LinAlg/SchurComplementPrecond.h
   src/LinAlg/SparseMatrix.h
   src/LinAlg/SPRMatrix.h
   src/LinAlg/SystemMatrix.h
