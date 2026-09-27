@@ -74,7 +74,7 @@ LinSolParams::LinSolParams (LinAlg::LinearSystemType ls) : blocks(1), linSys(ls)
   this->addValue("maxits", "1000");
   this->addValue("gmres_restart_iterations", "100");
   this->addValue("verbosity", "1");
-  this->addValue("schur_precondition", "selfp");
+  this->addValue("schur_precondition", "");
 }
 
 LinSolParams::LinSolParams (const LinSolParams& p, LinAlg::LinearSystemType ls)
