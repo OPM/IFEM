@@ -15,6 +15,9 @@
 #include "LinSolParams.h"
 #include "ProcessAdm.h"
 
+#include <cstring>
+#include <iostream>
+
 
 PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
                             const LinSolParams::BlockParams& params,
@@ -43,7 +46,47 @@ PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
 
   KSPCreate(*adm.getCommunicator(), &outer_ksp);
   KSPGetPC(outer_ksp, &pc);
-  PCSetType(pc, PCNONE);
+
+  // Applying the Schur complement means a Krylov solve against it, and what
+  // that costs decides whether the preconditioner is worth having at all.
+  // Unpreconditioned it takes hundreds of iterations, every one of them an
+  // inner solve of the momentum operator, so it is cut short long before it
+  // converges and the outer solver is handed something inconsistent.
+  //
+  // Whoever set this preconditioner up may have left an approximation of the
+  // Schur complement on it. It is a matrix over the same equations, and
+  // whatever it is worth as an approximation it is worth more as something
+  // to precondition the solve against the real thing with.
+  Mat sA = nullptr, sP = nullptr;
+  MatType ptype = nullptr;
+  PCGetOperators(pc_init, &sA, &sP);
+  if (sP)
+    MatGetType(sP, &ptype);
+
+  // Only an assembled one is of any use: where the Schur complement is
+  // preconditioned with itself, what comes back is the operator again and
+  // there is nothing in it to factorize.
+  const bool preconditioned = sP && ptype &&
+                              strcmp(ptype, MATSHELL) &&
+                              strcmp(ptype, MATSCHURCOMPLEMENT);
+
+  // What is applied above is the negative of the Schur complement, that
+  // being the positive definite one of the two, while the approximation
+  // left here is of the Schur complement itself. Preconditioning the one
+  // with the other takes a change of sign, which an operator with a sign
+  // to speak of does not survive being without.
+  if (preconditioned)
+  {
+    MatDuplicate(sP, MAT_COPY_VALUES, &prec);
+    MatScale(prec, -1.0);
+  }
+
+  PCSetType(pc, preconditioned ? PCILU : PCNONE);
+  if (preconditioned)
+    // A constraint on the integrated pressure leaves its multiplier in these
+    // equations, and the row it sits in has nothing on the diagonal for a
+    // factorization to work with.
+    PCFactorSetShiftType(pc, MAT_SHIFT_NONZERO);
   int maxits = params.getIntValue("schur_maxits");
   if (maxits < 1)
     maxits = 1000;
@@ -73,7 +116,8 @@ PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
                        (void(*)(void))&PETScSchurPC::Apply_Schur);
   MatSetUp(outer_mat);
 
-  KSPSetOperators(outer_ksp, outer_mat, outer_mat);
+  KSPSetOperators(outer_ksp, outer_mat,
+                  preconditioned ? prec : outer_mat);
   KSPSetFromOptions(outer_ksp);
   KSPSetUp(outer_ksp);
   if (verbosity > 0)
@@ -90,6 +134,7 @@ PETScSchurPC::~PETScSchurPC ()
   KSPDestroy(&inner_ksp);
   KSPDestroy(&outer_ksp);
   MatDestroy(&outer_mat);
+  if (prec) MatDestroy(&prec);
   VecDestroy(&tmp);
 }
 

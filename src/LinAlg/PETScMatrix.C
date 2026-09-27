@@ -1045,10 +1045,18 @@ bool PETScMatrix::setParameters (bool setup)
 
     std::string schurPre = solParams.getStringValue("schur_precondition");
     if (schurPre.empty()) {
-      bool ownSchur = false;
-      for (size_t m = 0; m < solParams.getNoBlocks() && !ownSchur; m++)
-        ownSchur = solParams.getBlock(m).getStringValue("pc") == "schur";
-      schurPre = ownSchur ? "self" : "selfp";
+      bool ownSchur = false, approximate = false;
+      for (size_t m = 0; m < solParams.getNoBlocks(); m++)
+        if (solParams.getBlock(m).getStringValue("pc") == "schur")
+        {
+          ownSchur = true;
+
+          const std::string& ask =
+            solParams.getBlock(m).getStringValue("schur_precondition");
+          approximate = !ask.empty() && ask != "0" && ask != "false";
+        }
+
+      schurPre = ownSchur && !approximate ? "self" : "selfp";
     }
     if (schurPre == "selfp")
       PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELFP,nullptr);
