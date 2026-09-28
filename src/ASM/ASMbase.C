@@ -15,8 +15,10 @@
 #include "ASMenums.h"
 #include "ASM2D.h"
 #include "ASM3D.h"
+#include "DiagMatrix.h"
 #include "IFEM.h"
 #include "MPC.h"
+#include "SAM.h"
 #include "Tensor.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
@@ -2225,3 +2227,82 @@ IntMat ASMbase::colorElements (const IntMat& elmNodes, size_t nnod)
   return GraphColoring::groups(GraphColoring(elmNodes,nnod).color(alg));
 }
 
+
+bool ASMbase::validateGroups (const IntMat& groups, const SAM* sam,
+                              const IntVec& elms, int iTGroup) const
+{
+  size_t nErr = 0;
+  for (const IntVec& group : groups)
+  {
+    ++iTGroup;
+    size_t lErr = nErr;
+    DiagMatrix sysMat(sam->getNoEquations());
+    for (int iel : group)
+      if (IntVec meen; !sam->getElmEqns(meen,MLGE[elms.empty() ? iel : elms[iel]]))
+        ++nErr;
+      else if (!sysMat.assembleStruct(iTGroup,*sam,meen))
+        ++nErr;
+
+    for (size_t ieq = 1; ieq <= sysMat.dim(0); ieq++)
+      if (int count = sysMat(ieq); count > 1 && count/1000 != iTGroup)
+      {
+        std::pair<int,int> dof = sam->getNodeAndLocalDof(ieq,true);
+        if (this->getLMType(this->getNodeIndex(dof.first)) == 'G')
+          continue; // overwritten after the assembly
+
+        std::cerr <<" *** Threading group "<< iTGroup <<" has "<< count
+                  <<" contributors to equation "<< ieq;
+        std::cerr <<" (node "<< dof.first <<" local dof "<< dof.second <<")"
+                  << std::endl;
+        nErr += count;
+      }
+
+    if (lErr == nErr)
+      IFEM::cout <<"   * Thread group "<< iTGroup <<" (size "<< group.size()
+                 <<") is OK"<< std::endl;
+  }
+
+  return nErr == 0;
+}
+
+
+bool ASMbase::validateStripes (const IntMat& stripes, const SAM* sam,
+                               int iTGroup) const
+{
+  size_t nErr = 0;
+  IntVec owner(sam->getNoEquations(),0); // the stripe writing each equation
+  for (size_t t = 0; t < stripes.size(); t++)
+  {
+    DiagMatrix sysMat(sam->getNoEquations());
+    for (int iel : stripes[t])
+      if (IntVec meen; !sam->getElmEqns(meen,MLGE[iel]))
+        ++nErr;
+      else if (!sysMat.assembleStruct(1,*sam,meen))
+        ++nErr;
+
+    for (size_t ieq = 1; ieq <= sysMat.dim(0); ieq++)
+      if (sysMat(ieq) == 0.0)
+        continue;
+      else if (owner[ieq-1] == 0)
+        owner[ieq-1] = 1+t;
+      else
+      {
+        std::pair<int,int> dof = sam->getNodeAndLocalDof(ieq,true);
+        if (this->getLMType(this->getNodeIndex(dof.first)) == 'G')
+          continue; // overwritten after the assembly
+
+        std::cerr <<" *** Threads "<< owner[ieq-1] <<" and "<< 1+t
+                  <<" of threading group "<< iTGroup
+                  <<" both contribute to equation "<< ieq
+                  <<" (node "<< dof.first <<" local dof "<< dof.second <<")"
+                  << std::endl;
+        ++nErr;
+      }
+  }
+
+  if (nErr == 0)
+    IFEM::cout <<"   * Thread group "<< iTGroup <<" ("<< stripes.size()
+               <<" threads) is OK"<< std::endl;
+
+  return nErr == 0;
+}

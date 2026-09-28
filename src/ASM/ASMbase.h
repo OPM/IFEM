@@ -1092,6 +1092,28 @@ protected:
   //! The returned node indices are 0-based and less than MLGN.size().
   IntMat getElmWriteNodes(const IntVec& elms = {}) const;
 
+  //! \brief Validates element groups against the assembly data in %SAM.
+  //! \param[in] groups The element groups to validate
+  //! \param[in] sam Data for managing the assembly of the equation system
+  //! \param[in] elms 0-based connectivity index of the elements in the groups,
+  //! the group entries are the connectivity indices themselves if empty
+  //! \param[in] iTGroup Number of groups preceding these, for the outprint
+  //! \return \e false if two elements of a group contribute to one equation
+  //! \details Equations of global %Lagrange multipliers are not checked,
+  //! see getElmWriteNodes().
+  bool validateGroups(const IntMat& groups, const SAM* sam,
+                      const IntVec& elms = {}, int iTGroup = 0) const;
+  //! \brief Validates a group of element stripes against the data in %SAM.
+  //! \param[in] stripes The element stripes of the group, one per thread
+  //! \param[in] sam Data for managing the assembly of the equation system
+  //! \param[in] iTGroup 1-based index of the group, for the outprint
+  //! \return \e false if two stripes contribute to one equation
+  //! \details The elements of a stripe are assembled in sequence by one
+  //! thread, so only elements of different stripes may be in conflict.
+  //! Equations of global %Lagrange multipliers are not checked.
+  bool validateStripes(const IntMat& stripes, const SAM* sam,
+                       int iTGroup) const;
+
 public:
   //! \brief Colors elements such that no two elements of a color share a node.
   //! \param[in] elmNodes The nodes each element writes to

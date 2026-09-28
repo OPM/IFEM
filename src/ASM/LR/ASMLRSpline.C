@@ -413,6 +413,18 @@ Vec3 ASMLRSpline::getElementCenter (int iel) const
 }
 
 
+bool ASMLRSpline::validateThreadGroups (const SAM* sam) const
+{
+  IFEM::cout <<"\nValidating element groups for multi-threaded assembly."
+             << std::endl;
+
+  if (threadGroups[0].size() == 1)
+    return true; // Only one group (no multi-threading)
+
+  return this->validateGroups(threadGroups[0],sam,this->getThreadElms());
+}
+
+
 bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
                                      const std::vector<const LR::LRSpline*>& bases,
                                      const LR::LRSpline* threadBasis)

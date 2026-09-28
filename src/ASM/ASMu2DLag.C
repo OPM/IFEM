@@ -434,6 +434,16 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
 }
 
 
+bool ASMu2DLag::validateThreadGroups (const SAM* sam) const
+{
+  IFEM::cout <<"\nValidating element groups for multi-threaded assembly."
+             << std::endl;
+
+  // The groups are colors, whose elements are all assembled concurrently
+  return this->validateGroups(threadGroups[0],sam);
+}
+
+
 bool ASMu2DLag::tesselate (ElementBlock& grid, const int*) const
 {
   size_t i, nmnpc = 0, nelms = nel;

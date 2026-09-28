@@ -193,6 +193,9 @@ public:
   //! \brief Swaps between the first and second projection basis.
   virtual void swapProjectionBasis();
 
+  //! \brief Validates the threading groups based on the assembly data in %SAM.
+  virtual bool validateThreadGroups(const SAM* sam) const;
+
 protected:
   //! \brief Returns the connectivity index of each element in the groups.
   //! \details The groups of mixed patches hold elements of a thread basis,

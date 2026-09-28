@@ -118,6 +118,8 @@ public:
   //! \brief Generates element groups for multi-threading of interior integrals.
   virtual void generateThreadGroups(const Integrand&, bool silence,
                                     bool separateGroup1noded);
+  //! \brief Validates the threading groups based on the assembly data in %SAM.
+  virtual bool validateThreadGroups(const SAM* sam) const;
 
   // Post-processing methods
   // =======================
