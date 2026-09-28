@@ -193,6 +193,10 @@ protected:
   void generateThreadGroups(const Integrand& integrand, bool silence,
                             bool ignoreGlobalLM);
 
+protected:
+  //! \brief Returns the integration element of each thread basis element.
+  virtual IntVec getThreadElms() const;
+
 private:
   using SplinePtr = std::shared_ptr<LR::LRSplineVolume>; //!< Pointer to spline
 

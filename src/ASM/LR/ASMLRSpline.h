@@ -55,10 +55,11 @@ namespace LR //! Utilities for LR-splines.
   //! \brief Generates thread groups for a LR-spline mesh.
   //! \param[out] threadGroups The generated thread groups
   //! \param[in] lr The LR-spline to generate thread groups for
-  //! \param[in] addConstraints If given, additional constraint bases
-  void generateThreadGroups(ThreadGroups& threadGroups,
-                            const LRSpline* lr,
-                            const std::vector<LRSpline*>& addConstraints = {});
+  //! \details Two elements conflict if they share a basis function. This is
+  //! meant for bases without constraints, such as the projection bases.
+  //! Assembly into the equation system must be colored from the element
+  //! connectivity of the patch instead, see ASMbase::getElmWriteNodes().
+  void generateThreadGroups(ThreadGroups& threadGroups, const LRSpline* lr);
 
   //! \brief Createss the matrix of nodal point correspondance for a LR-spline.
   //! \param[in] basis LR-spline to get nodal point correspondance for
@@ -193,6 +194,12 @@ public:
   virtual void swapProjectionBasis();
 
 protected:
+  //! \brief Returns the connectivity index of each element in the groups.
+  //! \details The groups of mixed patches hold elements of a thread basis,
+  //! which assemble through the connectivity of the integration element they
+  //! lie in. An empty vector means the group entries are connectivity indices.
+  virtual IntVec getThreadElms() const { return {}; }
+
   //! \brief Refines the mesh adaptively.
   //! \param[in] prm Input data used to control the mesh refinement
   //! \param lrspline The spline to perform adaptation for

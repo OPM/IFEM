@@ -21,11 +21,14 @@
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "Functions.h"
+#include "GraphColoring.h"
+#include "Profiler.h"
 #include "Utilities.h"
 #include <algorithm>
 #include <functional>
 #include <iomanip>
 #include <numeric>
+#include <unordered_map>
 
 
 bool ASMbase::fixHomogeneousDirichlet = true;
@@ -45,6 +48,7 @@ IntVec ASMbase::Empty;
 namespace ASM
 {
   CachePolicy cachePolicy = PRE_CACHE;
+  ColoringAlgorithm coloring = FIRST_FIT;
   bool includeNeighbor_L2 = false;
 }
 
@@ -2151,3 +2155,73 @@ void ASMbase::convertNodeSets ()
   }
   IFEM::cout << std::endl;
 }
+
+
+IntMat ASMbase::getElmWriteNodes (const IntVec& elms) const
+{
+  // Collect the master nodes of the MPCs in this patch, for each slave node
+  std::unordered_map<int,IntVec> masters;
+  if (!mpcs.empty())
+  {
+    std::unordered_map<int,int> localNode;
+    for (size_t inod = 0; inod < MLGN.size(); inod++)
+      localNode.emplace(MLGN[inod],inod);
+
+    for (const MPC* mpc : mpcs)
+      if (auto slave = localNode.find(mpc->getSlave().node);
+          slave != localNode.end())
+        for (size_t i = 0; i < mpc->getNoMaster(); i++)
+          if (auto master = localNode.find(mpc->getMaster(i).node);
+              master != localNode.end() && master->second != slave->second)
+            masters[slave->second].push_back(master->second);
+  }
+
+  auto&& writeNodes = [this,&masters](const IntVec& mnpc)
+  {
+    IntVec nodes;
+    nodes.reserve(mnpc.size());
+    for (int node : mnpc)
+      if (node >= 0 && static_cast<size_t>(node) < MLGN.size() &&
+          this->getLMType(node+1) != 'G')
+      {
+        nodes.push_back(node);
+        if (auto slave = masters.find(node); slave != masters.end())
+          nodes.insert(nodes.end(),slave->second.begin(),slave->second.end());
+      }
+
+    return nodes;
+  };
+
+  IntMat result;
+  if (elms.empty())
+  {
+    result.reserve(nel);
+    for (size_t iel = 0; iel < nel && iel < MNPC.size(); iel++)
+      result.push_back(writeNodes(MNPC[iel]));
+  }
+  else
+  {
+    result.reserve(elms.size());
+    for (int iel : elms)
+      result.push_back(writeNodes(MNPC[iel]));
+  }
+
+  return result;
+}
+
+
+IntMat ASMbase::colorElements (const IntMat& elmNodes, size_t nnod)
+{
+  PROFILE2("Element coloring");
+
+  GraphColoring::Algorithm alg = GraphColoring::Algorithm::FirstFit;
+  switch (ASM::coloring) {
+  case ASM::FIRST_FIT:     alg = GraphColoring::Algorithm::FirstFit;     break;
+  case ASM::LARGEST_FIRST: alg = GraphColoring::Algorithm::LargestFirst; break;
+  case ASM::DSATUR:        alg = GraphColoring::Algorithm::DSatur;       break;
+  case ASM::RLF:           alg = GraphColoring::Algorithm::RLF;          break;
+  }
+
+  return GraphColoring::groups(GraphColoring(elmNodes,nnod).color(alg));
+}
+

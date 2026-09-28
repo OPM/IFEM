@@ -20,6 +20,7 @@
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
+#include <algorithm>
 #include <numeric>
 #include <sstream>
 #include <fstream>
@@ -383,87 +384,49 @@ void ASMu2DLag::generateThreadGroups (const Integrand&, bool silence,
 void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
                                                   bool separateGroup1noded)
 {
-  threadGroups[1].clear();
-  threadGroups[0].clear();
+  IntMat elmNodes = this->getElmWriteNodes();
 
-  // Status vector for the elements:
-  // -1 is unusable for current color, 0 is available,
-  // any other value is the assigned color
-  IntVec status(nel,0);
-
-  using IntSet = std::set<int>;
-  IntSet slaveNodes;
-  std::vector<IntSet> nodeConn(nnod); // node-to-element connectivity
-  std::vector<IntSet> nodeNode(nnod); // node-to-node connectivity via MPCs
-
-  for (const MPC* mpc : mpcs)
-    if (int slave = this->getNodeIndex(mpc->getSlave().node); slave > 0)
-      for (size_t i = 0; i < mpc->getNoMaster(); i++)
-        if (int mastr = this->getNodeIndex(mpc->getMaster(i).node); mastr > 0)
-        {
-          slaveNodes.insert(slave-1);
-          nodeNode[mastr-1].insert(slave-1);
-        }
-
-  size_t fixedElements = 0;
-  for (size_t iel = 0; iel < nel; iel++)
-    if (separateGroup1noded && MNPC[iel].size() == 1 &&
-        slaveNodes.find(MNPC[iel].front()) == slaveNodes.end())
-    {
-      // Separate color for all single-noded elements
-      status[iel] = 1; // whose element node is not a slave
-      if (++fixedElements == 1)
-        threadGroups[0].resize(1, { static_cast<int>(iel) });
-      else
-        threadGroups[0].front().push_back(iel);
-    }
-    else
-      for (int node : MNPC[iel])
-        nodeConn[node].insert(iel);
-
-  // Second pass - account for the MPC couplings
-  for (size_t master = 0; master < nodeNode.size(); master++)
-    if (!nodeNode[master].empty())
-    {
-      IntSet commonElms(nodeConn[master]);
-      for (int slave : nodeNode[master])
-        commonElms.insert(nodeConn[slave].begin(),nodeConn[slave].end());
-      nodeConn[master].insert(commonElms.begin(),commonElms.end());
-      for (int slave : nodeNode[master])
-        nodeConn[slave] = commonElms;
-    }
-
-#if SP_DEBUG > 1
-  std::cout <<"\nNode to element connectivity (incl. MPC couplings):";
-  for (size_t inod = 0; inod < nnod; inod++)
+  // Single-noded elements whose node is not a slave get a color of their own,
+  // and do not constrain the coloring of the other elements
+  IntVec oneNoded;
+  if (separateGroup1noded)
   {
-    std::cout <<"\n"<< inod <<" ->";
-    for (int e : nodeConn[inod])
-      std::cout <<" "<< e;
-  }
-  std::cout << std::endl;
-#endif
+    IntSet slaveNodes;
+    for (const MPC* mpc : mpcs)
+      if (int slave = this->getNodeIndex(mpc->getSlave().node); slave > 0)
+        for (size_t i = 0; i < mpc->getNoMaster(); i++)
+          if (this->getNodeIndex(mpc->getMaster(i).node) > 0)
+            slaveNodes.insert(slave-1);
 
-  for (size_t nColors = fixedElements > 0; fixedElements < nel; ++nColors)
-  {
-    // Reset un-assigned element tags
-    std::for_each(status.begin(), status.end(),
-                  [](int& s) { if (s < 0) s = 0; });
-
-    // Look for available elements
-    IntVec& thisColor = threadGroups[0].emplace_back();
-    for (size_t i = 0; i < nel; ++i)
-      if (status[i] == 0)
+    for (size_t iel = 0; iel < nel; iel++)
+      if (MNPC[iel].size() == 1 &&
+          slaveNodes.find(MNPC[iel].front()) == slaveNodes.end())
       {
-        status[i] = nColors + 1;
-        thisColor.push_back(i);
-        ++fixedElements;
-
-        for (int node : MNPC[i])
-          for (int j : nodeConn[node])
-            if (status[j] == 0) // if not assigned a color yet
-              status[j] = -1;   // set as unavailable (with current color)
+        oneNoded.push_back(iel);
+        elmNodes[iel].clear();
       }
+  }
+
+  threadGroups[0] = colorElements(elmNodes,MLGN.size());
+  threadGroups[1].clear();
+
+  if (!oneNoded.empty())
+  {
+    std::vector<bool> isOneNoded(nel,false);
+    for (int iel : oneNoded)
+      isOneNoded[iel] = true;
+
+    IntMat& groups = threadGroups[0];
+    for (IntVec& group : groups)
+      group.erase(std::remove_if(group.begin(),group.end(),
+                                 [&isOneNoded](int iel)
+                                 { return isOneNoded[iel]; }),
+                  group.end());
+    groups.erase(std::remove_if(groups.begin(),groups.end(),
+                                [](const IntVec& group)
+                                { return group.empty(); }),
+                 groups.end());
+    groups.insert(groups.begin(),oneNoded);
   }
 
   if (!silence)

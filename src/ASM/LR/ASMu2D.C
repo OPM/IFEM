@@ -43,6 +43,9 @@
 #include <numeric>
 #include <utility>
 #include <exception>
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
@@ -2681,7 +2684,17 @@ bool ASMu2D::transferCntrlPtVars (const LR::LRSpline* old_basis,
 void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
                                    bool ignoreGlobalLM)
 {
-  LR::generateThreadGroups(threadGroups, this->getBasis(1));
+#ifdef USE_OPENMP
+  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
+  {
+    threadGroups[0] = colorElements(this->getElmWriteNodes(),
+                                    MLGN.size());
+    threadGroups[1].clear();
+  }
+  else
+#endif
+    threadGroups.oneGroup(nel); // No threading, all elements in one group
+
   LR::generateThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
   if (this->getBasis(ASM::PROJECTION_BASIS_2))
     LR::generateThreadGroups(proj2ThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));

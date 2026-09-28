@@ -36,6 +36,9 @@
 #include <fstream>
 #include <numeric>
 #include <utility>
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 ASMu2Dmx::ASMu2Dmx (unsigned char n_s, const CharVec& n_f)
@@ -1223,6 +1226,23 @@ Vec3 ASMu2Dmx::getCoord (size_t inod) const
 }
 
 
+IntVec ASMu2Dmx::getThreadElms () const
+{
+  // The assembly visits the elements of the thread basis, and writes through
+  // the connectivity of the integration element containing each of them
+  IntVec geoEls;
+  geoEls.reserve(threadBasis->nElements());
+  for (const LR::Element* el : threadBasis->getAllElements())
+  {
+    IntVec els;
+    this->getElementsAt(el->midpoint(),els);
+    geoEls.push_back(els[itgBasis-1]-1);
+  }
+
+  return geoEls;
+}
+
+
 void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
                                      bool ignoreGlobalLM)
 {
@@ -1236,21 +1256,17 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
         p1 = threadBasis->order(0);
       }
 
-  std::vector<LR::LRSpline*> secConstraint;
-  if (ASMmxBase::Type == ASMmxBase::SUBGRID ||
-      ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1) {
-    secConstraint = {this->getBasis(2)};
-    if (ASMmxBase::includeExtra)
-      secConstraint.push_back(this->getBasis(3));
-  } if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
-    secConstraint = {this->getBasis(1)};
-  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE) {
-    secConstraint = {this->getBasis(1), this->getBasis(2)};
-    if (ASMmxBase::includeExtra)
-      secConstraint.push_back(this->getBasis(4));
+#ifdef USE_OPENMP
+  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
+  {
+    threadGroups[0] = colorElements(this->getElmWriteNodes(this->getThreadElms()),
+                                    MLGN.size());
+    threadGroups[1].clear();
   }
+  else
+#endif
+    threadGroups.oneGroup(threadBasis->nElements());
 
-  LR::generateThreadGroups(threadGroups,threadBasis,secConstraint);
   LR::generateThreadGroups(projThreadGroups,projB.get());
   if (projB2)
     LR::generateThreadGroups(proj2ThreadGroups,projB2.get());
