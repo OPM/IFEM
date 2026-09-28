@@ -50,7 +50,7 @@ IntVec ASMbase::Empty;
 namespace ASM
 {
   CachePolicy cachePolicy = PRE_CACHE;
-  ColoringAlgorithm coloring = FIRST_FIT;
+  ColoringAlgorithm coloring = LARGEST_FIRST;
   bool includeNeighbor_L2 = false;
 }
 

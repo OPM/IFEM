@@ -23,7 +23,11 @@ namespace
 class ASMu2DLagTest : public ASMu2DLag
 {
 public:
-  ASMu2DLagTest() : ASMu2DLag(2,2,'x') { ASMbase::resetNumbering(); }
+  ASMu2DLagTest() : ASMu2DLag(2,2,'x')
+  {
+    ASMbase::resetNumbering();
+    ASM::coloring = ASM::FIRST_FIT; // the reference groups are greedy ones
+  }
 
   void genThreadGroups(bool separateGroup1noded = false)
   {

@@ -506,8 +506,8 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
   }
 
   switch (ASM::coloring) {
-  case ASM::LARGEST_FIRST:
-    os <<"\nElements are colored largest degree first"; break;
+  case ASM::FIRST_FIT:
+    os <<"\nElements are colored in element order"; break;
   case ASM::DSATUR:
     os <<"\nElements are colored by the DSatur algorithm"; break;
   case ASM::RLF:
