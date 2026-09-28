@@ -260,7 +260,7 @@ std::pair<int,int> SPRMatrix::SAM64::getNodeAndLocalDof (int ieq, bool) const
   const Int_ nnod = mpar[0];
   const Int_ ndof = mpar[2];
   if (Int_* idof = std::find(meqn,meqn+ndof,ieq); idof != meqn+ndof)
-    ieq = std::distance(meqn,idof);
+    ieq = 1 + std::distance(meqn,idof);
   else
     return { 0, 0 };
 
