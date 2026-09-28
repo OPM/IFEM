@@ -103,7 +103,7 @@ std::pair<int,int> SAM::getNodeAndLocalDof (int idof, bool eqno) const
   if (eqno)
   {
     if (int* eq = std::find(meqn,meqn+ndof,idof); eq != meqn+ndof)
-      idof = std::distance(meqn,eq);
+      idof = 1 + std::distance(meqn,eq);
     else
       return { 0, 0 };
   }

@@ -197,3 +197,25 @@ TEST_CASE("TestSAM.MixedBasisDirichlet2P")
   REQUIRE(sam->getEquation(20, 1) == eq++);
   REQUIRE(sam->getEquation(21, 1) == eq++);
 }
+
+
+TEST_CASE("TestSAM.NodeAndLocalDof")
+{
+  for (unsigned char nf : {1, 2})
+  {
+    SIM2D sim(nf);
+    sim.read("src/LinAlg/Test/refdata/sam_2D_dir_1P.xinp");
+    sim.preprocess();
+
+    const SAM* sam = sim.getSAM();
+    int nEq = 0;
+    for (int inod = 1; inod <= sam->getNoNodes(); inod++)
+      for (int ldof = 1; ldof <= nf; ldof++)
+        if (int ieq = sam->getEquation(inod,ldof); ieq > 0)
+        {
+          ++nEq;
+          CHECK(sam->getNodeAndLocalDof(ieq,true) == std::make_pair(inod,ldof));
+        }
+    REQUIRE(nEq == sam->getNoEquations());
+  }
+}
