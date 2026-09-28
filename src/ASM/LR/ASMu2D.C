@@ -3245,16 +3245,15 @@ void ASMu2D::BasisFunctionCache::calculateAll ()
   // Evaluate basis function values and derivatives at all integration points.
   // We do this before the integration point loop to exploit multi-threading
   // in the integrand evaluations, which may be the computational bottleneck.
-  size_t iel, jp, rp;
-  for (iel = jp = rp = 0; iel < patch.nel; iel++)
+  // Each point has a slot of its own, so the elements are done in parallel.
+  const size_t nMain = mainQ->ng[0]*mainQ->ng[1];
+  const size_t nRed = reducedQ->xg[0] ? reducedQ->ng[0]*reducedQ->ng[1] : 0;
+#pragma omp parallel for schedule(static)
+  for (size_t iel = 0; iel < patch.nel; iel++)
   {
-    for (int j = 0; j < mainQ->ng[1]; j++)
-      for (int i = 0; i < mainQ->ng[0]; i++, jp++)
-        values[jp] = this->calculatePt(iel,j*mainQ->ng[0]+i,false);
-
-    if (reducedQ->xg[0])
-      for (int j = 0; j < reducedQ->ng[1]; j++)
-        for (int i = 0; i < reducedQ->ng[0]; i++, rp++)
-          valuesRed[rp] = this->calculatePt(iel,j*reducedQ->ng[0]+i,true);
+    for (size_t gp = 0; gp < nMain; gp++)
+      values[iel*nMain+gp] = this->calculatePt(iel,gp,false);
+    for (size_t gp = 0; gp < nRed; gp++)
+      valuesRed[iel*nRed+gp] = this->calculatePt(iel,gp,true);
   }
 }
