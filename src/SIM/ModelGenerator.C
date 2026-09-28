@@ -188,12 +188,15 @@ bool DefaultGeometry2D::createTopologySets (SIMinput& sim) const
 
   std::string vert = "Vertex1";
   std::string edge = "Edge1";
+  std::string boun = "BoundaryX";
   for (size_t i = 1; i <= 4; ++i, ++vert.back(), ++edge.back())
   {
     sim.topology(vert).insert(TopItem(1,i,0));
     sim.topology(edge).insert(TopItem(1,i,1));
+    sim.topology(boun).insert(TopItem(1,i,1));
     sim.topology("Corners").insert(TopItem(1,i,0));
     sim.topology("Boundary").insert(TopItem(1,i,1));
+    if (i%2 == 0) ++boun.back();
   }
 
   return true;
@@ -276,10 +279,13 @@ bool DefaultGeometry3D::createTopologySets (SIMinput& sim) const
     return false;
 
   std::string face = "Face1";
+  std::string boun = "BoundaryX";
   for (size_t i = 1; i <= 6; ++i, ++face.back())
   {
     sim.topology(face).insert(TopItem(1,i,2));
+    sim.topology(boun).insert(TopItem(1,i,2));
     sim.topology("Boundary").insert(TopItem(1,i,2));
+    if (i%2 == 0) ++boun.back();
   }
 
   std::string edge = "Edge1";

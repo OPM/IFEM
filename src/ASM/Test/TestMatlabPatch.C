@@ -38,7 +38,6 @@ public:
     DefaultGeometry1D(doc.RootElement()).createTopologySets(*this);
     REQUIRE(myEntitys.size() == 4);
   }
-  virtual ~SIM1D_default() {}
 };
 
 
@@ -58,9 +57,8 @@ public:
     tinyxml2::XMLDocument doc;
     doc.Parse("<geometry sets='true'/>");
     DefaultGeometry2D(doc.RootElement()).createTopologySets(*this);
-    REQUIRE(myEntitys.size() == 10);
+    REQUIRE(myEntitys.size() == 12);
   }
-  virtual ~SIM2D_default() {}
 };
 
 
@@ -77,7 +75,6 @@ public:
     REQUIRE(this->loadXML(xml.c_str()));
     REQUIRE(this->createFEMmodel());
   }
-  virtual ~SIM1D_matlab() {}
 };
 
 
@@ -94,7 +91,6 @@ public:
     REQUIRE(this->loadXML(xml.c_str()));
     REQUIRE(this->createFEMmodel());
   }
-  virtual ~SIM2D_matlab() {}
 };
 
 
@@ -108,8 +104,8 @@ TEST_CASE("TestMatlabPatch.IO")
 
   // Read the matlab file into a new SIM and compare the models
   SIM2D_matlab sim2("/tmp/testGrid2.m");
-  REQUIRE(sim1.getNoNodes() == sim2.getNoNodes());
-  REQUIRE(sim1.getNoElms() == sim2.getNoElms());
+  CHECK(sim1.getNoNodes() == sim2.getNoNodes());
+  CHECK(sim1.getNoElms() == sim2.getNoElms());
   ASMbase* pch1 = sim1.getPatch(1);
   ASMbase* pch2 = sim2.getPatch(1);
   REQUIRE(pch1 != nullptr);
@@ -117,24 +113,24 @@ TEST_CASE("TestMatlabPatch.IO")
   int idx1 = pch2->getNodeSetIdx("Boundary");
   int idx2 = pch2->getNodeSetIdx("Edge2");
   int idx3 = pch2->parseNodeSet("ACorner","1");
-  REQUIRE(idx1 == 1);
-  REQUIRE(idx2 == 2);
-  REQUIRE(idx3 == 3);
+  CHECK(idx1 == 1);
+  CHECK(idx2 == 2);
+  CHECK(idx3 == 3);
 
   IntVec b1, b2 = pch2->getNodeSet(idx1);
   for (int edge = 1; edge <= 4; edge++)
     pch1->getBoundaryNodes(edge,b1);
   std::set<int> b1set;
   for (int n : b1) b1set.insert(n);
-  REQUIRE(b1set.size() == b2.size());
-  REQUIRE(IntVec(b1set.begin(),b1set.end()) == b2);
+  CHECK(b1set.size() == b2.size());
+  CHECK(IntVec(b1set.begin(),b1set.end()) == b2);
   IntVec e1, e2 = pch2->getNodeSet(idx2);
   pch1->getBoundaryNodes(2,e1);
-  REQUIRE(e1.size() == e2.size());
-  REQUIRE(e1 == e2);
+  CHECK(e1.size() == e2.size());
+  CHECK(e1 == e2);
   IntVec corner = pch2->getNodeSet(idx3);
   REQUIRE(corner.size() == 1);
-  REQUIRE(corner.front() == 1);
+  CHECK(corner.front() == 1);
 
   // Create a 6-element 1D mesh and write it to a matlab file
   SIM1D_default sim3(5);
@@ -144,16 +140,16 @@ TEST_CASE("TestMatlabPatch.IO")
 
   // Read the matlab file into a new SIM and compare the models
   SIM1D_matlab sim4("/tmp/testGrid1.m");
-  REQUIRE(sim3.getNoNodes() == sim3.getNoNodes());
-  REQUIRE(sim3.getNoElms() == sim3.getNoElms());
+  CHECK(sim3.getNoNodes() == sim4.getNoNodes());
+  CHECK(sim3.getNoElms() == sim4.getNoElms());
   pch1 = sim3.getPatch(1);
   pch2 = sim4.getPatch(1);
   REQUIRE(pch1 != nullptr);
   REQUIRE(pch2 != nullptr);
   idx1 = pch2->getNodeSetIdx("Boundary");
   idx2 = pch2->getNodeSetIdx("Vertex2");
-  REQUIRE(idx1 == 1);
-  REQUIRE(idx2 == 2);
+  CHECK(idx1 == 1);
+  CHECK(idx2 == 2);
 
   b1.clear();
   b2 = pch2->getNodeSet(idx1);
@@ -161,10 +157,10 @@ TEST_CASE("TestMatlabPatch.IO")
     pch1->getBoundaryNodes(vert,b1);
   b1set.clear();
   for (int n : b1) b1set.insert(n);
-  REQUIRE(b1set.size() == b2.size());
-  REQUIRE(IntVec(b1set.begin(),b1set.end()) == b2);
+  CHECK(b1set.size() == b2.size());
+  CHECK(IntVec(b1set.begin(),b1set.end()) == b2);
   IntVec v1, v2 = pch2->getNodeSet(idx2);
   pch1->getBoundaryNodes(2,v1);
-  REQUIRE(v1.size() == v2.size());
-  REQUIRE(v1 == v2);
+  CHECK(v1.size() == v2.size());
+  CHECK(v1 == v2);
 }

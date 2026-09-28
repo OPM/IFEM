@@ -37,7 +37,7 @@ public:
 struct DefaultGeomTest {
   std::string name;
   std::string xml;
-  int dim;
+  int dim = 0;
   std::string g2;
   std::string sets;
 };
@@ -46,7 +46,7 @@ struct DefaultGeomTest {
 auto&& DoTest = [](const DefaultGeomTest& ref, const std::string& gen,
                    const TopologySet& sets)
 {
-  REQUIRE(gen.c_str() == ref.g2);
+  CHECK(gen.c_str() == ref.g2);
 
   if (!ref.sets.empty()) {
     std::string gsets;
@@ -59,7 +59,7 @@ auto&& DoTest = [](const DefaultGeomTest& ref, const std::string& gen,
       }
       gsets += "\n";
     }
-    REQUIRE(gsets == ref.sets);
+    CHECK(gsets == ref.sets);
   }
 };
 
@@ -175,6 +175,8 @@ TEST_CASE("TestModelGenerator.Generate2D")
                     "0 1\n"
                     "1 1\n",
                     "Boundary: 1 1 1 1 2 1 1 3 1 1 4 1 \n"
+                    "BoundaryX: 1 1 1 1 2 1 \n"
+                    "BoundaryY: 1 3 1 1 4 1 \n"
                     "Corners: 1 1 0 1 2 0 1 3 0 1 4 0 \n"
                     "Edge1: 1 1 1 \n"
                     "Edge2: 1 2 1 \n"
@@ -198,6 +200,8 @@ TEST_CASE("TestModelGenerator.Generate2D")
                     "0 1\n"
                     "1 1\n",
                     "Boundary: 1 1 1 1 2 1 1 3 1 1 4 1 \n"
+                    "BoundaryX: 1 1 1 1 2 1 \n"
+                    "BoundaryY: 1 3 1 1 4 1 \n"
                     "Corners: 1 1 0 1 2 0 1 3 0 1 4 0 \n"
                     "Edge1: 1 1 1 \n"
                     "Edge2: 1 2 1 \n"
@@ -221,6 +225,8 @@ TEST_CASE("TestModelGenerator.Generate2D")
                     "0 1\n"
                     "1 1\n",
                     "Boundary: 1 1 1 1 2 1 1 3 1 1 4 1 \n"
+                    "BoundaryX: 1 1 1 1 2 1 \n"
+                    "BoundaryY: 1 3 1 1 4 1 \n"
                     "Corners: 1 1 0 1 2 0 1 3 0 1 4 0 \n"
                     "Edge1: 1 1 1 \n"
                     "Edge2: 1 2 1 \n"
@@ -344,6 +350,9 @@ TEST_CASE("TestModelGenerator.Generate3D")
                     "0 1 1 \n"
                     "1 1 1 \n",
                     "Boundary: 1 1 2 1 2 2 1 3 2 1 4 2 1 5 2 1 6 2 \n"
+                    "BoundaryX: 1 1 2 1 2 2 \n"
+                    "BoundaryY: 1 3 2 1 4 2 \n"
+                    "BoundaryZ: 1 5 2 1 6 2 \n"
                     "Corners: 1 1 0 1 2 0 1 3 0 1 4 0 1 5 0 1 6 0 1 7 0 1 8 0 \n"
                     "Edge1: 1 1 1 \n"
                     "Edge10: 1 10 1 \n"
@@ -392,6 +401,9 @@ TEST_CASE("TestModelGenerator.Generate3D")
                     "0 1 1 \n"
                     "1 1 1 \n",
                     "Boundary: 1 1 2 1 2 2 1 3 2 1 4 2 1 5 2 1 6 2 \n"
+                    "BoundaryX: 1 1 2 1 2 2 \n"
+                    "BoundaryY: 1 3 2 1 4 2 \n"
+                    "BoundaryZ: 1 5 2 1 6 2 \n"
                     "Corners: 1 1 0 1 2 0 1 3 0 1 4 0 1 5 0 1 6 0 1 7 0 1 8 0 \n"
                     "Edge1: 1 1 1 \n"
                     "Edge10: 1 10 1 \n"
@@ -440,6 +452,9 @@ TEST_CASE("TestModelGenerator.Generate3D")
                     "0 1 1 \n"
                     "1 1 1 \n",
                     "Boundary: 1 1 2 1 2 2 1 3 2 1 4 2 1 5 2 1 6 2 \n"
+                    "BoundaryX: 1 1 2 1 2 2 \n"
+                    "BoundaryY: 1 3 2 1 4 2 \n"
+                    "BoundaryZ: 1 5 2 1 6 2 \n"
                     "Corners: 1 1 0 1 2 0 1 3 0 1 4 0 1 5 0 1 6 0 1 7 0 1 8 0 \n"
                     "Edge1: 1 1 1 \n"
                     "Edge10: 1 10 1 \n"
@@ -488,6 +503,9 @@ TEST_CASE("TestModelGenerator.Generate3D")
                     "0 1 1 \n"
                     "1 1 1 \n",
                     "Boundary: 1 1 2 1 2 2 1 3 2 1 4 2 1 5 2 1 6 2 \n"
+                    "BoundaryX: 1 1 2 1 2 2 \n"
+                    "BoundaryY: 1 3 2 1 4 2 \n"
+                    "BoundaryZ: 1 5 2 1 6 2 \n"
                     "Corners: 1 1 0 1 2 0 1 3 0 1 4 0 1 5 0 1 6 0 1 7 0 1 8 0 \n"
                     "Edge1: 1 1 1 \n"
                     "Edge10: 1 10 1 \n"
