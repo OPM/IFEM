@@ -2684,7 +2684,7 @@ void ASMu2D::generateThreadGroups (const Integrand& integrand, bool silence,
   LR::generateThreadGroups(threadGroups, this->getBasis(1));
   LR::generateThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
   if (this->getBasis(ASM::PROJECTION_BASIS_2))
-    LR::generateThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
+    LR::generateThreadGroups(proj2ThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
   if (silence || threadGroups[0].size() < 2) return;
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
