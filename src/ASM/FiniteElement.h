@@ -77,25 +77,28 @@ public:
   Matrix     G;    //!< Covariant basis / Matrix used for stabilized methods
   Matrix     H;    //!< Hessian
 
-  //! \brief Matrix holding Piola-mapped basis function values.
-  //! \details The column index \a i is cumulative, e.g., if
-  //! N1 is the number of functions in basis 1 and
-  //! N2 is the number of functions in basis 2, then
-  //! 1 &le; \a i &le; N1 for the first basis and
-  //! N1+1 &le; \a i &le; N1+N2 for the second basis.
-  //! This matrix is therefore of dimension 2&times;(N1+N2).
-  Matrix P;
+  //! \brief Piola-mapped basis function values and derivatives.
+  struct PiolaBasis
+  {
+    //! \brief Matrix holding the Piola-mapped basis function values.
+    //! \details The column index \a i is cumulative, e.g., if
+    //! N1 is the number of functions in basis 1 and
+    //! N2 is the number of functions in basis 2, then
+    //! 1 &le; \a i &le; N1 for the first basis and
+    //! N1+1 &le; \a i &le; N1+N2 for the second basis.
+    //! This matrix is therefore of dimension 2&times;(N1+N2).
+    Matrix N;
 
-  //! \brief Matrix holding Piola-mapped basis derivatives.
-  //! \details The column index \a i is cumulative, e.g., if
-  //! N1 is the number of functions in basis 1 and
-  //! N2 is the number of functions in basis 2, then
-  //! 1 &le; \a i &le; N1 for the first basis and
-  //! N1+1 &le; \a i &le; N1+N2 for the second basis.
-  //! This matrix is therefore of dimension 4&times;(N1+N2),
-  //! where the two first rows are the X-derivatives
-  //! and the two last rows are the Y-derivatives.
-  Matrix dPdX;
+    //! \brief Matrix holding the Piola-mapped basis function derivatives.
+    //! \details The column index is cumulative as for \a N.
+    //! In 2D the matrix is of dimension 4&times;(N1+N2),
+    //! where the two first rows are the X-derivatives
+    //! and the two last rows are the Y-derivatives.
+    Matrix dNdX;
+  };
+
+  PiolaBasis P_contra; //!< Contravariant (div-conforming) Piola mapping
+  PiolaBasis P_co;     //!< Covariant (curl-conforming) Piola mapping
 
   // Element quantities
   short int           p;    //!< Polynomial order of the basis in u-direction
@@ -174,23 +177,37 @@ public:
   //! \param[in] Ji Inverse jacobian of the geometry mapping
   //! \param[in] Xnod Matrix of element nodal coordinates
   //! \param[in] bfs Derivatives of basis functions
+  //! \param[in] contravariant If \e true, calculate the contravariant mapping
+  //! \param[in] covariant If \e true, calculate the covariant mapping
   void piolaMapping(const Matrix& Ji,
-                    const Matrix& Xnod, const BasisValuesPtrs& bfs);
+                    const Matrix& Xnod, const BasisValuesPtrs& bfs,
+                    bool contravariant = true, bool covariant = false);
 
-  //! \brief Calculates the Piola basis functions.
+  //! \brief Calculates the contravariant Piola basis functions.
   //! \param[in] detJ Determinant of Jacobian of the geometry mapping
   //! \param[in] J The Jacobian of the geometry mapping
   void piolaBasis(const double detJ, const Matrix& J);
 
+  //! \brief Calculates the covariant Piola basis functions.
+  //! \param[in] Ji Inverse jacobian of the geometry mapping
+  void covariantPiolaBasis(const Matrix& Ji);
+
 protected:
-  //! \brief Calculates the Piola derivatives.
+  //! \brief Calculates the contravariant Piola derivatives.
   //! \param[in] detJ Determinant of Jacobian of the geometry mapping
   //! \param[in] J Jacobian of the geometry mapping
   //! \param[in] Ji Inverse jacobian of the geometry mapping
-  //! \param[in] Xnod Matrix of element nodal coordinates
+  //! \param[in] H Hessian of the geometry mapping
   //! \param[in] bfs Derivatives of basis functions
   void piolaGradient(const double detJ, const Matrix& J, const Matrix& Ji,
-                     const Matrix& Xnod, const BasisValuesPtrs& bfs);
+                     const Matrix3D& H, const BasisValuesPtrs& bfs);
+
+  //! \brief Calculates the covariant Piola derivatives.
+  //! \param[in] Ji Inverse jacobian of the geometry mapping
+  //! \param[in] H Hessian of the geometry mapping
+  //! \param[in] bfs Derivatives of basis functions
+  void covariantPiolaGradient(const Matrix& Ji, const Matrix3D& H,
+                              const BasisValuesPtrs& bfs);
 
   //! \brief Returns a reference to the basis function derivatives.
   Matrix& grad(char b) override { return b < 2 ? dNdX : dMdX[b-2]; }
