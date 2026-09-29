@@ -136,6 +136,17 @@ std::vector<std::vector<int>> ThreadGroups::tiles (const BoolVec& el1,
 }
 
 
+size_t ThreadGroups::noElms () const
+{
+  size_t n = 0;
+  for (const IntMat& color : tg)
+    for (const IntVec& task : color)
+      n += task.size();
+
+  return n;
+}
+
+
 void ThreadGroups::applyMap (const IntVec& map)
 {
   for (IntMat& color : tg)

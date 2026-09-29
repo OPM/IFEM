@@ -183,6 +183,7 @@ void ASMu3D::clear (bool retainGeometry)
   this->ASMbase::clear(retainGeometry);
   this->dirich.clear();
   projThreadGroups = ThreadGroups();
+  threadGroupsFace.clear();
 
   myCache.clear();
 }
@@ -1201,161 +1202,188 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 
   // === Assembly loop over all elements on the patch face =====================
 
-  bool ok = true;
-  for (LR::Element* el : edgeElms)
+  // Use the element groups of the face, unless they are stale
+  std::map<char,ThreadGroups>::const_iterator tit;
+  tit = threadGroupsFace.find(lIndex%10);
+  const bool useGroups = !glInt.threadSafe() && tit != threadGroupsFace.end()
+                         && tit->second.noElms() == edgeElms.size();
+  // The position of each element on the face, for the integration points
+  IntVec elms, position(lrspline->nElements(),-1);
+  elms.reserve(edgeElms.size());
+  for (const LR::Element* el : edgeElms)
   {
-    int iEl = el->getId();
+    position[el->getId()] = elms.size();
+    elms.push_back(el->getId());
+  }
 
-    FiniteElement fe;
-    fe.idx = firstEl + iEl;
-    fe.iel = MLGE[iEl];
-    fe.iGP = firstp; // Global integration point counter
-    firstp += nGP*nGP; // Update before skipping due to debug or partitioning
+  ThreadGroups oneGroup;
+  if (glInt.threadSafe())
+    oneGroup.concurrent(elms.size(),elms);
+  else if (!useGroups)
+    oneGroup.sequential(elms.size(),elms);
+  const ThreadGroups& groups = useGroups ? tit->second : oneGroup;
+
+  bool ok = true;
+  for (size_t g = 0; g < groups.size() && ok; g++)
+#pragma omp parallel for schedule(static)
+    for (size_t t = 0; t < groups[g].size(); t++)
+      for (int iEl : groups[g][t])
+      {
+        if (!ok)
+          break;
+
+        const int k = position[iEl];
+        const LR::Element* el = edgeElms[k];
+
+        FiniteElement fe;
+        fe.idx = firstEl + iEl;
+        fe.iel = MLGE[iEl];
+        fe.iGP = firstp + k*nGP*nGP; // Global integration point counter
 
 #ifdef SP_DEBUG
-    if (dbgElm < 0 && iEl+1 != -dbgElm)
-      continue; // Skipping all elements, except for -dbgElm
+        if (dbgElm < 0 && iEl+1 != -dbgElm)
+          continue; // Skipping all elements, except for -dbgElm
 #endif
-    if (!this->isElementInPartition(iEl))
-      continue;
+        if (!this->isElementInPartition(iEl))
+          continue;
 
-    fe.p = lrspline->order(0) - 1;
-    fe.q = lrspline->order(1) - 1;
-    fe.r = lrspline->order(2) - 1;
+        fe.p = lrspline->order(0) - 1;
+        fe.q = lrspline->order(1) - 1;
+        fe.r = lrspline->order(2) - 1;
 
-    // Compute parameter values of the Gauss points over the whole element
-    std::array<Vector,3> gpar;
-    for (int d = 0; d < 3; d++)
-      if (-1-d == faceDir)
-      {
-        gpar[d].resize(1);
-        gpar[d].fill(lrspline->startparam(d));
-      }
-      else if (1+d == faceDir)
-      {
-        gpar[d].resize(1);
-        gpar[d].fill(lrspline->endparam(d));
-      }
-      else
-        this->getGaussPointParameters(gpar[d],d,nGP,iEl+1,xg);
+        // Compute parameter values of the Gauss points over the whole element
+        std::array<Vector,3> gpar;
+        for (int d = 0; d < 3; d++)
+          if (-1-d == faceDir)
+          {
+            gpar[d].resize(1);
+            gpar[d].fill(lrspline->startparam(d));
+          }
+          else if (1+d == faceDir)
+          {
+            gpar[d].resize(1);
+            gpar[d].fill(lrspline->endparam(d));
+          }
+          else
+            this->getGaussPointParameters(gpar[d],d,nGP,iEl+1,xg);
 
-    fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
-    fe.u  = gpar[0](1);
-    fe.v  = gpar[1](1);
-    fe.w  = gpar[2](1);
+        fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
+        fe.u  = gpar[0](1);
+        fe.v  = gpar[1](1);
+        fe.w  = gpar[2](1);
 
-    Matrix dNdu, Xnod, Jac;
-    double param[3] = { fe.u, fe.v, fe.w };
-    Vec4   X(param,time.t);
-    Vec3   normal;
-    double dXidu[3];
+        Matrix dNdu, Xnod, Jac;
+        double param[3] = { fe.u, fe.v, fe.w };
+        Vec4   X(param,time.t);
+        Vec3   normal;
+        double dXidu[3];
 
-    // Get element face area in the parameter space
-    double dA = 0.25*this->getParametricArea(iEl+1,abs(faceDir));
-    if (dA < 0.0) // topology error (probably logic error)
-    {
-      ok = false;
-      break;
-    }
-
-    // Set up control point coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iEl+1))
-    {
-      ok = false;
-      break;
-    }
-
-    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      fe.h = this->getElementCorners(iEl+1,fe.XC);
-
-    if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-      // Element size in parametric space
-      for (int i = 0; i < 3; i++)
-        dXidu[i] = el->getParmax(i) - el->getParmin(i);
-
-    // Initialize element quantities
-    size_t nen = el->support().size();
-    LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
-    if (!integrand.initElementBou(MNPC[iEl],*A))
-    {
-      A->destruct();
-      ok = false;
-      break;
-    }
-
-    // --- Integration loop over all Gauss points in each direction ------------
-
-    for (int j = 0; j < nGP; j++)
-      for (int i = 0; i < nGP; i++, fe.iGP++)
-      {
-        // Local element coordinates and parameter values
-        // of current integration point
-        int k1, k2, k3;
-        switch (abs(faceDir))
+        // Get element face area in the parameter space
+        double dA = 0.25*this->getParametricArea(iEl+1,abs(faceDir));
+        if (dA < 0.0) // topology error (probably logic error)
         {
-          case 1: k2 = i; k3 = j; k1 = 0; break;
-          case 2: k1 = i; k3 = j; k2 = 0; break;
-          case 3: k1 = i; k2 = j; k3 = 0; break;
-          default: k1 = k2 = k3 = 0;
-        }
-        if (gpar[0].size() > 1)
-        {
-          fe.xi = xg[k1];
-          fe.u = param[0] = gpar[0](k1+1);
-        }
-        if (gpar[1].size() > 1)
-        {
-          fe.eta = xg[k2];
-          fe.v = param[1] = gpar[1](k2+1);
-        }
-        if (gpar[2].size() > 1)
-        {
-          fe.zeta = xg[k3];
-          fe.w = param[2] = gpar[2](k3+1);
+          ok = false;
+          break;
         }
 
-        // Fetch basis function derivatives at current integration point
-        this->evaluateBasis(iEl, fe, dNdu);
+        // Set up control point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iEl+1))
+        {
+          ok = false;
+          break;
+        }
 
-        // Compute basis function derivatives and the face normal
-        fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-        if (fe.detJxW == 0.0) continue; // skip singular points
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+          fe.h = this->getElementCorners(iEl+1,fe.XC);
 
-        if (faceDir < 0) normal *= -1.0;
-
-        // Compute G-matrix
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-          utl::getGmat(Jac,dXidu,fe.G);
+          // Element size in parametric space
+          for (int i = 0; i < 3; i++)
+            dXidu[i] = el->getParmax(i) - el->getParmin(i);
+
+        // Initialize element quantities
+        size_t nen = el->support().size();
+        LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
+        if (!integrand.initElementBou(MNPC[iEl],*A))
+        {
+          A->destruct();
+          ok = false;
+          break;
+        }
+
+        // --- Integration loop over all Gauss points in each direction ------------
+
+        for (int j = 0; j < nGP; j++)
+          for (int i = 0; i < nGP; i++, fe.iGP++)
+          {
+            // Local element coordinates and parameter values
+            // of current integration point
+            int k1, k2, k3;
+            switch (abs(faceDir))
+            {
+              case 1: k2 = i; k3 = j; k1 = 0; break;
+              case 2: k1 = i; k3 = j; k2 = 0; break;
+              case 3: k1 = i; k2 = j; k3 = 0; break;
+              default: k1 = k2 = k3 = 0;
+            }
+            if (gpar[0].size() > 1)
+            {
+              fe.xi = xg[k1];
+              fe.u = param[0] = gpar[0](k1+1);
+            }
+            if (gpar[1].size() > 1)
+            {
+              fe.eta = xg[k2];
+              fe.v = param[1] = gpar[1](k2+1);
+            }
+            if (gpar[2].size() > 1)
+            {
+              fe.zeta = xg[k3];
+              fe.w = param[2] = gpar[2](k3+1);
+            }
+
+            // Fetch basis function derivatives at current integration point
+            this->evaluateBasis(iEl, fe, dNdu);
+
+            // Compute basis function derivatives and the face normal
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+            if (fe.detJxW == 0.0) continue; // skip singular points
+
+            if (faceDir < 0) normal *= -1.0;
+
+            // Compute G-matrix
+            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+              utl::getGmat(Jac,dXidu,fe.G);
 
 #if SP_DEBUG > 4
-        if (iEl+1 == dbgElm || iEl+1 == -dbgElm || dbgElm == 0)
-          std::cout <<"\n"<< fe;
+            if (iEl+1 == dbgElm || iEl+1 == -dbgElm || dbgElm == 0)
+              std::cout <<"\n"<< fe;
 #endif
 
-        // Cartesian coordinates of current integration point
-        X.assign(Xnod * fe.N);
+            // Cartesian coordinates of current integration point
+            X.assign(Xnod * fe.N);
 
-        // Evaluate the integrand and accumulate element contributions
-        fe.detJxW *= dA*wg[i]*wg[j];
-        if (!integrand.evalBou(*A,fe,time,X,normal))
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= dA*wg[i]*wg[j];
+            if (!integrand.evalBou(*A,fe,time,X,normal))
+              ok = false;
+        }
+
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElementBou(*A,fe,time))
           ok = false;
-    }
 
-    // Finalize the element quantities
-    if (ok && !integrand.finalizeElementBou(*A,fe,time))
-      ok = false;
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
+          ok = false;
 
-    // Assembly of global system integral
-    if (ok && !glInt.assemble(A->ref(),fe.iel))
-      ok = false;
-
-    A->destruct();
+        A->destruct();
 
 #ifdef SP_DEBUG
-    if (dbgElm < 0 && iEl+1 == -dbgElm)
-      break; // Skipping all elements, except for -dbgElm
+        if (dbgElm < 0 && iEl+1 == -dbgElm)
+          break; // Skipping all elements, except for -dbgElm
 #endif
-  }
+      }
 
   return ok;
 }
@@ -1952,6 +1980,44 @@ void ASMu3D::generateThreadGroups (const Integrand& integrand, bool silence,
 #else
   threadGroups.analyze();
 #endif
+}
+
+
+void ASMu3D::generateThreadGroups (char lIndex, bool, bool)
+{
+  this->generateFaceGroups(lIndex%10,lrspline.get());
+}
+
+
+void ASMu3D::generateFaceGroups (char lIndex, const LR::LRSplineVolume* basis)
+{
+  std::vector<LR::Element*> faceElms;
+  basis->getEdgeElements(faceElms,getFaceEnum(lIndex));
+
+  IntVec elms;
+  elms.reserve(faceElms.size());
+  for (const LR::Element* el : faceElms)
+    elms.push_back(el->getId());
+
+  ThreadGroups& fGrp = threadGroupsFace[lIndex];
+  if (multiThreaded())
+  {
+    colorTasks(fGrp,this->getElmWriteNodes(elms));
+    fGrp.applyMap(elms); // from positions on the face to element indices
+  }
+  else
+    fGrp.sequential(elms.size(),elms);
+}
+
+
+bool ASMu3D::validateThreadGroups (const SAM* sam) const
+{
+  bool ok = this->ASMLRSpline::validateThreadGroups(sam);
+  for (const std::pair<const char,ThreadGroups>& face : threadGroupsFace)
+    if (!this->validateGroups(face.second,sam))
+      ok = false;
+
+  return ok;
 }
 
 

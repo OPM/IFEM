@@ -89,6 +89,8 @@ public:
   size_t size() const { return tg.size(); }
   //! \brief Returns true if there are no colors.
   bool empty() const { return tg.empty(); }
+  //! \brief Returns the total number of elements in all tasks.
+  size_t noElms() const;
   //! \brief Returns the tasks of a color.
   const IntMat& operator[](size_t i) const { return tg[i]; }
 

@@ -192,6 +192,9 @@ protected:
   //! \param[in] ignoreGlobalLM If \e true, ignore global multipliers in sanity check
   void generateThreadGroups(const Integrand& integrand, bool silence,
                             bool ignoreGlobalLM);
+  //! \brief Generates element groups for multi-threading of boundary integrals.
+  //! \param[in] lIndex Local index [1,6] of the boundary face
+  virtual void generateThreadGroups(char lIndex, bool, bool);
 
 protected:
   //! \brief Returns the integration element of each thread basis element.
