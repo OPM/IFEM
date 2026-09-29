@@ -56,7 +56,7 @@ RealArray SIMgeneric::getSolution (const Vector& psol, const double* par,
   Matrix tmpVal;
   Vector localVec;
   pch->extractNodeVec(psol,localVec);
-  if (myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING)
+  if (this->usesPiolaTransform())
     ok = pch->evalSolutionPiola(tmpVal,localVec,&params.front(),false,true);
   else
     ok = pch->evalSolution(tmpVal,localVec,&params.front(),false,deriv);
