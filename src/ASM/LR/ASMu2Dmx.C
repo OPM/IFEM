@@ -1259,8 +1259,8 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
 #ifdef USE_OPENMP
   if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
   {
-    threadGroups[0] = colorElements(this->getElmWriteNodes(this->getThreadElms()),
-                                    MLGN.size());
+    threadGroups[0] =
+      colorElements(this->getElmWriteNodes(this->getThreadElms()));
     threadGroups[1].clear();
   }
   else

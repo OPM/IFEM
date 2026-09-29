@@ -2161,24 +2161,23 @@ void ASMbase::convertNodeSets ()
 
 IntMat ASMbase::getElmWriteNodes (const IntVec& elms) const
 {
-  // Collect the master nodes of the MPCs in this patch, for each slave node
+  // The masters of the MPCs in this patch, for each slave node.
+  // Everything is in global node numbers, such that nodes sharing a global
+  // number (collapsed nodes), and masters in other patches, are accounted for.
   std::unordered_map<int,IntVec> masters;
-  if (!mpcs.empty())
+  for (const MPC* mpc : mpcs)
+    for (size_t i = 0; i < mpc->getNoMaster(); i++)
+      if (int master = mpc->getMaster(i).node;
+          master > 0 && master != mpc->getSlave().node)
+        masters[mpc->getSlave().node].push_back(master);
+
+  std::unordered_map<int,int> index; // global node number to 0-based index
+  auto&& nodeIndex = [&index](int node)
   {
-    std::unordered_map<int,int> localNode;
-    for (size_t inod = 0; inod < MLGN.size(); inod++)
-      localNode.emplace(MLGN[inod],inod);
+    return index.emplace(node,index.size()).first->second;
+  };
 
-    for (const MPC* mpc : mpcs)
-      if (auto slave = localNode.find(mpc->getSlave().node);
-          slave != localNode.end())
-        for (size_t i = 0; i < mpc->getNoMaster(); i++)
-          if (auto master = localNode.find(mpc->getMaster(i).node);
-              master != localNode.end() && master->second != slave->second)
-            masters[slave->second].push_back(master->second);
-  }
-
-  auto&& writeNodes = [this,&masters](const IntVec& mnpc)
+  auto&& writeNodes = [this,&masters,&nodeIndex](const IntVec& mnpc)
   {
     IntVec nodes;
     nodes.reserve(mnpc.size());
@@ -2186,9 +2185,10 @@ IntMat ASMbase::getElmWriteNodes (const IntVec& elms) const
       if (node >= 0 && static_cast<size_t>(node) < MLGN.size() &&
           this->getLMType(node+1) != 'G')
       {
-        nodes.push_back(node);
-        if (auto slave = masters.find(node); slave != masters.end())
-          nodes.insert(nodes.end(),slave->second.begin(),slave->second.end());
+        nodes.push_back(nodeIndex(MLGN[node]));
+        if (auto slave = masters.find(MLGN[node]); slave != masters.end())
+          for (int master : slave->second)
+            nodes.push_back(nodeIndex(master));
       }
 
     return nodes;
@@ -2212,7 +2212,7 @@ IntMat ASMbase::getElmWriteNodes (const IntVec& elms) const
 }
 
 
-IntMat ASMbase::colorElements (const IntMat& elmNodes, size_t nnod)
+IntMat ASMbase::colorElements (const IntMat& elmNodes)
 {
   PROFILE2("Element coloring");
 
@@ -2223,6 +2223,11 @@ IntMat ASMbase::colorElements (const IntMat& elmNodes, size_t nnod)
   case ASM::DSATUR:        alg = GraphColoring::Algorithm::DSatur;       break;
   case ASM::RLF:           alg = GraphColoring::Algorithm::RLF;          break;
   }
+
+  int nnod = 0;
+  for (const IntVec& nodes : elmNodes)
+    for (int node : nodes)
+      nnod = std::max(nnod,node+1);
 
   return GraphColoring::groups(GraphColoring(elmNodes,nnod).color(alg));
 }

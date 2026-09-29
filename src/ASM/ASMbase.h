@@ -1087,9 +1087,11 @@ protected:
   //! use the \a nel regular elements in their natural order if empty
   //! \details This is the nodal connectivity of the element, extended with the
   //! master nodes of the multi-point constraints on its slave nodes.
-  //! The global %Lagrange multipliers are left out. Every element writes to
-  //! them, but their vector value is overwritten after the assembly.
-  //! The returned node indices are 0-based and less than MLGN.size().
+  //! Nodes are identified by their global node number, such that local nodes
+  //! sharing one (collapsed nodes) are the same node, and masters in other
+  //! patches are included. The global %Lagrange multipliers are left out.
+  //! Every element writes to them, but their vector value is overwritten
+  //! after the assembly. The returned node indices are 0-based and dense.
   IntMat getElmWriteNodes(const IntVec& elms = {}) const;
 
   //! \brief Validates element groups against the assembly data in %SAM.
@@ -1116,11 +1118,10 @@ protected:
 
 public:
   //! \brief Colors elements such that no two elements of a color share a node.
-  //! \param[in] elmNodes The nodes each element writes to
-  //! \param[in] nnod Number of nodes, all node indices must be less than this
+  //! \param[in] elmNodes The 0-based nodes each element writes to
   //! \return The elements of each color, in ascending order
   //! \details The coloring algorithm is selected through ASM::coloring.
-  static IntMat colorElements(const IntMat& elmNodes, size_t nnod);
+  static IntMat colorElements(const IntMat& elmNodes);
 
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
 

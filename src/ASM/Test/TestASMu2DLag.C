@@ -34,6 +34,10 @@ public:
     this->generateThreadGroupsMultiColored(true, separateGroup1noded);
   }
   const ThreadGroups& getThreadGroups() const { return threadGroups; }
+  bool collapse(int node1, int node2)
+  {
+    return ASMbase::collapseNodes(*this,node1,*this,node2);
+  }
 };
 
 
@@ -257,4 +261,51 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3OneNodeSPC")
 
   checks(pch, false);
   checks(pch, true);
+}
+
+
+TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3RemoteMaster")
+{
+  std::stringstream str;
+  generateXMLModel(str, 1.0, 1.0, 3, 3);
+
+  // The corner nodes 1 and 16 are both coupled to node 100 of another patch,
+  // so the corner elements 0 and 8 must not be assembled concurrently
+  ASMu2DLagTest pch;
+  REQUIRE(pch.read(str));
+  pch.add2PC(1, 1, 100);
+  pch.add2PC(16, 1, 100);
+  REQUIRE(pch.generateFEMTopology());
+
+  pch.genThreadGroups();
+  const ThreadGroups& groups = pch.getThreadGroups();
+  REQUIRE(groups[0].size() == 5);
+  REQUIRE(groups[0][0] == std::vector{0, 2, 6});
+  REQUIRE(groups[0][1] == std::vector{1, 7});
+  REQUIRE(groups[0][2] == std::vector{3, 5});
+  REQUIRE(groups[0][3] == std::vector{4});
+  REQUIRE(groups[0][4] == std::vector{8});
+}
+
+
+TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3Collapsed")
+{
+  std::stringstream str;
+  generateXMLModel(str, 1.0, 1.0, 3, 3);
+
+  // The corner nodes 1 and 16 get a common global node number,
+  // so the corner elements 0 and 8 share an equation
+  ASMu2DLagTest pch;
+  REQUIRE(pch.read(str));
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pch.collapse(1, 16));
+
+  pch.genThreadGroups();
+  const ThreadGroups& groups = pch.getThreadGroups();
+  REQUIRE(groups[0].size() == 5);
+  REQUIRE(groups[0][0] == std::vector{0, 2, 6});
+  REQUIRE(groups[0][1] == std::vector{1, 7});
+  REQUIRE(groups[0][2] == std::vector{3, 5});
+  REQUIRE(groups[0][3] == std::vector{4});
+  REQUIRE(groups[0][4] == std::vector{8});
 }

@@ -407,7 +407,7 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
       }
   }
 
-  threadGroups[0] = colorElements(elmNodes,MLGN.size());
+  threadGroups[0] = colorElements(elmNodes);
   threadGroups[1].clear();
 
   if (!oneNoded.empty())

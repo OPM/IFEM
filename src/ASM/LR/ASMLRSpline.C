@@ -99,7 +99,7 @@ void LR::generateThreadGroups (ThreadGroups& threadGroups, const LRSpline* lr)
   {
     IntMat mnpc;
     LR::createMNPC(lr,mnpc);
-    threadGroups[0] = ASMbase::colorElements(mnpc,lr->nBasisFunctions());
+    threadGroups[0] = ASMbase::colorElements(mnpc);
     threadGroups[1].clear();
     return;
   }
