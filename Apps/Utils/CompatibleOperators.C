@@ -109,7 +109,7 @@ void CompatibleOperators::Weak::Laplacian (std::vector<Matrix>& EM,
 {
   size_t nsd = fe.grad(1).cols();
   for (size_t n = 1; n <= nsd; ++n)
-    EqualOrderOperators::Weak::Laplacian(EM[n], fe, scale, false, n);
+    EqualOrderOperators::Weak::Laplacian(EM[idx[n-1][n-1]], fe, scale, false, n);
 
   for (size_t m = 1; m <= nsd && stress; m++)
     for (size_t n = m; n <= nsd; n++) {
