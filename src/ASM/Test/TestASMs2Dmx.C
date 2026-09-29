@@ -223,6 +223,35 @@ TEST_CASE("TestASMs2Dmx.WriteRT")
 }
 
 
+TEST_CASE("TestASMs2Dmx.WriteNedelec")
+{
+  // The curl-compatible components are the div-compatible ones swapped
+  ASMmxBase::Type = ASMmxBase::CURL_COMPATIBLE;
+  ASMbase::resetNumbering();
+  ASMmxSquare pch1({1,1,1});
+  pch1.raiseOrder(1,1);
+  REQUIRE(pch1.generateFEMTopology());
+
+  std::stringstream str;
+  REQUIRE(pch1.write(str, 1));
+  REQUIRE(str.str() == squareRT_2);
+
+  str.str("");
+  REQUIRE(pch1.write(str, 2));
+  REQUIRE(str.str() == squareRT_1);
+
+  str.str("");
+  REQUIRE(pch1.write(str, 3));
+  REQUIRE(str.str() == ASMSquare::square);
+
+  REQUIRE(!pch1.write(str, 4));
+
+  str.str("");
+  REQUIRE(pch1.write(str, ASM::GEOMETRY_BASIS));
+  REQUIRE(str.str() == squareFRTH_1);
+}
+
+
 TEST_CASE("TestASMs2Dmx.WriteSG")
 {
   ASMmxBase::Type = ASMmxBase::SUBGRID;

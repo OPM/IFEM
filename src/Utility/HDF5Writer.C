@@ -277,7 +277,7 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
   // interpolating at the Greville points of the first basis. For most mixed
   // formulations this is not the case, nor  for LR-splines.
   // Those fit onto the projection basis instead.
-  const bool needProj = ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
+  const bool needProj = ASMmxBase::compatibleSpace() ||
                         ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
                         ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
                         sim->opt.discretization >= ASM::LRSpline;
