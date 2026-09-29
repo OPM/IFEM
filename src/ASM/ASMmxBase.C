@@ -148,13 +148,17 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases (Go::SplineSurface* surf,
     result[1].reset(new Go::SplineSurface(*surf));
     itgBasis = 2;
   }
-  else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+  else if (type == DIV_COMPATIBLE || type == CURL_COMPATIBLE)
   {
+    // Component i of a div-compatible space keeps the order in direction i,
+    // whereas component i of a curl-compatible space lowers it
+    const SplineUtils::AdjustOp keep = type == DIV_COMPATIBLE ?
+      SplineUtils::AdjustOp::Original : SplineUtils::AdjustOp::Lower;
+    const SplineUtils::AdjustOp other = type == DIV_COMPATIBLE ?
+      SplineUtils::AdjustOp::Lower : SplineUtils::AdjustOp::Original;
     result.resize(3);
-    result[0].reset(ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Original,
-                                                  SplineUtils::AdjustOp::Lower}));
-    result[1].reset(ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Lower,
-                                                  SplineUtils::AdjustOp::Original}));
+    result[0].reset(ASMmxBase::adjustBasis(*surf,{keep,other}));
+    result[1].reset(ASMmxBase::adjustBasis(*surf,{other,keep}));
     result[2].reset(ASMmxBase::adjustBasis(*surf,{SplineUtils::AdjustOp::Lower,
                                                   SplineUtils::AdjustOp::Lower}));
     itgBasis = 3;
@@ -212,18 +216,18 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases (Go::SplineVolume* svol,
     result[1].reset(new Go::SplineVolume(*svol));
     itgBasis = 2;
   }
-  else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+  else if (type == DIV_COMPATIBLE || type == CURL_COMPATIBLE)
   {
+    // Component i of a div-compatible space keeps the order in direction i,
+    // whereas component i of a curl-compatible space lowers it
+    const SplineUtils::AdjustOp keep = type == DIV_COMPATIBLE ?
+      SplineUtils::AdjustOp::Original : SplineUtils::AdjustOp::Lower;
+    const SplineUtils::AdjustOp other = type == DIV_COMPATIBLE ?
+      SplineUtils::AdjustOp::Lower : SplineUtils::AdjustOp::Original;
     result.resize(4);
-    result[0].reset(ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Original,
-                                                  SplineUtils::AdjustOp::Lower,
-                                                  SplineUtils::AdjustOp::Lower}));
-    result[1].reset(ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Lower,
-                                                  SplineUtils::AdjustOp::Original,
-                                                  SplineUtils::AdjustOp::Lower}));
-    result[2].reset(ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Lower,
-                                                  SplineUtils::AdjustOp::Lower,
-                                                  SplineUtils::AdjustOp::Original}));
+    result[0].reset(ASMmxBase::adjustBasis(*svol,{keep,other,other}));
+    result[1].reset(ASMmxBase::adjustBasis(*svol,{other,keep,other}));
+    result[2].reset(ASMmxBase::adjustBasis(*svol,{other,other,keep}));
     result[3].reset(ASMmxBase::adjustBasis(*svol,{SplineUtils::AdjustOp::Lower,
                                                   SplineUtils::AdjustOp::Lower,
                                                   SplineUtils::AdjustOp::Lower}));

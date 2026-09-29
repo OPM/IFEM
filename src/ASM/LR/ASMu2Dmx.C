@@ -205,9 +205,9 @@ bool ASMu2Dmx::generateFEMTopology ()
   }
 
   if (m_basis.empty()) {
-    if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE &&
+    if (ASMmxBase::compatibleSpace() &&
         (tensorspline->order_u() < 3 || tensorspline->order_v() < 3)) {
-      std::cerr << "*** RT basis cannot use a linear geometry." << std::endl;
+      std::cerr << "*** Compatible spaces cannot use a linear geometry." << std::endl;
       return false;
     }
 
@@ -216,7 +216,7 @@ bool ASMu2Dmx::generateFEMTopology ()
       m_basis.push_back(createLR(*svec[b]));
 
     std::unique_ptr<Go::SplineSurface> otherBasis;
-    if (ASMmxBase::Type != ASMmxBase::DIV_COMPATIBLE)
+    if (!ASMmxBase::compatibleSpace())
       otherBasis.reset(ASMmxBase::adjustBasis(*tensorspline,{SplineUtils::AdjustOp::Raise,
                                                              SplineUtils::AdjustOp::Raise}));
 
@@ -227,7 +227,7 @@ bool ASMu2Dmx::generateFEMTopology ()
         projB = createLR(*otherBasis);
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front();
-      else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+      else if (ASMmxBase::compatibleSpace())
         projB = createLR(*tensorspline);
       else // FULL_CONT_RAISE_BASISx
         projB = m_basis[2-ASMmxBase::itgBasis];
@@ -236,7 +236,7 @@ bool ASMu2Dmx::generateFEMTopology ()
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB2 = refB = createLR(*otherBasis);
       geomB = m_basis[1];
-    } else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    } else if (ASMmxBase::compatibleSpace())
       geomB = refB = projB;
     else {
       refB = projB;
@@ -246,6 +246,7 @@ bool ASMu2Dmx::generateFEMTopology ()
     if (ASMmxBase::includeExtra)
       switch (ASMmxBase::Type) {
         case ASMmxBase::DIV_COMPATIBLE:
+        case ASMmxBase::CURL_COMPATIBLE:
         case ASMmxBase::REDUCED_CONT_RAISE_BASIS1:
         case ASMmxBase::REDUCED_CONT_RAISE_BASIS2:
           m_basis.push_back(std::static_pointer_cast<LR::LRSplineSurface>(projB)); break;
@@ -1227,7 +1228,7 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
                                      bool ignoreGlobalLM)
 {
   int p1 = 0;
-  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+  if (ASMmxBase::compatibleSpace())
     threadBasis = this->getBasis(3);
   else
     for (size_t i = 1; i <= m_basis.size(); ++i)

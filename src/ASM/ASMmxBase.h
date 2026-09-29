@@ -74,7 +74,14 @@ public:
     REDUCED_CONT_RAISE_BASIS2, //!< Reduced continuity, raise order and use as basis 2
     DIV_COMPATIBLE,            //!< Div-compatible space for incompressible problems
     SUBGRID,                   //!< Sub-grid spaces
+    CURL_COMPATIBLE,           //!< Curl-compatible space for electromagnetic problems
   };
+
+  //! \brief Returns \e true if the mixed bases span a div- or curl-compatible space.
+  static bool compatibleSpace()
+  {
+    return Type == DIV_COMPATIBLE || Type == CURL_COMPATIBLE;
+  }
 
   static MixedType Type; //!< Type of mixed formulation used
   static char  itgBasis; //!< 1-based index of basis representing the integration elements
