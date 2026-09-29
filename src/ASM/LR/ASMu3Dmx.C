@@ -189,11 +189,11 @@ bool ASMu3Dmx::generateFEMTopology ()
     return true;
 
   if (m_basis.empty()) {
-    if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE &&
+    if (ASMmxBase::compatibleSpace() &&
         (tensorspline->order(0) < 3 ||
          tensorspline->order(1) < 3 ||
          tensorspline->order(2) < 3)) {
-      std::cerr << "*** RT basis cannot use a linear geometry." << std::endl;
+      std::cerr << "*** Compatible spaces cannot use a linear geometry." << std::endl;
       return false;
     }
     VolumeVec vvec = ASMmxBase::establishBases(tensorspline, ASMmxBase::Type);
@@ -201,7 +201,7 @@ bool ASMu3Dmx::generateFEMTopology ()
       m_basis.push_back(std::make_shared<LR::LRSplineVolume>(vvec[b].get()));
 
     std::unique_ptr<Go::SplineVolume> otherBasis;
-    if (ASMmxBase::Type != ASMmxBase::DIV_COMPATIBLE)
+    if (!ASMmxBase::compatibleSpace())
       otherBasis.reset(ASMmxBase::adjustBasis(*tensorspline,{SplineUtils::AdjustOp::Raise,
                                                              SplineUtils::AdjustOp::Raise,
                                                              SplineUtils::AdjustOp::Raise}));
@@ -213,7 +213,7 @@ bool ASMu3Dmx::generateFEMTopology ()
         projB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front();
-      else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+      else if (ASMmxBase::compatibleSpace())
         projB = std::make_shared<LR::LRSplineVolume>(tensorspline);
       else // FULL_CONT_RAISE_BASISx
         projB = m_basis[2-ASMmxBase::itgBasis];
@@ -222,7 +222,7 @@ bool ASMu3Dmx::generateFEMTopology ()
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB2 = refB = std::make_shared<LR::LRSplineVolume>(otherBasis.get());
       geomB = m_basis[1];
-    } else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    } else if (ASMmxBase::compatibleSpace())
       geomB = refB = projB;
     else {
       refB = projB;
@@ -232,6 +232,7 @@ bool ASMu3Dmx::generateFEMTopology ()
     if (ASMmxBase::includeExtra)
       switch (ASMmxBase::Type) {
         case ASMmxBase::DIV_COMPATIBLE:
+        case ASMmxBase::CURL_COMPATIBLE:
         case ASMmxBase::REDUCED_CONT_RAISE_BASIS1:
         case ASMmxBase::REDUCED_CONT_RAISE_BASIS2:
           m_basis.push_back(std::static_pointer_cast<LR::LRSplineVolume>(projB)); break;
@@ -941,7 +942,7 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
                                      bool ignoreGlobalLM)
 {
   int p1 = 0;
-  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+  if (ASMmxBase::compatibleSpace())
     threadBasis = this->getBasis(4);
   else
     for (size_t i = 1; i <= m_basis.size(); ++i)
@@ -958,7 +959,7 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
       secConstraint.push_back(this->getBasis(3));
   } if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
     secConstraint = {this->getBasis(1)};
-  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE) {
+  if (ASMmxBase::compatibleSpace()) {
     secConstraint = {this->getBasis(1),this->getBasis(2),this->getBasis(3)};
     if (ASMmxBase::includeExtra)
       secConstraint.push_back(this->getBasis(5));

@@ -12,6 +12,8 @@
 
 #include "ASMCube.h"
 
+#include "GoTools/trivariate/SplineVolume.h"
+
 #include "Catch2Support.h"
 
 
@@ -450,6 +452,30 @@ TEST_CASE("TestASMs3Dmx.WriteRT")
 
   str.str("");
   REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
+  REQUIRE(str.str() == ASMCube::cube);
+}
+
+
+TEST_CASE("TestASMs3Dmx.Nedelec")
+{
+  ASMmxBase::Type = ASMmxBase::CURL_COMPATIBLE;
+  ASMbase::resetNumbering();
+  ASMmxCube pch1({1,1,1,0});
+  pch1.raiseOrder(1,1,1);
+  REQUIRE(pch1.generateFEMTopology());
+
+  // Component b is one order lower in direction b,
+  // and the last basis is one order lower in all directions
+  const int b = GENERATE(1, 2, 3, 4);
+  for (int d = 0; d < 3; ++d)
+    REQUIRE(pch1.getBasis(b)->order(d) == (b == 4 || b == d+1 ? 2 : 3));
+
+  // The geometry basis is left as it is
+  for (int d = 0; d < 3; ++d)
+    REQUIRE(pch1.getBasis(ASM::GEOMETRY_BASIS)->order(d) == 3);
+
+  std::stringstream str;
+  REQUIRE(pch1.write(str, 4));
   REQUIRE(str.str() == ASMCube::cube);
 }
 
