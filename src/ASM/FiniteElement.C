@@ -41,8 +41,10 @@ std::ostream& FiniteElement::write (std::ostream& os) const
   if (!d3NdX3.empty()) os <<"d3NdX3: "<< d3NdX3;
   if (!G.empty())      os <<"G:"<< G;
   if (!H.empty())      os <<"H:"<< H;
-  if (!P.empty())      os <<"P:"<< P;
-  if (!dPdX.empty())   os <<"dPdX:"<< dPdX;
+  if (!P_contra.N.empty())    os <<"P_contra:"<< P_contra.N;
+  if (!P_contra.dNdX.empty()) os <<"dP_contra/dX:"<< P_contra.dNdX;
+  if (!P_co.N.empty())        os <<"P_co:"<< P_co.N;
+  if (!P_co.dNdX.empty())     os <<"dP_co/dX:"<< P_co.dNdX;
   if (!Navg.empty())   os <<"Navg:"<< Navg;
   if (!Xn.empty())     os <<"Xn:"<< Xn;
   if (!Te.isZero(0.0)) os <<"Te:\n"<< Te;
@@ -211,43 +213,81 @@ bool MxFiniteElement::Hessian (Matrix3D& Hess, const Matrix& Jac,
 
 void MxFiniteElement::piolaMapping (const Matrix& Ji,
                                     const Matrix& Xnod,
-                                    const BasisValuesPtrs& bfs)
+                                    const BasisValuesPtrs& bfs,
+                                    bool contravariant, bool covariant)
 {
   Matrix J;
   J.multiply(Xnod,bfs.back()->dNdu);
-  this->piolaBasis(detJxW, J);
-  this->piolaGradient(detJxW, J, Ji, Xnod, bfs);
+  Matrix3D H;
+  H.multiply(Xnod,bfs.back()->d2Ndu2);
+
+  if (contravariant)
+  {
+    this->piolaBasis(detJxW, J);
+    this->piolaGradient(detJxW, J, Ji, H, bfs);
+  }
+
+  if (covariant)
+  {
+    this->covariantPiolaBasis(Ji);
+    this->covariantPiolaGradient(Ji, H, bfs);
+  }
 }
 
 
-void MxFiniteElement::piolaBasis (const double detJ, const Matrix& J)
+/*!
+  The parametric basis functions are collected into a matrix with one
+  column per function, where function \a i of basis \a b only has
+  the parametric component \a b.
+*/
+
+static Matrix parametricBasis (const MxFiniteElement& fe, size_t dim)
 {
-  size_t np = 0, dim = J.rows();
+  size_t np = 0;
   for (size_t b = 1; b <= dim; ++b)
-    np += this->basis(b).size();
+    np += fe.basis(b).size();
 
   Matrix Ntmp(dim,np);
   size_t k = 1;
   for (size_t b = 1; b <= dim; ++b)
-    for (size_t i = 1; i <= this->basis(b).size(); ++i, ++k)
-      Ntmp(b,k) = this->basis(b)(i);
+    for (size_t i = 1; i <= fe.basis(b).size(); ++i, ++k)
+      Ntmp(b,k) = fe.basis(b)(i);
 
-  P.multiply(J,Ntmp,false,false,false,1.0/detJ);
+  return Ntmp;
+}
+
+
+/*!
+  The contravariant mapping is \f$ {\bf N} = \frac{1}{|J|} J \hat{\bf N} \f$.
+*/
+
+void MxFiniteElement::piolaBasis (const double detJ, const Matrix& J)
+{
+  P_contra.N.multiply(J,parametricBasis(*this,J.rows()),
+                      false,false,false,1.0/detJ);
+}
+
+
+/*!
+  The covariant mapping is \f$ {\bf N} = J^{-T} \hat{\bf N} \f$.
+*/
+
+void MxFiniteElement::covariantPiolaBasis (const Matrix& Ji)
+{
+  P_co.N.multiply(Ji,parametricBasis(*this,Ji.rows()),true);
 }
 
 
 void MxFiniteElement::piolaGradient (const double detJ,
                                      const Matrix& J, const Matrix& Ji,
-                                     const Matrix& Xnod,
+                                     const Matrix3D& H,
                                      const BasisValuesPtrs& bfs)
 {
-  Matrix3D H;
-  H.multiply(Xnod,bfs.back()->d2Ndu2);
-
   size_t np = 0, dim = J.rows();
   for (size_t b = 1; b <= dim; ++b)
     np += this->basis(b).size();
 
+  Matrix& dPdX = P_contra.dNdX;
   dPdX.resize(dim*dim,np);
 
   Matrices dJdX;
@@ -278,6 +318,57 @@ void MxFiniteElement::piolaGradient (const double detJ,
         dBf.multiply(Ji.getColumn(d+1),tmp);
         J.multiply(tmp, res, 1.0/detJ);
         Ptmp[d].multiply(bf, res, false, 1);
+        for (size_t j = 1; j <= dim; ++j)
+          dPdX(d*dim+j,k+i) = res(j);
+      }
+    }
+}
+
+
+/*!
+  The derivatives of the covariant mapping follow from
+  \f$ \frac{\partial J^{-1}}{\partial X_d} =
+  -J^{-1} \frac{\partial J}{\partial X_d} J^{-1} \f$.
+*/
+
+void MxFiniteElement::covariantPiolaGradient (const Matrix& Ji,
+                                              const Matrix3D& H,
+                                              const BasisValuesPtrs& bfs)
+{
+  size_t np = 0, dim = Ji.rows();
+  for (size_t b = 1; b <= dim; ++b)
+    np += this->basis(b).size();
+
+  Matrix& dPdX = P_co.dNdX;
+  dPdX.resize(dim*dim,np);
+
+  Matrices dJdX;
+  utl::JacobianGradient(Ji,H,dJdX);
+
+  // The derivatives of the transposed inverse Jacobian
+  std::vector<Matrix> dJiTdX(dim);
+  for (size_t d = 0; d < dim; ++d)
+  {
+    Matrix tmp;
+    tmp.multiply(dJdX[d],Ji,true,true);
+    dJiTdX[d].multiply(Ji,tmp,true,false,false,-1.0);
+  }
+
+  size_t k = 0;
+  for (size_t b = 1; b <= dim; k += this->basis(b).size(), ++b)
+    for (size_t i = 1; i <= this->basis(b).size(); ++i)
+    {
+      Vector bf(dim);
+      Matrix dBf(dim,dim);
+      bf(b) = this->basis(b)(i);
+      for (size_t j = 1; j <= dim; ++j)
+        dBf(b,j) = bfs[b-1]->dNdu(i,j);
+      for (size_t d = 0; d < dim; ++d)
+      {
+        Vector tmp(dim), res(dim);
+        dBf.multiply(Ji.getColumn(d+1),tmp);
+        Ji.multiply(tmp, res, true);
+        dJiTdX[d].multiply(bf, res, false, 1);
         for (size_t j = 1; j <= dim; ++j)
           dPdX(d*dim+j,k+i) = res(j);
       }
