@@ -20,6 +20,7 @@
 #include "MPC.h"
 #include "SAM.h"
 #include "Tensor.h"
+#include "ThreadGroups.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "Functions.h"
@@ -31,6 +32,9 @@
 #include <iomanip>
 #include <numeric>
 #include <unordered_map>
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 bool ASMbase::fixHomogeneousDirichlet = true;
@@ -2212,102 +2216,105 @@ IntMat ASMbase::getElmWriteNodes (const IntVec& elms) const
 }
 
 
-IntMat ASMbase::colorElements (const IntMat& elmNodes)
+void ASMbase::colorTasks (ThreadGroups& groups, const IntMat& elmNodes,
+                          const IntMat& tasks)
 {
   PROFILE2("Element coloring");
 
   GraphColoring::Algorithm alg = GraphColoring::Algorithm::FirstFit;
-  switch (ASM::coloring) {
-  case ASM::FIRST_FIT:     alg = GraphColoring::Algorithm::FirstFit;     break;
-  case ASM::LARGEST_FIRST: alg = GraphColoring::Algorithm::LargestFirst; break;
-  case ASM::DSATUR:        alg = GraphColoring::Algorithm::DSatur;       break;
-  case ASM::RLF:           alg = GraphColoring::Algorithm::RLF;          break;
+  IntMat taskNodes;
+  if (tasks.empty())
+    switch (ASM::coloring) {
+    case ASM::FIRST_FIT:     alg = GraphColoring::Algorithm::FirstFit;     break;
+    case ASM::LARGEST_FIRST: alg = GraphColoring::Algorithm::LargestFirst; break;
+    case ASM::DSATUR:        alg = GraphColoring::Algorithm::DSatur;       break;
+    case ASM::RLF:           alg = GraphColoring::Algorithm::RLF;          break;
+    }
+  else
+  {
+    taskNodes.resize(tasks.size());
+    for (size_t t = 0; t < tasks.size(); t++)
+      for (int iel : tasks[t])
+        taskNodes[t].insert(taskNodes[t].end(),
+                            elmNodes[iel].begin(),elmNodes[iel].end());
   }
 
+  const IntMat& nodes = tasks.empty() ? elmNodes : taskNodes;
   int nnod = 0;
-  for (const IntVec& nodes : elmNodes)
-    for (int node : nodes)
+  for (const IntVec& tnodes : nodes)
+    for (int node : tnodes)
       nnod = std::max(nnod,node+1);
 
-  return GraphColoring::groups(GraphColoring(elmNodes,nnod).color(alg));
+  const IntVec colors = GraphColoring(nodes,nnod).color(alg);
+  if (!tasks.empty())
+    groups.setColors(tasks,colors);
+  else
+  {
+    IntMat single(elmNodes.size());
+    for (size_t iel = 0; iel < single.size(); iel++)
+      single[iel].resize(1,iel);
+    groups.setColors(single,colors);
+  }
 }
 
 
-bool ASMbase::validateGroups (const IntMat& groups, const SAM* sam,
-                              const IntVec& elms, int iTGroup) const
+bool ASMbase::multiThreaded ()
 {
+#ifdef USE_OPENMP
+  return omp_get_max_threads() > 1;
+#else
+  return false;
+#endif
+}
+
+
+bool ASMbase::validateGroups (const ThreadGroups& groups, const SAM* sam,
+                              const IntVec& elms) const
+{
+  IFEM::cout <<"\nValidating element groups for multi-threaded assembly."
+             << std::endl;
+
   size_t nErr = 0;
-  for (const IntVec& group : groups)
+  for (size_t c = 0; c < groups.size(); c++)
   {
-    ++iTGroup;
+    const IntMat& tasks = groups[c];
     size_t lErr = nErr;
-    DiagMatrix sysMat(sam->getNoEquations());
-    for (int iel : group)
-      if (IntVec meen; !sam->getElmEqns(meen,MLGE[elms.empty() ? iel : elms[iel]]))
-        ++nErr;
-      else if (!sysMat.assembleStruct(iTGroup,*sam,meen))
-        ++nErr;
+    IntVec owner(sam->getNoEquations(),0); // the task writing each equation
+    for (size_t t = 0; t < tasks.size(); t++)
+    {
+      DiagMatrix sysMat(sam->getNoEquations());
+      for (int iel : tasks[t])
+        if (int jel = MLGE[elms.empty() ? iel : elms[iel]]; jel < 1)
+          continue; // zero-volume element, not assembled
+        else if (IntVec meen; !sam->getElmEqns(meen,jel))
+          ++nErr;
+        else if (!sysMat.assembleStruct(1,*sam,meen))
+          ++nErr;
 
-    for (size_t ieq = 1; ieq <= sysMat.dim(0); ieq++)
-      if (int count = sysMat(ieq); count > 1 && count/1000 != iTGroup)
-      {
-        std::pair<int,int> dof = sam->getNodeAndLocalDof(ieq,true);
-        if (this->getLMType(this->getNodeIndex(dof.first)) == 'G')
-          continue; // overwritten after the assembly
+      for (size_t ieq = 1; ieq <= sysMat.dim(0); ieq++)
+        if (sysMat(ieq) == 0.0)
+          continue;
+        else if (owner[ieq-1] == 0)
+          owner[ieq-1] = 1+t;
+        else
+        {
+          std::pair<int,int> dof = sam->getNodeAndLocalDof(ieq,true);
+          if (this->getLMType(this->getNodeIndex(dof.first)) == 'G')
+            continue; // overwritten after the assembly
 
-        std::cerr <<" *** Threading group "<< iTGroup <<" has "<< count
-                  <<" contributors to equation "<< ieq;
-        std::cerr <<" (node "<< dof.first <<" local dof "<< dof.second <<")"
-                  << std::endl;
-        nErr += count;
-      }
+          std::cerr <<" *** Tasks "<< owner[ieq-1] <<" and "<< 1+t
+                    <<" of color "<< 1+c
+                    <<" both contribute to equation "<< ieq
+                    <<" (node "<< dof.first <<" local dof "<< dof.second <<")"
+                    << std::endl;
+          ++nErr;
+        }
+    }
 
     if (lErr == nErr)
-      IFEM::cout <<"   * Thread group "<< iTGroup <<" (size "<< group.size()
-                 <<") is OK"<< std::endl;
+      IFEM::cout <<"   * Color "<< 1+c <<" ("<< tasks.size()
+                 <<" tasks) is OK"<< std::endl;
   }
-
-  return nErr == 0;
-}
-
-
-bool ASMbase::validateStripes (const IntMat& stripes, const SAM* sam,
-                               int iTGroup) const
-{
-  size_t nErr = 0;
-  IntVec owner(sam->getNoEquations(),0); // the stripe writing each equation
-  for (size_t t = 0; t < stripes.size(); t++)
-  {
-    DiagMatrix sysMat(sam->getNoEquations());
-    for (int iel : stripes[t])
-      if (IntVec meen; !sam->getElmEqns(meen,MLGE[iel]))
-        ++nErr;
-      else if (!sysMat.assembleStruct(1,*sam,meen))
-        ++nErr;
-
-    for (size_t ieq = 1; ieq <= sysMat.dim(0); ieq++)
-      if (sysMat(ieq) == 0.0)
-        continue;
-      else if (owner[ieq-1] == 0)
-        owner[ieq-1] = 1+t;
-      else
-      {
-        std::pair<int,int> dof = sam->getNodeAndLocalDof(ieq,true);
-        if (this->getLMType(this->getNodeIndex(dof.first)) == 'G')
-          continue; // overwritten after the assembly
-
-        std::cerr <<" *** Threads "<< owner[ieq-1] <<" and "<< 1+t
-                  <<" of threading group "<< iTGroup
-                  <<" both contribute to equation "<< ieq
-                  <<" (node "<< dof.first <<" local dof "<< dof.second <<")"
-                  << std::endl;
-        ++nErr;
-      }
-  }
-
-  if (nErr == 0)
-    IFEM::cout <<"   * Thread group "<< iTGroup <<" ("<< stripes.size()
-               <<" threads) is OK"<< std::endl;
 
   return nErr == 0;
 }

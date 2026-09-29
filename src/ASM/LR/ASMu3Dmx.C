@@ -352,162 +352,163 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe())
-    oneGroup.oneGroup(nel, myElms);
-  const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
+    oneGroup.concurrent(nel, myElms);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t t = 0; t < group.size() && ok; t++)
+  for (size_t g = 0; g < groups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
-    for (size_t e = 0; e < group[t].size(); e++)
-    {
-      if (!ok)
-        continue;
-
-      std::vector<int>    els;
-      std::vector<size_t> elem_sizes;
-      this->getElementsAt(threadBasis->getElement(group[t][e])->midpoint(),els,&elem_sizes);
-
-      MxFiniteElement fe(elem_sizes);
-      Matrix   Xnod, Jac;
-      Matrix3D Hess;
-      double   dXidu[3];
-      double   param[3] = { 0.0, 0.0, 0.0 };
-      Vec4     X(param,time.t);
-
-      int iEl = els[itgBasis-1]-1;
-      fe.idx = firstEl + iEl;
-      fe.iel = MLGE[iEl];
-
-      const LR::Element* el = lrspline->getElement(iEl);
-
-      // Get element volume in the parameter space
-      double dV = 0.125*el->volume();
-
-      // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iEl+1))
+    for (size_t t = 0; t < groups[g].size(); t++)
+      for (size_t e = 0; e < groups[g][t].size(); e++)
       {
-        ok = false;
-        continue;
-      }
+        if (!ok)
+          continue;
 
-      if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        fe.h = this->getElementCorners(iEl+1, fe.XC);
+        std::vector<int>    els;
+        std::vector<size_t> elem_sizes;
+        this->getElementsAt(threadBasis->getElement(groups[g][t][e])->midpoint(),els,&elem_sizes);
 
-      if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-        // Element size in parametric space
-        for (int i = 0; i < 3; i++)
-          dXidu[i] = el->getParmax(i) - el->getParmin(i);
+        MxFiniteElement fe(elem_sizes);
+        Matrix   Xnod, Jac;
+        Matrix3D Hess;
+        double   dXidu[3];
+        double   param[3] = { 0.0, 0.0, 0.0 };
+        Vec4     X(param,time.t);
 
-      else if (integrand.getIntegrandType() & Integrand::AVERAGE)
-      {
-        // --- Compute average value of basis functions over the element -----
+        int iEl = els[itgBasis-1]-1;
+        fe.idx = firstEl + iEl;
+        fe.iel = MLGE[iEl];
 
-        Matrix dNdX;
-        fe.Navg.resize(elem_sizes[0],true);
-        double vol = 0.0;
-        size_t jp = 0;
-        for (int k = 0; k < ng[2]; k++)
-          for (int j = 0; j < ng[1]; j++)
-            for (int i = 0; i < ng[0]; i++, jp++)
-            {
-              // Fetch basis function derivatives at current integration point
-              const BasisFunctionVals& bfs = myCache[itgBasis-1]->getVals(iEl,jp);
+        const LR::Element* el = lrspline->getElement(iEl);
 
-              // Compute Jacobian determinant of coordinate mapping
-              // and multiply by weight of current integration point
-              double detJac = utl::Jacobian(Jac,dNdX,Xnod,bfs.dNdu,false);
-              double weight = dV*wg[0][i]*wg[1][j]*wg[2][k];
+        // Get element volume in the parameter space
+        double dV = 0.125*el->volume();
 
-              // Numerical quadrature
-              fe.Navg.add(bfs.N,detJac*weight);
-              vol += detJac*weight;
+        // Set up control point (nodal) coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iEl+1))
+        {
+          ok = false;
+          continue;
         }
 
-        // Divide by element volume
-        fe.Navg /= vol;
-      }
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+          fe.h = this->getElementCorners(iEl+1, fe.XC);
 
-      else if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
-      {
-        // Compute the element center
-        Go::Point X0;
-        double u0 = 0.5*(el->getParmin(0) + el->getParmax(0));
-        double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
-        double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
-        this->getBasis(itgBasis)->point(X0,u0,v0,w0);
-        X.assign(SplineUtils::toVec3(X0));
-      }
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+          // Element size in parametric space
+          for (int i = 0; i < 3; i++)
+            dXidu[i] = el->getParmax(i) - el->getParmin(i);
 
-      // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
-      if (!integrand.initElement(MNPC[iEl],fe,elem_sizes,nb,*A))
-      {
-        A->destruct();
-        ok = false;
-        continue;
-      }
+        else if (integrand.getIntegrandType() & Integrand::AVERAGE)
+        {
+          // --- Compute average value of basis functions over the element -----
 
-      // --- Integration loop over all Gauss points in each direction ----------
+          Matrix dNdX;
+          fe.Navg.resize(elem_sizes[0],true);
+          double vol = 0.0;
+          size_t jp = 0;
+          for (int k = 0; k < ng[2]; k++)
+            for (int j = 0; j < ng[1]; j++)
+              for (int i = 0; i < ng[0]; i++, jp++)
+              {
+                // Fetch basis function derivatives at current integration point
+                const BasisFunctionVals& bfs = myCache[itgBasis-1]->getVals(iEl,jp);
 
-      int jp = iEl*ng[0]*ng[1]*ng[2];
-      fe.iGP = firstIp + jp; // Global integration point counter
+                // Compute Jacobian determinant of coordinate mapping
+                // and multiply by weight of current integration point
+                double detJac = utl::Jacobian(Jac,dNdX,Xnod,bfs.dNdu,false);
+                double weight = dV*wg[0][i]*wg[1][j]*wg[2][k];
 
-      size_t ig = 0;
-      for (int k = 0; k < ng[2]; k++)
-        for (int j = 0; j < ng[1]; j++)
-          for (int i = 0; i < ng[0]; i++, fe.iGP++, ig++)
-          {
-            // Local element coordinates of current integration point
-            fe.xi   = xg[0][i];
-            fe.eta  = xg[1][j];
-            fe.zeta = xg[2][k];
-
-            // Parameter values of current integration point
-            fe.u = param[0] = cache.getParam(0,iEl,i);
-            fe.v = param[1] = cache.getParam(1,iEl,j);
-            fe.w = param[2] = cache.getParam(2,iEl,k);
-
-            BasisValuesPtrs bfs(myCache.size());
-            for (size_t b = 0; b < myCache.size(); ++b) {
-              bfs[b] = &myCache[b]->getVals(iEl,ig);
-              if (b < m_basis.size())
-                fe.basis(b+1) = bfs[b]->N;
-            }
-
-            // Compute Jacobian inverse of the coordinate mapping and
-            // basis function derivatives w.r.t. Cartesian coordinates
-            if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
-              ok = false;
-
-            // Compute Hessian of coordinate mapping and 2nd order derivatives
-            if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
-              ok = false;
-
-            // Compute G-matrix
-            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-              utl::getGmat(Jac,dXidu,fe.G);
-
-            // Cartesian coordinates of current integration point
-            X.assign(Xnod * (separateGeometry ? bfs.back()->N : fe.basis(itgBasis)));
-
-            // Evaluate the integrand and accumulate element contributions
-            fe.detJxW *= dV*wg[0][i]*wg[1][j]*wg[2][k];
-            if (ok && !integrand.evalIntMx(*A,fe,time,X))
-              ok = false;
+                // Numerical quadrature
+                fe.Navg.add(bfs.N,detJac*weight);
+                vol += detJac*weight;
           }
 
-      // Finalize the element quantities
-      if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
-        ok = false;
+          // Divide by element volume
+          fe.Navg /= vol;
+        }
 
-      // Assembly of global system integral
-      if (ok && !glInt.assemble(A->ref(),fe.iel))
-        ok = false;
+        else if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+        {
+          // Compute the element center
+          Go::Point X0;
+          double u0 = 0.5*(el->getParmin(0) + el->getParmax(0));
+          double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
+          double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
+          this->getBasis(itgBasis)->point(X0,u0,v0,w0);
+          X.assign(SplineUtils::toVec3(X0));
+        }
 
-      A->destruct();
-    }
+        // Initialize element quantities
+        LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel);
+        if (!integrand.initElement(MNPC[iEl],fe,elem_sizes,nb,*A))
+        {
+          A->destruct();
+          ok = false;
+          continue;
+        }
+
+        // --- Integration loop over all Gauss points in each direction ----------
+
+        int jp = iEl*ng[0]*ng[1]*ng[2];
+        fe.iGP = firstIp + jp; // Global integration point counter
+
+        size_t ig = 0;
+        for (int k = 0; k < ng[2]; k++)
+          for (int j = 0; j < ng[1]; j++)
+            for (int i = 0; i < ng[0]; i++, fe.iGP++, ig++)
+            {
+              // Local element coordinates of current integration point
+              fe.xi   = xg[0][i];
+              fe.eta  = xg[1][j];
+              fe.zeta = xg[2][k];
+
+              // Parameter values of current integration point
+              fe.u = param[0] = cache.getParam(0,iEl,i);
+              fe.v = param[1] = cache.getParam(1,iEl,j);
+              fe.w = param[2] = cache.getParam(2,iEl,k);
+
+              BasisValuesPtrs bfs(myCache.size());
+              for (size_t b = 0; b < myCache.size(); ++b) {
+                bfs[b] = &myCache[b]->getVals(iEl,ig);
+                if (b < m_basis.size())
+                  fe.basis(b+1) = bfs[b]->N;
+              }
+
+              // Compute Jacobian inverse of the coordinate mapping and
+              // basis function derivatives w.r.t. Cartesian coordinates
+              if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
+                ok = false;
+
+              // Compute Hessian of coordinate mapping and 2nd order derivatives
+              if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
+                ok = false;
+
+              // Compute G-matrix
+              if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+                utl::getGmat(Jac,dXidu,fe.G);
+
+              // Cartesian coordinates of current integration point
+              X.assign(Xnod * (separateGeometry ? bfs.back()->N : fe.basis(itgBasis)));
+
+              // Evaluate the integrand and accumulate element contributions
+              fe.detJxW *= dV*wg[0][i]*wg[1][j]*wg[2][k];
+              if (ok && !integrand.evalIntMx(*A,fe,time,X))
+                ok = false;
+            }
+
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
+          ok = false;
+
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
+          ok = false;
+
+        A->destruct();
+      }
 
   if (ASM::cachePolicy == ASM::PRE_CACHE)
     for (std::unique_ptr<ASMu3D::BasisFunctionCache>& cache : myCache)
@@ -970,16 +971,10 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
         p1 = threadBasis->order(0);
       }
 
-#ifdef USE_OPENMP
-  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
-  {
-    threadGroups[0] =
-      colorElements(this->getElmWriteNodes(this->getThreadElms()));
-    threadGroups[1].clear();
-  }
+  if (multiThreaded())
+    colorTasks(threadGroups,this->getElmWriteNodes(this->getThreadElms()));
   else
-#endif
-    threadGroups.oneGroup(threadBasis->nElements());
+    threadGroups.sequential(threadBasis->nElements());
 
   LR::generateThreadGroups(projThreadGroups,projB.get());
   if (projB2)
@@ -989,18 +984,15 @@ void ASMu3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
   for (const SplinePtr& basis : m_basis)
     bases.push_back(basis.get());
 
-  if (silence || threadGroups[0].size() < 2) return;
+  if (silence || threadGroups.size() < 2) return;
 
-  this->checkThreadGroups(threadGroups[0], bases, threadBasis);
+  this->checkThreadGroups(threadGroups, bases, threadBasis);
 
   IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
 #ifdef SP_DEBUG
-  for (size_t i = 0; i < threadGroups[0].size(); i++)
-    IFEM::cout <<"\n Color "<< i+1 <<": "
-               << threadGroups[0][i].size() <<" elements";
-  IFEM::cout << std::endl;
+  threadGroups.analyze(true);
 #else
-  threadGroups.analyzeUnstruct();
+  threadGroups.analyze();
 #endif
 }
 

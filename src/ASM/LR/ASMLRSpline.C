@@ -94,18 +94,14 @@ void LR::getGaussPointParameters (const LRSpline* lrspline, RealArray& uGP,
 
 void LR::generateThreadGroups (ThreadGroups& threadGroups, const LRSpline* lr)
 {
-#ifdef USE_OPENMP
-  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
+  if (ASMbase::multiThreaded())
   {
     IntMat mnpc;
     LR::createMNPC(lr,mnpc);
-    threadGroups[0] = ASMbase::colorElements(mnpc);
-    threadGroups[1].clear();
-    return;
+    ASMbase::colorTasks(threadGroups,mnpc);
   }
-#endif
-
-  threadGroups.oneGroup(lr->nElements()); // No threading, all in one group
+  else
+    threadGroups.sequential(lr->nElements()); // No threading, all in sequence
 }
 
 
@@ -415,17 +411,11 @@ Vec3 ASMLRSpline::getElementCenter (int iel) const
 
 bool ASMLRSpline::validateThreadGroups (const SAM* sam) const
 {
-  IFEM::cout <<"\nValidating element groups for multi-threaded assembly."
-             << std::endl;
-
-  if (threadGroups[0].size() == 1)
-    return true; // Only one group (no multi-threading)
-
-  return this->validateGroups(threadGroups[0],sam,this->getThreadElms());
+  return this->validateGroups(threadGroups,sam,this->getThreadElms());
 }
 
 
-bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
+bool ASMLRSpline::checkThreadGroups (const ThreadGroups& groups,
                                      const std::vector<const LR::LRSpline*>& bases,
                                      const LR::LRSpline* threadBasis)
 {
@@ -433,16 +423,21 @@ bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
   for (size_t gId = 1; gId <= groups.size(); gId++)
     for (size_t bId = 1; bId <= bases.size(); bId++)
     {
-      IntSet nodes;
+      IntSet nodes; // the functions of the tasks checked so far
       const LR::LRSpline* basis = bases[bId-1];
-      for (int elm : groups[gId-1]) {
-        RealArray midpoint = threadBasis->getElement(elm)->midpoint();
-        int bElm = basis->getElementContaining(midpoint);
-        for (const LR::Basisfunction* func : basis->getElement(bElm)->support())
-          if (!nodes.insert(func->getId()).second) {
+      for (const IntVec& task : groups[gId-1]) {
+        IntSet taskNodes;
+        for (int elm : task) {
+          RealArray midpoint = threadBasis->getElement(elm)->midpoint();
+          int bElm = basis->getElementContaining(midpoint);
+          for (const LR::Basisfunction* func : basis->getElement(bElm)->support())
+            taskNodes.insert(func->getId());
+        }
+        for (int func : taskNodes)
+          if (!nodes.insert(func).second) {
             std::cerr <<" *** ASMLRSpline::checkThreadGroups: Function "
-                      << func->getId() <<" on basis "<< bId
-                      <<" is present for multiple elements in group "<< gId
+                      << func <<" on basis "<< bId
+                      <<" is present for multiple tasks in group "<< gId
                       << std::endl;
             ok = false;
           }

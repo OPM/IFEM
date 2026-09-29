@@ -49,6 +49,7 @@ class VecFunc;
 class Vec3;
 class Tensor;
 class SAM;
+class ThreadGroups;
 
 namespace ASM {
   class InterfaceChecker;
@@ -1099,29 +1100,28 @@ protected:
   //! \param[in] sam Data for managing the assembly of the equation system
   //! \param[in] elms 0-based connectivity index of the elements in the groups,
   //! the group entries are the connectivity indices themselves if empty
-  //! \param[in] iTGroup Number of groups preceding these, for the outprint
-  //! \return \e false if two elements of a group contribute to one equation
-  //! \details Equations of global %Lagrange multipliers are not checked,
+  //! \return \e false if two tasks of a color contribute to one equation
+  //! \details The elements of a task are assembled in sequence by one thread,
+  //! so only elements of different tasks of a color may be in conflict.
+  //! Equations of global %Lagrange multipliers are not checked,
   //! see getElmWriteNodes().
-  bool validateGroups(const IntMat& groups, const SAM* sam,
-                      const IntVec& elms = {}, int iTGroup = 0) const;
-  //! \brief Validates a group of element stripes against the data in %SAM.
-  //! \param[in] stripes The element stripes of the group, one per thread
-  //! \param[in] sam Data for managing the assembly of the equation system
-  //! \param[in] iTGroup 1-based index of the group, for the outprint
-  //! \return \e false if two stripes contribute to one equation
-  //! \details The elements of a stripe are assembled in sequence by one
-  //! thread, so only elements of different stripes may be in conflict.
-  //! Equations of global %Lagrange multipliers are not checked.
-  bool validateStripes(const IntMat& stripes, const SAM* sam,
-                       int iTGroup) const;
+  bool validateGroups(const ThreadGroups& groups, const SAM* sam,
+                      const IntVec& elms = {}) const;
 
 public:
-  //! \brief Colors elements such that no two elements of a color share a node.
+  //! \brief Colors tasks such that no two tasks of a color share a node.
+  //! \param[out] groups The colored tasks
   //! \param[in] elmNodes The 0-based nodes each element writes to
-  //! \return The elements of each color, in ascending order
-  //! \details The coloring algorithm is selected through ASM::coloring.
-  static IntMat colorElements(const IntMat& elmNodes);
+  //! \param[in] tasks The elements of each task, one task per element if empty
+  //! \details A task writes to the nodes of all its elements. Single-element
+  //! tasks are colored by the algorithm selected through ASM::coloring, while
+  //! other tasks, typically tiles of a structured grid, are colored greedily in
+  //! their given order.
+  static void colorTasks(ThreadGroups& groups, const IntMat& elmNodes,
+                         const IntMat& tasks = {});
+
+  //! \brief Returns \e true if more than one thread is available.
+  static bool multiThreaded();
 
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
 

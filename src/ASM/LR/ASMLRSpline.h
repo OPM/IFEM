@@ -216,7 +216,7 @@ protected:
   //! \param[in] groups The generated thread groups
   //! \param[in] bases The bases to check for
   //! \param[in] threadBasis The LRSpline the element groups are derived from
-  static bool checkThreadGroups(const IntMat& groups,
+  static bool checkThreadGroups(const ThreadGroups& groups,
                                 const std::vector<const LR::LRSpline*>& bases,
                                 const LR::LRSpline* threadBasis);
 

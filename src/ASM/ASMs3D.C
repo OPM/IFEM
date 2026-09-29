@@ -190,8 +190,7 @@ void ASMs3D::clear (bool retainGeometry)
   nxMap.clear();
 
   // Erase threading group data
-  threadGroupsVol[0].clear();
-  threadGroupsVol[1].clear();
+  threadGroupsVol = ThreadGroups();
   threadGroupsFace.clear();
 
   myCache.clear();
@@ -827,21 +826,18 @@ void ASMs3D::closeBoundaries (int dir, int basis, int master)
       for (int i3 = 1; i3 <= n3; i3++)
         for (int i2 = 1; i2 <= n2; i2++, master += n1)
           this->makePeriodic(master,master+n1-1,dirs);
-      threadGroupsVol.stripDir = ThreadGroups::U;
       break;
 
     case 2: // Faces are closed in J-direction
       for (int i3 = 1; i3 <= n3; i3++, master += n1*(n2-1))
         for (int i1 = 1; i1 <= n1; i1++, master++)
           this->makePeriodic(master,master+n1*(n2-1),dirs);
-      threadGroupsVol.stripDir = ThreadGroups::V;
       break;
 
     case 3: // Faces are closed in K-direction
       for (int i2 = 1; i2 <= n2; i2++)
         for (int i1 = 1; i1 <= n1; i1++, master++)
           this->makePeriodic(master,master+n1*n2*(n3-1),dirs);
-      threadGroupsVol.stripDir = ThreadGroups::W;
       break;
     }
 }
@@ -918,7 +914,6 @@ bool ASMs3D::collapseFace (int face, int edge, int basis)
           }
         }
 
-      threadGroupsVol.stripDir = ThreadGroups::U;
       break;
 
     case 4: // Back face (positive J-direction)
@@ -956,7 +951,6 @@ bool ASMs3D::collapseFace (int face, int edge, int basis)
           }
         }
 
-      threadGroupsVol.stripDir = ThreadGroups::V;
       break;
 
     case 6: // Top face (positive K-direction)
@@ -991,7 +985,6 @@ bool ASMs3D::collapseFace (int face, int edge, int basis)
           }
         }
 
-      threadGroupsVol.stripDir = ThreadGroups::W;
       break;
 
     default:
@@ -1510,19 +1503,6 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
   // The parent class method takes care of the corner nodes with direct
   // evaluation of the Dirichlet functions (since they are interpolatory)
   return this->ASMbase::updateDirichlet(func,vfunc,time,g2l,tangent);
-}
-
-
-bool ASMs3D::selfInterconnect (const std::vector<Ipair>& nodes, double xtol)
-{
-  if (threadGroupsVol.stripDir != ThreadGroups::NONE)
-    IFEM::cout <<"  ** ASMs3D::selfInterconnect: Multi-threading deactivated"
-               <<" for Patch "<< idx+1 << std::endl;
-  threadGroupsVol.stripDir = ThreadGroups::NONE;
-  for (std::pair<const char,ThreadGroups>& group : threadGroupsFace)
-    group.second.stripDir = ThreadGroups::NONE;
-
-  return this->ASMstruct::selfInterconnect(nodes,xtol);
 }
 
 
@@ -2109,7 +2089,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
+    oneGroup.concurrent(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
 
   // === Assembly loop over all elements in the patch ==========================
@@ -2383,7 +2363,7 @@ bool ASMs3D::integrate (Integrand& integrand,
   const int nel2 = n2 - p2 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  if (glInt.threadSafe()) oneGroup.concurrent(nel);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
 
 
@@ -3515,99 +3495,69 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence,
-                                   bool ignoreGlobalLM)
+void ASMs3D::generateThreadGroups (const Integrand&, bool silence, bool)
 {
-  if (threadGroupsVol.stripDir == ThreadGroups::NONE) {
-    threadGroupsVol.oneGroup(nel);
-    projThreadGroups.oneGroup(nel);
-    if (this->getBasis(ASM::PROJECTION_BASIS_2)) {
-      const Go::SplineVolume* prj = this->getBasis(ASM::PROJECTION_BASIS_2);
-      const int n1 = prj->numCoefs(0);
-      const int n2 = prj->numCoefs(1);
-      const int n3 = prj->numCoefs(2);
-      const int p1 = prj->order(0) - 1;
-      const int p2 = prj->order(1) - 1;
-      const int p3 = prj->order(2) - 1;
-      proj2ThreadGroups.oneGroup((n1-p1)*(n2-p2)*(n3-p3));
-    }
-  }
-  else
-    this->generateThreadGroups(svol->order(0)-1, svol->order(1)-1,
-                               svol->order(2)-1, silence, ignoreGlobalLM);
+  this->generateTileGroups(svol->order(0)-1, svol->order(1)-1,
+                           svol->order(2)-1, silence);
 }
 
 
-void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
-                                   bool silence, bool ignoreGlobalLM)
+namespace
 {
-  // Lambda function for setting up thread groups for a basis.
-  auto&& genThreadGroups = [](ThreadGroups& tg, const Go::SplineVolume* svol,
-                              int strip1 = 0, int strip2 = 0, int strip3 = 0)
+  //! \brief Flags the non-zero knot spans of a spline volume.
+  void knotSpans (const Go::SplineVolume* basis,
+                  std::array<std::vector<bool>,3>& el)
   {
-    const int p1 = svol->order(0) - 1;
-    const int p2 = svol->order(1) - 1;
-    const int p3 = svol->order(2) - 1;
-    const int n1 = svol->numCoefs(0);
-    const int n2 = svol->numCoefs(1);
-    const int n3 = svol->numCoefs(2);
+    for (int d = 0; d < 3; d++)
+      for (int i = basis->order(d)-1; i < basis->numCoefs(d); i++)
+        el[d].push_back(basis->knotSpan(d,i) > 0.0);
+  }
+}
 
-    std::vector<bool> el1, el2, el3;
-    el1.reserve(n1 - p1);
-    el2.reserve(n2 - p2);
-    el3.reserve(n3 - p3);
 
-    int ii;
-    for (ii = p1; ii < n1; ii++)
-      el1.push_back(svol->knotSpan(0,ii) > 0.0);
-    for (ii = p2; ii < n2; ii++)
-      el2.push_back(svol->knotSpan(1,ii) > 0.0);
-    for (ii = p3; ii < n3; ii++)
-      el3.push_back(svol->knotSpan(2,ii) > 0.0);
-
-    tg.calcGroups(el1, el2, el3,
-                  strip1 > 0 ? strip1 : p1,
-                  strip2 > 0 ? strip2 : p2,
-                  strip3 > 0 ? strip3 : p3);
+void ASMs3D::generateTileGroups (size_t tile1, size_t tile2, size_t tile3,
+                                 bool silence)
+{
+  // Lambda function coloring the tiles of a basis without constraints.
+  auto&& parityGroups = [](ThreadGroups& tg, const Go::SplineVolume* basis)
+  {
+    std::array<std::vector<bool>,3> el;
+    knotSpans(basis,el);
+    if (!multiThreaded())
+      tg.sequential(el[0].size()*el[1].size()*el[2].size());
+    else
+    {
+      IntVec parity;
+      const IntMat tiles = ThreadGroups::tiles(el[0], el[1], el[2],
+                                               basis->order(0)-1,
+                                               basis->order(1)-1,
+                                               basis->order(2)-1, &parity);
+      tg.setColors(tiles,parity);
+    }
   };
 
-  genThreadGroups(threadGroupsVol, svol.get(), strip1, strip2, strip3);
+  if (!multiThreaded())
+    threadGroupsVol.sequential(nel);
+  else
+  {
+    std::array<std::vector<bool>,3> el;
+    knotSpans(svol.get(),el);
+    colorTasks(threadGroupsVol, this->getElmWriteNodes(),
+               ThreadGroups::tiles(el[0],el[1],el[2],tile1,tile2,tile3));
+  }
+
   if (this->separateProjectionBasis())
-    genThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
+    parityGroups(projThreadGroups,this->getBasis(ASM::PROJECTION_BASIS));
   else
     projThreadGroups = threadGroupsVol;
   if (this->getBasis(ASM::PROJECTION_BASIS_2))
-    genThreadGroups(proj2ThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
-  if (silence || threadGroupsVol.size() < 2) return;
+    parityGroups(proj2ThreadGroups,this->getBasis(ASM::PROJECTION_BASIS_2));
 
-  IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
-  for (size_t i = 0; i < threadGroupsVol.size(); i++)
+  if (!silence && threadGroupsVol.size() > 1)
   {
-    std::vector< std::set<int> > nodes(threadGroupsVol[i].size());
-
-    IFEM::cout <<"\n Thread group "<< i+1;
-    for (size_t j = 0; j < threadGroupsVol[i].size(); j++)
-    {
-      IFEM::cout <<"\n\tthread "<< j+1
-                 << ": "<< threadGroupsVol[i][j].size() <<" elements";
-      size_t k, l, nzerovol = 0;
-      for (k = 0; k < threadGroupsVol[i][j].size(); k++)
-      {
-        int iel = threadGroupsVol[i][j][k];
-        if (MLGE[iel] > 0)
-          for (l = 0; l < MNPC[iel].size(); l++)
-            nodes[j].insert(MNPC[iel][l]);
-        else
-          nzerovol++;
-      }
-      if (nzerovol)
-        IFEM::cout <<" ("<< threadGroupsVol[i][j].size() - nzerovol <<" real)";
-
-      // Verify that the nodes on this thread are not present on the others
-      this->checkThreadGroups(nodes, j, ignoreGlobalLM);
-    }
+    IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
+    threadGroupsVol.analyze();
   }
-  IFEM::cout << std::endl;
 }
 
 
@@ -3618,79 +3568,53 @@ void ASMs3D::changeNumThreads ()
 }
 
 
-void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
+void ASMs3D::generateThreadGroups (char lIndex, bool, bool)
 {
-  std::map<char,ThreadGroups>::iterator tit = threadGroupsFace.find(lIndex);
-  if (tit != threadGroupsFace.end())
-  {
-    if (tit->second.stripDir == ThreadGroups::NONE)
-      tit->second.oneGroup(nel);
-  }
-  else
-    this->generateThreadGroups(svol->order(0)-1, svol->order(1)-1,
-                               svol->order(2)-1, lIndex, silence, false);
+  if (threadGroupsFace.find(lIndex) == threadGroupsFace.end())
+    this->generateTileGroups(svol->order(0)-1, svol->order(1)-1,
+                             svol->order(2)-1, lIndex);
 }
 
 
-void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
-                                   char lIndex, bool silence, bool)
+void ASMs3D::generateTileGroups (size_t tile1, size_t tile2, size_t tile3,
+                                 char lIndex)
 {
-  const int p1 = svol->order(0) - 1;
-  const int p2 = svol->order(1) - 1;
-  const int p3 = svol->order(2) - 1;
-  const int n1 = svol->numCoefs(0);
-  const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
-
-  // Flag the non-zero knot-spans
-  std::vector<bool> el1, el2, el3;
-  if (lIndex > 2) {
-    el1.reserve(n1-p1);
-    for (int i = p1; i < n1; i++)
-      el1.push_back(svol->knotSpan(0,i) > 0.0);
-  }
-  if (lIndex < 3 || lIndex > 4) {
-    el2.reserve(n2-p2);
-    for (int i = p2; i < n2; i++)
-      el2.push_back(svol->knotSpan(1,i) > 0.0);
-  }
-  if (lIndex < 6) {
-    el3.reserve(n3-p3);
-    for (int i = p3; i < n3; i++)
-      el3.push_back(svol->knotSpan(2,i) > 0.0);
-  }
-
-  ThreadGroups& fGrp = threadGroupsFace[lIndex];
-  switch (lIndex)
-    {
-    case 1:
-    case 2:
-      fGrp.calcGroups(el2,el3,strip2,strip3);
-      break;
-    case 3:
-    case 4:
-      fGrp.calcGroups(el1,el3,strip1,strip3);
-      break;
-    default:
-      fGrp.calcGroups(el1,el2,strip1,strip2);
-    }
-
   // Find elements that are on the boundary face 'lIndex'
   IntVec map;
   this->findBoundaryElms(map,lIndex);
 
-  fGrp.applyMap(map);
-
-  if (silence || fGrp.size() < 2) return;
-
-  for (size_t i = 0; i < fGrp.size(); i++)
+  ThreadGroups& fGrp = threadGroupsFace[lIndex];
+  if (!multiThreaded())
   {
-    IFEM::cout <<"\n Thread group "<< i+1 <<" for boundary face "<< (int)lIndex;
-    for (size_t j = 0; j < fGrp[i].size(); j++)
-      IFEM::cout <<"\n\tthread "<< j+1
-                 << ": "<< fGrp[i][j].size() <<" elements";
+    fGrp.sequential(map.size());
+    fGrp.applyMap(map);
+    return;
   }
-  IFEM::cout << std::endl;
+
+  std::array<std::vector<bool>,3> el;
+  knotSpans(svol.get(),el);
+
+  IntMat tiles;
+  switch (lIndex)
+    {
+    case 1:
+    case 2:
+      tiles = ThreadGroups::tiles(el[1],el[2],tile2,tile3);
+      break;
+    case 3:
+    case 4:
+      tiles = ThreadGroups::tiles(el[0],el[2],tile1,tile3);
+      break;
+    default:
+      tiles = ThreadGroups::tiles(el[0],el[1],tile1,tile2);
+    }
+
+  // The boundary integrals assemble through the volume elements
+  for (IntVec& tile : tiles)
+    for (int& iel : tile)
+      iel = map[iel];
+
+  colorTasks(fGrp,this->getElmWriteNodes(),tiles);
 }
 
 
@@ -3992,16 +3916,9 @@ void ASMs3D::generateProjThreadGroupsFromElms (const IntVec& elms)
 }
 
 
-bool ASMs3D::addRigidCpl (int lindx, int ldim, int basis,
-                          int& gMaster, const Vec3& Xmaster, bool extraPt)
+bool ASMs3D::validateThreadGroups (const SAM* sam) const
 {
-  if (threadGroupsVol.stripDir != ThreadGroups::NONE)
-    IFEM::cout <<"  ** ASMs3D::addRigidCpl: Multi-threading deactivated"
-               <<" for Patch "<< idx+1 << std::endl;
-  threadGroupsVol.stripDir = ThreadGroups::NONE;
-  threadGroupsFace[lindx].stripDir = ThreadGroups::NONE;
-
-  return this->ASMstruct::addRigidCpl(lindx,ldim,basis,gMaster,Xmaster,extraPt);
+  return this->validateGroups(threadGroupsVol,sam);
 }
 
 

@@ -372,12 +372,10 @@ void ASMu2DLag::getBoundaryNodes (int lIndex, IntVec& nodes,
 void ASMu2DLag::generateThreadGroups (const Integrand&, bool silence,
                                       bool separateGroup1noded)
 {
-#ifdef USE_OPENMP
-  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
+  if (multiThreaded())
     this->generateThreadGroupsMultiColored(silence, separateGroup1noded);
   else
-#endif
-    threadGroups.oneGroup(nel); // No threading, all elements in one group
+    threadGroups.sequential(nel); // No threading, all elements in sequence
 }
 
 
@@ -407,40 +405,33 @@ void ASMu2DLag::generateThreadGroupsMultiColored (bool silence,
       }
   }
 
-  threadGroups[0] = colorElements(elmNodes);
-  threadGroups[1].clear();
+  ThreadGroups colored;
+  colorTasks(colored,elmNodes);
 
-  if (!oneNoded.empty())
+  // The single-noded elements come first, in a color of their own
+  std::vector<bool> isOneNoded(nel,false);
+  IntMat tasks;
+  IntVec colors;
+  for (int iel : oneNoded)
   {
-    std::vector<bool> isOneNoded(nel,false);
-    for (int iel : oneNoded)
-      isOneNoded[iel] = true;
-
-    IntMat& groups = threadGroups[0];
-    for (IntVec& group : groups)
-      group.erase(std::remove_if(group.begin(),group.end(),
-                                 [&isOneNoded](int iel)
-                                 { return isOneNoded[iel]; }),
-                  group.end());
-    groups.erase(std::remove_if(groups.begin(),groups.end(),
-                                [](const IntVec& group)
-                                { return group.empty(); }),
-                 groups.end());
-    groups.insert(groups.begin(),oneNoded);
+    isOneNoded[iel] = true;
+    tasks.push_back({iel});
+    colors.push_back(0);
   }
 
+  const int offset = oneNoded.empty() ? 0 : 1;
+  for (size_t c = 0; c < colored.size(); c++)
+    for (const IntVec& task : colored[c])
+      if (!isOneNoded[task.front()])
+      {
+        tasks.push_back(task);
+        colors.push_back(c+offset);
+      }
+
+  threadGroups.setColors(tasks,colors);
+
   if (!silence)
-    threadGroups.analyzeUnstruct(true);
-}
-
-
-bool ASMu2DLag::validateThreadGroups (const SAM* sam) const
-{
-  IFEM::cout <<"\nValidating element groups for multi-threaded assembly."
-             << std::endl;
-
-  // The groups are colors, whose elements are all assembled concurrently
-  return this->validateGroups(threadGroups[0],sam);
+    threadGroups.analyze(true);
 }
 
 
@@ -491,18 +482,19 @@ bool ASMu2DLag::integrate (Integrand& integrand,
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
-  const IntMat& group = glInt.threadSafe() ? oneGroup[0] : threadGroups[0];
+    oneGroup.concurrent(nel, myElms);
+  const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
 
 
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t t = 0; t < group.size() && ok; t++)
+  for (size_t g = 0; g < groups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
-    for (int iel : group[t])
-      if (ok)
-        ok = this->integrateElm(integrand,glInt,iel,cache,time);
+    for (size_t t = 0; t < groups[g].size(); t++)
+      for (int iel : groups[g][t])
+        if (ok)
+          ok = this->integrateElm(integrand,glInt,iel,cache,time);
 
   if (ASM::cachePolicy == ASM::PRE_CACHE)
     cache.clear();
