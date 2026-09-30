@@ -20,7 +20,6 @@ class TestSIM : public SIM2D
 {
 public:
   TestSIM() : SIM2D(4) {}
-  virtual ~TestSIM() {}
   const InitialCondVec& getIC() const { return myICs.begin()->second; }
 };
 
@@ -50,25 +49,27 @@ TEST_CASE("TestInitialConditions.Parse")
 
   // Recognize both comp and component attributes and correct priority
   // Boundary conditions
-  for (int i = 1; i < 5; i++)
-    REQUIRE(static_cast<double>(i) == (*sim.getSclFunc(i))(Vec3()));
+  for (int i = 1; i <= 4; i++)
+    CHECK(static_cast<double>(i) == (*sim.getSclFunc(i))(Vec3()));
 
   // Initial conditions
   for (const SIMinput::ICInfo& info : sim.getIC())
-    switch (info.component) {
+    switch (info.component)
+      {
       case 1:
-        REQUIRE(info.function == "1");
+        CHECK(info.function == "1");
         break;
       case 2:
-        REQUIRE(info.function == "2");
+        CHECK(info.function == "2");
         break;
       case 3:
-        REQUIRE(info.function == "3");
+        CHECK(info.function == "3");
         break;
       case 4:
-        REQUIRE(info.function == "4");
+        CHECK(info.function == "4");
         break;
       default:
-        REQUIRE(false);
+        std::cerr <<" *** ICInfo: Invalid component, "<< info.component << std::endl;
+        CHECK(false);
       }
 }
