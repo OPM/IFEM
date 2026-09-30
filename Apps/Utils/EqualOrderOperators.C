@@ -53,6 +53,16 @@ namespace
 }
 
 
+std::pair<double,double> WeakOperators::FormConvectionWeights (ConvectionForm form)
+{
+  switch (form) {
+    case WeakOperators::CONSERVATIVE:  return { 0.0, -1.0};
+    case WeakOperators::SKEWSYMMETRIC: return { 0.5, -0.5};
+    default:                           return { 1.0,  0.0};
+  }
+}
+
+
 void EqualOrderOperators::Weak::Advection (Matrix& EM, const FiniteElement& fe,
                                            const Vec3& AC,
                                            double scale,
@@ -60,24 +70,30 @@ void EqualOrderOperators::Weak::Advection (Matrix& EM, const FiniteElement& fe,
                                            int basis)
 {
   const size_t cmp = EM.rows() / fe.basis(basis).size();
+  const Vector& N = fe.basis(basis);
+  const Matrix& D = fe.grad(basis);
 
+  // The term is made of the piece which advects the trial function and the
+  // piece which advects the test function
+  const auto [cw, tw] = WeakOperators::FormConvectionWeights(form);
+
+  // One component at a time and nothing across them, so a vector problem
+  // builds the one matrix they share and spreads it over the diagonal
   Matrix tmp;
   Matrix& C = cmp > 1 ? tmp : EM;
+  bool addTo = cmp == 1;
 
-  // Sum convection for each direction
-  for (size_t k = 1; k <= fe.grad(basis).cols(); ++k)
-    if (form == WeakOperators::CONVECTIVE)
-      C.outer_product(fe.basis(basis), fe.grad(basis).getColumn(k),
-                      k > 1 || cmp == 1,  scale*AC[k-1]*fe.detJxW);
-    else if (form == WeakOperators::CONSERVATIVE)
-      C.outer_product(fe.grad(basis).getColumn(k), fe.basis(basis),
-                      k > 1 || cmp == 1, -scale*AC[k-1]*fe.detJxW);
-    else if (form == WeakOperators::SKEWSYMMETRIC) {
-      C.outer_product(fe.basis(basis), fe.grad(basis).getColumn(k),
-                      k > 1 || cmp == 1, 0.5*scale*AC[k-1]*fe.detJxW);
-      C.outer_product(fe.grad(basis).getColumn(k), fe.basis(basis),
-                      true,             -0.5*scale*AC[k-1]*fe.detJxW);
+  for (size_t k = 1; k <= D.cols(); ++k) {
+    const double a = scale*AC[k-1]*fe.detJxW;
+    if (cw != 0.0) {
+      C.outer_product(N, D.getColumn(k), addTo, cw*a);
+      addTo = true;
     }
+    if (tw != 0.0) {
+      C.outer_product(D.getColumn(k), N, addTo, tw*a);
+      addTo = true;
+    }
+  }
 
   if (cmp > 1)
     for (size_t k = 1; k <= cmp; ++k)
@@ -97,35 +113,27 @@ void EqualOrderOperators::Weak::Convection (Matrix& EM, const FiniteElement& fe,
   const Vector& N = fe.basis(basis);
   const Matrix& D = fe.grad(basis);
 
-  Matrix B;
-  if (form != WeakOperators::CONSERVATIVE)
-    B.outer_product(N, N);
+  const auto [cw, tw] = WeakOperators::FormConvectionWeights(form);
+
+  Matrix NN;
+  if (cw != 0.0)
+    NN.outer_product(N, N);
+
+  Vector DU(N.size());
+  for (size_t m = 1; m <= cmp; ++m)
+    DU.add(D.getColumn(m), U[m-1]);
+
+  Matrix C(N.size(), N.size());
   for (size_t k = 1; k <= cmp; ++k)
     for (size_t l = 1; l <= cmp; ++l) {
-      Matrix C(N.size(), N.size());
-      switch (form) {
-        case WeakOperators::CONVECTIVE:
-          C.add(B, dUdX(k,l));
-          if (k == l)
-            for (size_t m = 1; m <= cmp; ++m)
-              C.outer_product(N, D.getColumn(m), true, U[m-1]);
-          break;
-        case WeakOperators::CONSERVATIVE:
-          C.outer_product(D.getColumn(l), N, false, -U[k-1]);
-          if (k == l)
-            for (size_t m = 1; m <= cmp; ++m)
-              C.outer_product(D.getColumn(m), N, true, -U[m-1]);
-          break;
-        case WeakOperators::SKEWSYMMETRIC:
-          C.add(B, 0.5*dUdX(k,l));
-          C.outer_product(D.getColumn(l), N, true, -0.5*U[k-1]);
-          if (k == l)
-            for (size_t m = 1; m <= cmp; ++m) {
-              C.outer_product(N, D.getColumn(m), true, 0.5*U[m-1]);
-              C.outer_product(D.getColumn(m), N, true, -0.5*U[m-1]);
-            }
-          break;
+      C.fill(0.0);
+      if (cw != 0.0) C.add(NN, cw*dUdX(k,l));
+      if (tw != 0.0) C.outer_product(D.getColumn(l), N, true, tw*U[k-1]);
+      if (k == l) {
+        if (cw != 0.0) C.outer_product(N, DU, true, cw);
+        if (tw != 0.0) C.outer_product(DU, N, true, tw);
       }
+
       for (size_t i = 1; i <= N.size(); i++)
         for (size_t j = 1; j <= N.size(); j++)
           EM((i-1)*cmp+k,(j-1)*cmp+l) += coef*C(i,j);

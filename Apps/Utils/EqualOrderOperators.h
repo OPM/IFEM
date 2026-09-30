@@ -15,6 +15,8 @@
 
 #include "MatVec.h"
 
+#include <utility>
+
 class FiniteElement;
 class Tensor;
 class Vec3;
@@ -29,6 +31,11 @@ namespace WeakOperators
     CONSERVATIVE = 1, //!< -u_i u_j v_i,j
     SKEWSYMMETRIC = 2 //!< (u_i u_j,i v_j - u_i u_j v_i,j)/2
   };
+
+  //! \brief Returns the weights making up a given form of the convection term.
+  //! \param[in] form The form to weigh for
+  //! \return The weight of the advection matrix and that of its transpose
+  std::pair<double,double> FormConvectionWeights(ConvectionForm form);
 }
 
 
