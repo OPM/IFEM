@@ -49,16 +49,6 @@ void GradientDotVector (Matrix& W,
 }
 
 
-//! \brief The weights of the convective and the conservative term in a form.
-std::pair<double,double> FormWeights (WeakOperators::ConvectionForm form)
-{
-  switch (form) {
-    case WeakOperators::CONSERVATIVE:  return { 0.0,  -1.0};
-    case WeakOperators::SKEWSYMMETRIC: return { 0.5,  -0.5};
-    default:                           return { 1.0,   0.0};
-  }
-}
-
 
 //! \brief Combines terms for interface integrals in a weak form.
 void interfaceCombination (Matrix& out,
@@ -108,7 +98,7 @@ void PiolaOperators::Weak::Advection (Matrices& EM,
   Matrix A;
   AdvectionConvInt(A, fe, AC, scale);
 
-  const auto [cw, tw] = FormWeights(cnvForm);
+  const auto [cw, tw] = WeakOperators::FormConvectionWeights(cnvForm);
   Matrix C(A.rows(), A.cols());
   for (size_t i = 1; i <= C.rows(); ++i)
     for (size_t j = 1; j <= C.cols(); ++j)
@@ -140,7 +130,7 @@ void PiolaOperators::Weak::Convection (Matrices& EM,
   GradientDotVector(W, fe, U);
   M.multiply(W, fe.P_contra.N, true, false, false, scale*fe.detJxW);
 
-  const auto [cw, tw] = FormWeights(form);
+  const auto [cw, tw] = WeakOperators::FormConvectionWeights(form);
   Matrix C(A.rows(), A.cols());
   for (size_t i = 1; i <= C.rows(); ++i)
     for (size_t j = 1; j <= C.cols(); ++j)
@@ -255,7 +245,7 @@ void PiolaOperators::Residual::Convection (Vectors& EV, const FiniteElement& fe,
                                            WeakOperators::ConvectionForm form)
 {
   const size_t nsd = fe.grad(1).cols();
-  const auto [cw, tw] = FormWeights(form);
+  const auto [cw, tw] = WeakOperators::FormConvectionWeights(form);
 
   Vector r(fe.P_contra.dNdX.cols());
 
