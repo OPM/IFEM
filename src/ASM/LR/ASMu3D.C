@@ -2442,7 +2442,8 @@ void ASMu3D::findBoundaryElms (IntVec& elms, int lIndex, int orient) const
     return;
 
   std::vector<LR::Element*> elements;
-  this->getBasis(1)->getEdgeElements(elements,getFaceEnum(lIndex));
+  this->getBasis(ASM::INTEGRATION_BASIS)->getEdgeElements(elements,
+                                                          getFaceEnum(lIndex));
 
   if (orient >= 0)
     std::sort(elements.begin(), elements.end(),

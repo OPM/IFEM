@@ -697,7 +697,9 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
 
   // The two sides traverse the interface in opposite directions, so a degree
   // of freedom which follows the parametrization has the opposite sign on the
-  // two sides constraint rather than merged into one degree of freedom.
+  // two sides and describes the same velocity. Such a pair has to be tied by a
+  // constraint rather than merged into one degree of freedom. A div-compatible
+  // basis carries a single component per node, hence the local DOF is 1.
   const bool flipSign = revers && this->dofsFollowParametrization(basis);
 
   const double xtol = 1.0e-4;
@@ -3029,8 +3031,11 @@ void ASMu2D::findBoundaryElms (IntVec& elms, int lIndex, int orient) const
   if (lIndex < 1 || lIndex > 4)
     return;
 
+  // The numbers handed out here index the connectivity of the patch, which
+  // is built over the elements of the integration basis
   std::vector<LR::Element*> elements;
-  this->getBasis(1)->getEdgeElements(elements, getEdgeEnum(lIndex));
+  this->getBasis(ASM::INTEGRATION_BASIS)->getEdgeElements(elements,
+                                                          getEdgeEnum(lIndex));
 
   if (orient >= 0)
     std::sort(elements.begin(), elements.end(),
