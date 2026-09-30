@@ -31,6 +31,27 @@
 
 namespace eig { extern bool verbose; }
 
+namespace
+{
+  //! \brief Sets the element coloring algorithm from its name.
+  //! \return \e false if \a name is not a known coloring algorithm
+  bool setColoring (const std::string& name)
+  {
+    if (name == "firstfit")
+      ASM::coloring = ASM::FIRST_FIT;
+    else if (name == "largestfirst")
+      ASM::coloring = ASM::LARGEST_FIRST;
+    else if (name == "dsatur")
+      ASM::coloring = ASM::DSATUR;
+    else if (name == "rlf")
+      ASM::coloring = ASM::RLF;
+    else
+      return false;
+
+    return true;
+  }
+}
+
 
 SIMoptions::SIMoptions ()
 {
@@ -127,6 +148,11 @@ bool SIMoptions::parseDiscretizationTag (const tinyxml2::XMLElement* elem)
     }
     if (cpolicy.empty() && discretization < ASM::Spline)
       ASM::cachePolicy = ASM::NO_CACHE; // Default no cache for Lagrange
+    std::string coloring;
+    if (utl::getAttribute(elem,"coloring",coloring,true) &&
+        !setColoring(coloring))
+      std::cerr <<"  ** SIMoptions::parseDiscretizationTag: Unknown coloring"
+                <<" algorithm \""<< coloring <<"\" (ignored)."<< std::endl;
   }
 
   else if (!strcasecmp(elem->Value(),"geometry")) {
@@ -317,6 +343,12 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     solver = LinAlg::ISTL;
   else if (!strcmp(argv[i],"-validateGroups"))
     validateGroups = true;
+  else if (!strcmp(argv[i],"-coloring") && i < argc-1)
+  {
+    if (!setColoring(argv[++i]))
+      std::cerr <<"  ** SIMoptions::parseOldOptions: Unknown coloring"
+                <<" algorithm \""<< argv[i] <<"\" (ignored)."<< std::endl;
+  }
   else if (!strncmp(argv[i],"-lag",4))
     discretization = ASM::Lagrange;
   else if (!strncmp(argv[i],"-tri",4))
@@ -470,6 +502,17 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
     os <<"\nLR-spline basis functions are used"; break;
   case ASM::SplineC1:
     os <<"\nSpline basis with C1-continuous patch interfaces is used"; break;
+  default: break;
+  }
+
+  switch (ASM::coloring) {
+  case ASM::FIRST_FIT:
+    os <<"\nElements are colored in element order"; break;
+  case ASM::DSATUR:
+    os <<"\nElements are colored by the DSatur algorithm"; break;
+  case ASM::RLF:
+    os <<"\nElements are colored by the recursive largest first algorithm";
+    break;
   default: break;
   }
 

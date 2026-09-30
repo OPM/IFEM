@@ -134,86 +134,87 @@ bool ASMu2D::assembleL2matrices (SystemMatrix& A, SystemVector& B,
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok = true;
-  for (size_t t = 0; t < projThreadGroups[0].size() && ok; t++)
+  for (size_t g = 0; g < projThreadGroups.size() && ok; g++)
 #pragma omp parallel for schedule(static)
-    for (int ielp : projThreadGroups[0][t])
-    {
-      double dA = 0.0;
-      Vector phi;
-      Matrix dNdu, Xnod, Jac;
-      Go::BasisPtsSf    spl1;
-      Go::BasisDerivsSf spl2;
-      const LR::Element* elm = proj->getElement(ielp);
-      int iel = lrspline->getElementContaining(elm->midpoint())+1;
-      int ielG = geo->getElementContaining(elm->midpoint())+1;
-
-      if (continuous)
+    for (size_t t = 0; t < projThreadGroups[g].size(); t++)
+      for (int ielp : projThreadGroups[g][t])
       {
-        // Set up control point (nodal) coordinates for current element
-        if (!this->getElementCoordinates(Xnod,iel)) {
-          ok = false;
-          continue;
-        } else if ((dA = 0.25*elm->area()) < 0.0) {
-          ok = false;
-          continue;
-        }
-      }
+        double dA = 0.0;
+        Vector phi;
+        Matrix dNdu, Xnod, Jac;
+        Go::BasisPtsSf    spl1;
+        Go::BasisDerivsSf spl2;
+        const LR::Element* elm = proj->getElement(ielp);
+        int iel = lrspline->getElementContaining(elm->midpoint())+1;
+        int ielG = geo->getElementContaining(elm->midpoint())+1;
 
-      // Compute parameter values of the Gauss points over this element
-      std::array<RealArray,2> gpar, unstrGpar;
-      this->getGaussPointParameters(gpar[0],0,ng1,ielp+1,xg,proj);
-      this->getGaussPointParameters(gpar[1],1,ng2,ielp+1,yg,proj);
-      expandTensorGrid(gpar.data(),unstrGpar.data());
-
-      // Evaluate the secondary solution at all integration points
-      Matrix sField;
-      if (!integrand.evaluate(sField,unstrGpar.data())) {
-        ok = false;
-        continue;
-      }
-
-      // Set up basis function size (for extractBasis subroutine)
-      size_t nbf = elm->nBasisFunctions();
-
-      // --- Integration loop over all Gauss points in each direction ----------
-
-      Matrix eA(nbf, nbf);
-      Vectors eB(sField.rows(), Vector(nbf));
-      int ip = 0;
-      for (int j = 0; j < ng2; j++)
-        for (int i = 0; i < ng1; i++, ip++)
+        if (continuous)
         {
-          if (continuous)
-          {
-            this->computeBasis(gpar[0][i],gpar[1][j],spl2,ielG-1,geo);
-            SplineUtils::extractBasis(spl2,phi,dNdu);
+          // Set up control point (nodal) coordinates for current element
+          if (!this->getElementCoordinates(Xnod,iel)) {
+            ok = false;
+            continue;
+          } else if ((dA = 0.25*elm->area()) < 0.0) {
+            ok = false;
+            continue;
           }
-
-          if (!continuous || separateProjBasis)
-          {
-            this->computeBasis(gpar[0][i],gpar[1][j],spl1,ielp,proj);
-            phi = spl1.basisValues;
-          }
-
-          // Compute the Jacobian inverse and derivatives
-          double dJw = 1.0;
-          if (continuous)
-          {
-            dJw = dA*wg[i]*wg[j]*utl::Jacobian(Jac,dNdu,Xnod,dNdu,false);
-            if (dJw == 0.0) continue; // skip singular points
-          }
-
-          // Integrate the mass matrix
-          eA.outer_product(phi, phi, true, dJw);
-
-          // Integrate the rhs vector B
-          for (size_t r = 1; r <= sField.rows(); r++)
-            eB[r-1].add(phi,sField(r,ip+1)*dJw);
         }
 
-      A.assemble(eA, gmnpc[ielp]);
-      B.assemble(eB, gmnpc[ielp], nnod);
-    }
+        // Compute parameter values of the Gauss points over this element
+        std::array<RealArray,2> gpar, unstrGpar;
+        this->getGaussPointParameters(gpar[0],0,ng1,ielp+1,xg,proj);
+        this->getGaussPointParameters(gpar[1],1,ng2,ielp+1,yg,proj);
+        expandTensorGrid(gpar.data(),unstrGpar.data());
+
+        // Evaluate the secondary solution at all integration points
+        Matrix sField;
+        if (!integrand.evaluate(sField,unstrGpar.data())) {
+          ok = false;
+          continue;
+        }
+
+        // Set up basis function size (for extractBasis subroutine)
+        size_t nbf = elm->nBasisFunctions();
+
+        // --- Integration loop over all Gauss points in each direction ----------
+
+        Matrix eA(nbf, nbf);
+        Vectors eB(sField.rows(), Vector(nbf));
+        int ip = 0;
+        for (int j = 0; j < ng2; j++)
+          for (int i = 0; i < ng1; i++, ip++)
+          {
+            if (continuous)
+            {
+              this->computeBasis(gpar[0][i],gpar[1][j],spl2,ielG-1,geo);
+              SplineUtils::extractBasis(spl2,phi,dNdu);
+            }
+
+            if (!continuous || separateProjBasis)
+            {
+              this->computeBasis(gpar[0][i],gpar[1][j],spl1,ielp,proj);
+              phi = spl1.basisValues;
+            }
+
+            // Compute the Jacobian inverse and derivatives
+            double dJw = 1.0;
+            if (continuous)
+            {
+              dJw = dA*wg[i]*wg[j]*utl::Jacobian(Jac,dNdu,Xnod,dNdu,false);
+              if (dJw == 0.0) continue; // skip singular points
+            }
+
+            // Integrate the mass matrix
+            eA.outer_product(phi, phi, true, dJw);
+
+            // Integrate the rhs vector B
+            for (size_t r = 1; r <= sField.rows(); r++)
+              eB[r-1].add(phi,sField(r,ip+1)*dJw);
+          }
+
+        A.assemble(eA, gmnpc[ielp]);
+        B.assemble(eB, gmnpc[ielp], nnod);
+      }
 
   return ok;
 }

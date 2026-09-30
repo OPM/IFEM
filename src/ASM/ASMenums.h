@@ -48,6 +48,16 @@ namespace ASM //! Assembly scope
 
   extern CachePolicy cachePolicy; //!< Chosen basis function cache policy
 
+  //! \brief Enum defining the element coloring algorithms for multi-threading.
+  enum ColoringAlgorithm {
+    FIRST_FIT,     //!< Greedy coloring in element order
+    LARGEST_FIRST, //!< Greedy coloring in order of decreasing degree
+    DSATUR,        //!< Greedy coloring by largest saturation degree first
+    RLF            //!< Recursive largest first
+  };
+
+  extern ColoringAlgorithm coloring; //!< Chosen element coloring algorithm
+
   //! \brief Enumeration of different basis types.
   //! \details Entries should have non-positive values
   enum BasisType {

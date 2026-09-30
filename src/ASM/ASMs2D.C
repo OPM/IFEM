@@ -38,8 +38,6 @@
 #include "Point.h"
 #include "Tensor.h"
 #include "MPC.h"
-#include "SAM.h"
-#include "DiagMatrix.h"
 #include "IFEM.h"
 #include <array>
 #include <utility>
@@ -223,8 +221,7 @@ void ASMs2D::clear (bool retainGeometry)
   nxMap.clear();
 
   // Erase threading group data
-  threadGroups[0].clear();
-  threadGroups[1].clear();
+  threadGroups = ThreadGroups();
 
   myCache.clear();
 }
@@ -764,13 +761,11 @@ void ASMs2D::closeBoundaries (int dir, int basis, int master)
     case 1: // Edges are closed in I-direction
       for (int i2 = 1; i2 <= n2; i2++, master += n1)
         this->makePeriodic(master,master+n1-1,dirs);
-      threadGroups.stripDir = ThreadGroups::U;
       break;
 
     case 2: // Edges are closed in J-direction
       for (int i1 = 1; i1 <= n1; i1++, master++)
         this->makePeriodic(master,master+n1*(n2-1),dirs);
-      threadGroups.stripDir = ThreadGroups::V;
       break;
     }
 }
@@ -825,8 +820,6 @@ bool ASMs2D::collapseEdge (int edge, int basis)
                 << node <<": "<< this->getCoord(node) << std::endl;
       return false;
     }
-
-  threadGroups.stripDir = edge <= 2 ? ThreadGroups::U : ThreadGroups::V;
 
   return true;
 }
@@ -1286,17 +1279,6 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
   // The parent class method takes care of the corner nodes with direct
   // evaluation of the Dirichlet functions (since they are interpolatory)
   return this->ASMbase::updateDirichlet(func,vfunc,time,g2l,tangent);
-}
-
-
-bool ASMs2D::selfInterconnect (const std::vector<Ipair>& nodes, double xtol)
-{
-  if (threadGroups.stripDir != ThreadGroups::NONE)
-    IFEM::cout <<"  ** ASMs2D::selfInterconnect: Multi-threading deactivated"
-               <<" for Patch "<< idx+1 << std::endl;
-  threadGroups.stripDir = ThreadGroups::NONE;
-
-  return this->ASMstruct::selfInterconnect(nodes,xtol);
 }
 
 
@@ -1790,7 +1772,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
+    oneGroup.concurrent(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
 
   // === Assembly loop over all elements in the patch ==========================
@@ -2082,7 +2064,7 @@ bool ASMs2D::integrate (Integrand& integrand,
   const int nel1 = surf->numCoefs_u() - p1 + 1;
 
   ThreadGroups oneGroup;
-  if (glInt.threadSafe()) oneGroup.oneStripe(nel);
+  if (glInt.threadSafe()) oneGroup.concurrent(nel);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
 
 
@@ -3133,88 +3115,63 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence,
-                                   bool ignoreGlobalLM)
+void ASMs2D::generateThreadGroups (const Integrand&, bool silence, bool)
 {
-  if (threadGroups.stripDir == ThreadGroups::NONE) {
-    threadGroups.oneGroup(nel);
-    projThreadGroups.oneGroup(nel);
-    if (this->getBasis(ASM::PROJECTION_BASIS_2)) {
-      const Go::SplineSurface* prj = this->getBasis(ASM::PROJECTION_BASIS_2);
-      const int n1 = prj->numCoefs_u();
-      const int n2 = prj->numCoefs_v();
-      const int p1 = prj->order_u() - 1;
-      const int p2 = prj->order_v() - 1;
-      proj2ThreadGroups.oneGroup((n1-p1)*(n2-p2));
-    }
-  }
-  else
-    this->generateThreadGroups(surf->order_u()-1, surf->order_v()-1,
-                               silence, ignoreGlobalLM);
+  this->generateTileGroups(surf->order_u()-1, surf->order_v()-1, silence);
 }
 
-void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2,
-                                   bool silence, bool ignoreGlobalLM)
+
+void ASMs2D::generateTileGroups (size_t tile1, size_t tile2, bool silence)
 {
-  // Lambda function for setting up thread groups for basis.
-  auto&& genThreadGroups = [](ThreadGroups& tg, const Go::SplineSurface* surf,
-                              int strip1 = 0, int strip2 = 0)
+  // Lambda function flagging the non-zero knot spans of a basis.
+  auto&& knotSpans = [](const Go::SplineSurface* basis,
+                        std::vector<bool>& el1, std::vector<bool>& el2)
   {
-    const int n1 = surf->numCoefs_u();
-    const int n2 = surf->numCoefs_v();
-    const int p1 = surf->order_u() - 1;
-    const int p2 = surf->order_v() - 1;
-
-    std::vector<bool> el1, el2;
-    el1.reserve(n1 - p1);
-    el2.reserve(n2 - p2);
-
-    int ii;
-    for (ii = p1; ii < n1; ii++)
-      el1.push_back(surf->knotSpan(0,ii) > 0.0);
-    for (ii = p2; ii < n2; ii++)
-      el2.push_back(surf->knotSpan(1,ii) > 0.0);
-
-    tg.calcGroups(el1, el2, strip1 > 0 ? strip1 : p1, strip2 > 0 ? strip2 : p2);
+    for (int i = basis->order_u()-1; i < basis->numCoefs_u(); i++)
+      el1.push_back(basis->knotSpan(0,i) > 0.0);
+    for (int i = basis->order_v()-1; i < basis->numCoefs_v(); i++)
+      el2.push_back(basis->knotSpan(1,i) > 0.0);
   };
 
-  genThreadGroups(threadGroups, surf.get(), strip1, strip2);
+  // Lambda function coloring the tiles of a basis without constraints.
+  auto&& parityGroups = [&knotSpans](ThreadGroups& tg,
+                                     const Go::SplineSurface* basis)
+  {
+    std::vector<bool> el1, el2;
+    knotSpans(basis,el1,el2);
+    if (!multiThreaded())
+      tg.sequential(el1.size()*el2.size());
+    else
+    {
+      IntVec parity;
+      const IntMat tiles = ThreadGroups::tiles(el1, el2, basis->order_u()-1,
+                                               basis->order_v()-1, &parity);
+      tg.setColors(tiles,parity);
+    }
+  };
+
+  if (!multiThreaded())
+    threadGroups.sequential(nel);
+  else
+  {
+    std::vector<bool> el1, el2;
+    knotSpans(surf.get(),el1,el2);
+    colorTasks(threadGroups, this->getElmWriteNodes(),
+               ThreadGroups::tiles(el1,el2,tile1,tile2));
+  }
+
   if (this->separateProjectionBasis())
-    genThreadGroups(projThreadGroups, this->getBasis(ASM::PROJECTION_BASIS));
+    parityGroups(projThreadGroups,this->getBasis(ASM::PROJECTION_BASIS));
   else
     projThreadGroups = threadGroups;
   if (this->getBasis(ASM::PROJECTION_BASIS_2))
-    genThreadGroups(proj2ThreadGroups, this->getBasis(ASM::PROJECTION_BASIS_2));
-  if (silence || threadGroups.size() < 2) return;
+    parityGroups(proj2ThreadGroups,this->getBasis(ASM::PROJECTION_BASIS_2));
 
-  IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
-  for (size_t i = 0; i < threadGroups.size(); i++)
+  if (!silence && threadGroups.size() > 1)
   {
-    std::vector< std::set<int> > nodes(threadGroups[i].size());
-
-    IFEM::cout <<"\n Thread group "<< i+1;
-    for (size_t j = 0; j < threadGroups[i].size(); j++)
-    {
-      IFEM::cout <<"\n\tthread "<< j+1
-                 << ": "<< threadGroups[i][j].size() <<" elements";
-      size_t k, l, nzeroar = 0;
-      for (k = 0; k < threadGroups[i][j].size(); k++)
-      {
-        int iel = threadGroups[i][j][k];
-        if (MLGE[iel] > 0)
-          for (l = 0; l < MNPC[iel].size(); l++)
-            nodes[j].insert(MNPC[iel][l]);
-        else
-          nzeroar++;
-      }
-      if (nzeroar > 0)
-        IFEM::cout <<" ("<< threadGroups[i][j].size() - nzeroar <<" real)";
-
-      // Verify that the nodes on this thread are not present on the others
-      this->checkThreadGroups(nodes, j, ignoreGlobalLM);
-    }
+    IFEM::cout <<"\nMultiple threads are utilized during element assembly.";
+    threadGroups.analyze();
   }
-  IFEM::cout << std::endl;
 }
 
 
@@ -3475,55 +3432,7 @@ void ASMs2D::generateProjThreadGroupsFromElms (const IntVec& elms)
 
 bool ASMs2D::validateThreadGroups (const SAM* sam) const
 {
-  IFEM::cout <<"\nValidating element groups for multi-threaded assembly."
-             << std::endl;
-
-  if (threadGroups[0].size() == 1)
-    return true; // Only one group (no multi-threading)
-
-  size_t nErr = 0;
-  int iTGroup = 0;
-  for (size_t g = 0; g < threadGroups.size(); g++)
-    for (const IntVec& group : threadGroups[g])
-    {
-      ++iTGroup;
-      size_t lErr = nErr;
-      DiagMatrix sysMat(sam->getNoEquations());
-      for (int iel : group)
-        if (IntVec meen; !sam->getElmEqns(meen,MLGE[iel]))
-          ++nErr;
-        else if (!sysMat.assembleStruct(iTGroup,*sam,meen))
-          ++nErr;
-
-      for (size_t ieq = 1; ieq <= sysMat.dim(0); ieq++)
-        if (int count = sysMat(ieq); count > 1 && count/1000 != iTGroup)
-        {
-          std::cerr <<" *** Threading group "<< iTGroup <<" has "<< count
-                    <<" contributors to equation "<< ieq;
-          std::pair<int,int> dof = sam->getNodeAndLocalDof(ieq,true);
-          std::cerr <<" (node "<< dof.first <<" local dof "<< dof.second <<")"
-                    << std::endl;
-          nErr += count;
-        }
-
-      if (lErr == nErr)
-        IFEM::cout <<"   * Thread group "<< iTGroup <<" (size "<< group.size()
-                   <<") is OK"<< std::endl;
-    }
-
-  return nErr == 0;
-}
-
-
-bool ASMs2D::addRigidCpl (int lindx, int ldim, int basis,
-                          int& gMaster, const Vec3& Xmaster, bool extraPt)
-{
-  if (threadGroups.stripDir != ThreadGroups::NONE)
-    IFEM::cout <<"  ** ASMs2D::addRigidCpl: Multi-threading deactivated"
-               <<" for Patch "<< idx+1 << std::endl;
-  threadGroups.stripDir = ThreadGroups::NONE;
-
-  return this->ASMstruct::addRigidCpl(lindx,ldim,basis,gMaster,Xmaster,extraPt);
+  return this->validateGroups(threadGroups,sam);
 }
 
 

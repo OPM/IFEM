@@ -23,13 +23,29 @@ namespace
 class ASMu2DLagTest : public ASMu2DLag
 {
 public:
-  ASMu2DLagTest() : ASMu2DLag(2,2,'x') { ASMbase::resetNumbering(); }
+  ASMu2DLagTest() : ASMu2DLag(2,2,'x')
+  {
+    ASMbase::resetNumbering();
+    ASM::coloring = ASM::FIRST_FIT; // the reference groups are greedy ones
+  }
 
   void genThreadGroups(bool separateGroup1noded = false)
   {
     this->generateThreadGroupsMultiColored(true, separateGroup1noded);
   }
-  const ThreadGroups& getThreadGroups() const { return threadGroups; }
+  //! \brief Returns the elements of each color.
+  std::vector<std::vector<int>> getColors() const
+  {
+    std::vector<std::vector<int>> colors(threadGroups.size());
+    for (size_t c = 0; c < threadGroups.size(); c++)
+      for (const std::vector<int>& task : threadGroups[c])
+        colors[c].insert(colors[c].end(),task.begin(),task.end());
+    return colors;
+  }
+  bool collapse(int node1, int node2)
+  {
+    return ASMbase::collapseNodes(*this,node1,*this,node2);
+  }
 };
 
 
@@ -72,16 +88,16 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3")
   REQUIRE(pch.generateFEMTopology());
 
   pch.genThreadGroups();
-  const ThreadGroups& groups = pch.getThreadGroups();
+  const std::vector<std::vector<int>> groups = pch.getColors();
+  REQUIRE(groups.size() == 4);
   REQUIRE(groups[0].size() == 4);
-  REQUIRE(groups[0][0].size() == 4);
-  REQUIRE(groups[0][1].size() == 2);
-  REQUIRE(groups[0][2].size() == 2);
-  REQUIRE(groups[0][3].size() == 1);
-  REQUIRE(groups[0][0] == std::vector{0, 2, 6, 8});
-  REQUIRE(groups[0][1] == std::vector{1, 7});
-  REQUIRE(groups[0][2] == std::vector{3, 5,});
-  REQUIRE(groups[0][3] == std::vector{4});
+  REQUIRE(groups[1].size() == 2);
+  REQUIRE(groups[2].size() == 2);
+  REQUIRE(groups[3].size() == 1);
+  REQUIRE(groups[0] == std::vector{0, 2, 6, 8});
+  REQUIRE(groups[1] == std::vector{1, 7});
+  REQUIRE(groups[2] == std::vector{3, 5,});
+  REQUIRE(groups[3] == std::vector{4});
 }
 
 
@@ -95,16 +111,16 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups4x4")
   REQUIRE(pch.generateFEMTopology());
 
   pch.genThreadGroups();
-  const ThreadGroups& groups = pch.getThreadGroups();
+  const std::vector<std::vector<int>> groups = pch.getColors();
+  REQUIRE(groups.size() == 4);
   REQUIRE(groups[0].size() == 4);
-  REQUIRE(groups[0][0].size() == 4);
-  REQUIRE(groups[0][1].size() == 4);
-  REQUIRE(groups[0][2].size() == 4);
-  REQUIRE(groups[0][3].size() == 4);
-  REQUIRE(groups[0][0] == std::vector{0, 2, 8, 10});
-  REQUIRE(groups[0][1] == std::vector{1, 3, 9, 11});
-  REQUIRE(groups[0][2] == std::vector{4, 6, 12, 14});
-  REQUIRE(groups[0][3] == std::vector{5, 7, 13, 15});
+  REQUIRE(groups[1].size() == 4);
+  REQUIRE(groups[2].size() == 4);
+  REQUIRE(groups[3].size() == 4);
+  REQUIRE(groups[0] == std::vector{0, 2, 8, 10});
+  REQUIRE(groups[1] == std::vector{1, 3, 9, 11});
+  REQUIRE(groups[2] == std::vector{4, 6, 12, 14});
+  REQUIRE(groups[3] == std::vector{5, 7, 13, 15});
 }
 
 
@@ -128,18 +144,18 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3TwoPC")
   auto checks = [](ASMu2DLagTest& p)
   {
     p.genThreadGroups();
-    const ThreadGroups& groups = p.getThreadGroups();
-    REQUIRE(groups[0].size() == 5);
-    REQUIRE(groups[0][0].size() == 3);
-    REQUIRE(groups[0][1].size() == 2);
-    REQUIRE(groups[0][2].size() == 2);
-    REQUIRE(groups[0][3].size() == 1);
-    REQUIRE(groups[0][4].size() == 1);
-    REQUIRE(groups[0][0] == std::vector{0, 2, 6});
-    REQUIRE(groups[0][1] == std::vector{1, 7});
-    REQUIRE(groups[0][2] == std::vector{3, 5,});
-    REQUIRE(groups[0][3] == std::vector{4});
-    REQUIRE(groups[0][4] == std::vector{8});
+    const std::vector<std::vector<int>> groups = p.getColors();
+    REQUIRE(groups.size() == 5);
+    REQUIRE(groups[0].size() == 3);
+    REQUIRE(groups[1].size() == 2);
+    REQUIRE(groups[2].size() == 2);
+    REQUIRE(groups[3].size() == 1);
+    REQUIRE(groups[4].size() == 1);
+    REQUIRE(groups[0] == std::vector{0, 2, 6});
+    REQUIRE(groups[1] == std::vector{1, 7});
+    REQUIRE(groups[2] == std::vector{3, 5,});
+    REQUIRE(groups[3] == std::vector{4});
+    REQUIRE(groups[4] == std::vector{8});
   };
 
   checks(pch);
@@ -162,16 +178,16 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3MPC")
 
   pch.genThreadGroups();
 
-  const ThreadGroups& groups = pch.getThreadGroups();
-  REQUIRE(groups[0].size() == 4);
-  REQUIRE(groups[0][0].size() == 3);
-  REQUIRE(groups[0][1].size() == 3);
-  REQUIRE(groups[0][2].size() == 2);
-  REQUIRE(groups[0][3].size() == 1);
-  REQUIRE(groups[0][0] == std::vector{0, 2, 7});
-  REQUIRE(groups[0][1] == std::vector{1, 6, 8});
-  REQUIRE(groups[0][2] == std::vector{3, 5,});
-  REQUIRE(groups[0][3] == std::vector{4});
+  const std::vector<std::vector<int>> groups = pch.getColors();
+  REQUIRE(groups.size() == 4);
+  REQUIRE(groups[0].size() == 3);
+  REQUIRE(groups[1].size() == 3);
+  REQUIRE(groups[2].size() == 2);
+  REQUIRE(groups[3].size() == 1);
+  REQUIRE(groups[0] == std::vector{0, 2, 7});
+  REQUIRE(groups[1] == std::vector{1, 6, 8});
+  REQUIRE(groups[2] == std::vector{3, 5,});
+  REQUIRE(groups[3] == std::vector{4});
 }
 
 
@@ -187,7 +203,7 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3OneNode")
   auto checks = [](ASMu2DLagTest& p, bool with1)
   {
     p.genThreadGroups(with1);
-    const ThreadGroups& groups = p.getThreadGroups();
+    const std::vector<std::vector<int>> groups = p.getColors();
     const auto ref =
           with1 ? std::vector{
                     std::vector{9, 10, 11, 12},
@@ -203,10 +219,10 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3OneNode")
                     std::vector{3, 5},
                     std::vector{4}
                   };
-    REQUIRE(groups[0].size() == ref.size());
+    REQUIRE(groups.size() == ref.size());
     for (size_t i = 0; i < ref.size(); ++i) {
-      REQUIRE(groups[0][i].size() == ref[i].size());
-      REQUIRE(groups[0][i] == ref[i]);
+      REQUIRE(groups[i].size() == ref[i].size());
+      REQUIRE(groups[i] == ref[i]);
     }
   };
 
@@ -228,7 +244,7 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3OneNodeSPC")
   auto checks = [](ASMu2DLagTest& p, bool with1)
   {
     p.genThreadGroups(with1);
-    const ThreadGroups& groups = p.getThreadGroups();
+    const std::vector<std::vector<int>> groups = p.getColors();
     const auto ref =
           with1 ? std::vector{
                     std::vector{10, 11, 12},
@@ -244,13 +260,60 @@ TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3OneNodeSPC")
                     std::vector{3, 5},
                     std::vector{4}
                   };
-    REQUIRE(groups[0].size() == ref.size());
+    REQUIRE(groups.size() == ref.size());
     for (size_t i = 0; i < ref.size(); ++i) {
-      REQUIRE(groups[0][i].size() == ref[i].size());
-      REQUIRE(groups[0][i] == ref[i]);
+      REQUIRE(groups[i].size() == ref[i].size());
+      REQUIRE(groups[i] == ref[i]);
     }
   };
 
   checks(pch, false);
   checks(pch, true);
+}
+
+
+TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3RemoteMaster")
+{
+  std::stringstream str;
+  generateXMLModel(str, 1.0, 1.0, 3, 3);
+
+  // The corner nodes 1 and 16 are both coupled to node 100 of another patch,
+  // so the corner elements 0 and 8 must not be assembled concurrently
+  ASMu2DLagTest pch;
+  REQUIRE(pch.read(str));
+  pch.add2PC(1, 1, 100);
+  pch.add2PC(16, 1, 100);
+  REQUIRE(pch.generateFEMTopology());
+
+  pch.genThreadGroups();
+  const std::vector<std::vector<int>> groups = pch.getColors();
+  REQUIRE(groups.size() == 5);
+  REQUIRE(groups[0] == std::vector{0, 2, 6});
+  REQUIRE(groups[1] == std::vector{1, 7});
+  REQUIRE(groups[2] == std::vector{3, 5});
+  REQUIRE(groups[3] == std::vector{4});
+  REQUIRE(groups[4] == std::vector{8});
+}
+
+
+TEST_CASE("TestASMu2DLag.GenerateThreadGroups3x3Collapsed")
+{
+  std::stringstream str;
+  generateXMLModel(str, 1.0, 1.0, 3, 3);
+
+  // The corner nodes 1 and 16 get a common global node number,
+  // so the corner elements 0 and 8 share an equation
+  ASMu2DLagTest pch;
+  REQUIRE(pch.read(str));
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pch.collapse(1, 16));
+
+  pch.genThreadGroups();
+  const std::vector<std::vector<int>> groups = pch.getColors();
+  REQUIRE(groups.size() == 5);
+  REQUIRE(groups[0] == std::vector{0, 2, 6});
+  REQUIRE(groups[1] == std::vector{1, 7});
+  REQUIRE(groups[2] == std::vector{3, 5});
+  REQUIRE(groups[3] == std::vector{4});
+  REQUIRE(groups[4] == std::vector{8});
 }

@@ -15,17 +15,26 @@
 #include "ASMenums.h"
 #include "ASM2D.h"
 #include "ASM3D.h"
+#include "DiagMatrix.h"
 #include "IFEM.h"
 #include "MPC.h"
+#include "SAM.h"
 #include "Tensor.h"
+#include "ThreadGroups.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "Functions.h"
+#include "GraphColoring.h"
+#include "Profiler.h"
 #include "Utilities.h"
 #include <algorithm>
 #include <functional>
 #include <iomanip>
 #include <numeric>
+#include <unordered_map>
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 bool ASMbase::fixHomogeneousDirichlet = true;
@@ -45,6 +54,7 @@ IntVec ASMbase::Empty;
 namespace ASM
 {
   CachePolicy cachePolicy = PRE_CACHE;
+  ColoringAlgorithm coloring = LARGEST_FIRST;
   bool includeNeighbor_L2 = false;
 }
 
@@ -2150,4 +2160,161 @@ void ASMbase::convertNodeSets ()
                  << *std::max_element(ns.second.begin(),ns.second.end()) <<"]";
   }
   IFEM::cout << std::endl;
+}
+
+
+IntMat ASMbase::getElmWriteNodes (const IntVec& elms) const
+{
+  // The masters of the MPCs in this patch, for each slave node.
+  // Everything is in global node numbers, such that nodes sharing a global
+  // number (collapsed nodes), and masters in other patches, are accounted for.
+  std::unordered_map<int,IntVec> masters;
+  for (const MPC* mpc : mpcs)
+    for (size_t i = 0; i < mpc->getNoMaster(); i++)
+      if (int master = mpc->getMaster(i).node;
+          master > 0 && master != mpc->getSlave().node)
+        masters[mpc->getSlave().node].push_back(master);
+
+  std::unordered_map<int,int> index; // global node number to 0-based index
+  auto&& nodeIndex = [&index](int node)
+  {
+    return index.emplace(node,index.size()).first->second;
+  };
+
+  auto&& writeNodes = [this,&masters,&nodeIndex](const IntVec& mnpc)
+  {
+    IntVec nodes;
+    nodes.reserve(mnpc.size());
+    for (int node : mnpc)
+      if (node >= 0 && static_cast<size_t>(node) < MLGN.size() &&
+          this->getLMType(node+1) != 'G')
+      {
+        nodes.push_back(nodeIndex(MLGN[node]));
+        if (auto slave = masters.find(MLGN[node]); slave != masters.end())
+          for (int master : slave->second)
+            nodes.push_back(nodeIndex(master));
+      }
+
+    return nodes;
+  };
+
+  IntMat result;
+  if (elms.empty())
+  {
+    result.reserve(nel);
+    for (size_t iel = 0; iel < nel && iel < MNPC.size(); iel++)
+      result.push_back(writeNodes(MNPC[iel]));
+  }
+  else
+  {
+    result.reserve(elms.size());
+    for (int iel : elms)
+      result.push_back(writeNodes(MNPC[iel]));
+  }
+
+  return result;
+}
+
+
+void ASMbase::colorTasks (ThreadGroups& groups, const IntMat& elmNodes,
+                          const IntMat& tasks)
+{
+  PROFILE2("Element coloring");
+
+  GraphColoring::Algorithm alg = GraphColoring::Algorithm::FirstFit;
+  IntMat taskNodes;
+  if (tasks.empty())
+    switch (ASM::coloring) {
+    case ASM::FIRST_FIT:     alg = GraphColoring::Algorithm::FirstFit;     break;
+    case ASM::LARGEST_FIRST: alg = GraphColoring::Algorithm::LargestFirst; break;
+    case ASM::DSATUR:        alg = GraphColoring::Algorithm::DSatur;       break;
+    case ASM::RLF:           alg = GraphColoring::Algorithm::RLF;          break;
+    }
+  else
+  {
+    taskNodes.resize(tasks.size());
+    for (size_t t = 0; t < tasks.size(); t++)
+      for (int iel : tasks[t])
+        taskNodes[t].insert(taskNodes[t].end(),
+                            elmNodes[iel].begin(),elmNodes[iel].end());
+  }
+
+  const IntMat& nodes = tasks.empty() ? elmNodes : taskNodes;
+  int nnod = 0;
+  for (const IntVec& tnodes : nodes)
+    for (int node : tnodes)
+      nnod = std::max(nnod,node+1);
+
+  const IntVec colors = GraphColoring(nodes,nnod).color(alg);
+  if (!tasks.empty())
+    groups.setColors(tasks,colors);
+  else
+  {
+    IntMat single(elmNodes.size());
+    for (size_t iel = 0; iel < single.size(); iel++)
+      single[iel].resize(1,iel);
+    groups.setColors(single,colors);
+  }
+}
+
+
+bool ASMbase::multiThreaded ()
+{
+#ifdef USE_OPENMP
+  return omp_get_max_threads() > 1;
+#else
+  return false;
+#endif
+}
+
+
+bool ASMbase::validateGroups (const ThreadGroups& groups, const SAM* sam,
+                              const IntVec& elms) const
+{
+  IFEM::cout <<"\nValidating element groups for multi-threaded assembly."
+             << std::endl;
+
+  size_t nErr = 0;
+  for (size_t c = 0; c < groups.size(); c++)
+  {
+    const IntMat& tasks = groups[c];
+    size_t lErr = nErr;
+    IntVec owner(sam->getNoEquations(),0); // the task writing each equation
+    for (size_t t = 0; t < tasks.size(); t++)
+    {
+      DiagMatrix sysMat(sam->getNoEquations());
+      for (int iel : tasks[t])
+        if (int jel = MLGE[elms.empty() ? iel : elms[iel]]; jel < 1)
+          continue; // zero-volume element, not assembled
+        else if (IntVec meen; !sam->getElmEqns(meen,jel))
+          ++nErr;
+        else if (!sysMat.assembleStruct(1,*sam,meen))
+          ++nErr;
+
+      for (size_t ieq = 1; ieq <= sysMat.dim(0); ieq++)
+        if (sysMat(ieq) == 0.0)
+          continue;
+        else if (owner[ieq-1] == 0)
+          owner[ieq-1] = 1+t;
+        else
+        {
+          std::pair<int,int> dof = sam->getNodeAndLocalDof(ieq,true);
+          if (this->getLMType(this->getNodeIndex(dof.first)) == 'G')
+            continue; // overwritten after the assembly
+
+          std::cerr <<" *** Tasks "<< owner[ieq-1] <<" and "<< 1+t
+                    <<" of color "<< 1+c
+                    <<" both contribute to equation "<< ieq
+                    <<" (node "<< dof.first <<" local dof "<< dof.second <<")"
+                    << std::endl;
+          ++nErr;
+        }
+    }
+
+    if (lErr == nErr)
+      IFEM::cout <<"   * Color "<< 1+c <<" ("<< tasks.size()
+                 <<" tasks) is OK"<< std::endl;
+  }
+
+  return nErr == 0;
 }

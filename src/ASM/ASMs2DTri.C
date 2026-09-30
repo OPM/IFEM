@@ -586,35 +586,25 @@ bool ASMs2DTri::evalSolution (Matrix&, const IntegrandBase&,
 
 void ASMs2DTri::generateThreadGroups (const Integrand&, bool, bool)
 {
-  if (threadGroups.stripDir == ThreadGroups::NONE)
-    threadGroups.oneGroup(nel);
-  else
-    threadGroups.calcGroups(nx-1,ny-1,1);
+  if (!multiThreaded())
+  {
+    threadGroups.sequential(nel);
+    return;
+  }
 
-#if defined(USE_OPENMP) && SP_DEBUG > 1
-  std::cout <<"\nThreading groups after triangularization:"<< std::endl;
-#endif
-  for (size_t g = 0; g < threadGroups.size(); g++)
-    for (size_t t = 0; t < threadGroups[g].size(); t++)
-    {
-      IntVec& tGroup = const_cast<IntMat&>(threadGroups[g])[t];
-      size_t oldsize = tGroup.size();
-      tGroup.resize(oldsize*2);
-      for (int i = oldsize-1; i >= 0; i--)
-      {
-        int iel1 = 2*tGroup[i];
-        tGroup[2*i]   = iel1;
-        tGroup[2*i+1] = iel1+1;
-      }
-#if defined(USE_OPENMP) && SP_DEBUG > 1
-      if (t == 0)
-        std::cout <<"group "<< g << std::endl;
-      std::cout <<"\tthread "<< t <<":";
-      for (size_t k = 0; k < tGroup.size(); k++)
-        std::cout <<" "<< tGroup[k];
-      std::cout << std::endl;
-#endif
-    }
+  // Tiles of the quadrilaterals, each of which is split into two triangles
+  const std::vector<bool> el1(nx-1,true), el2(ny-1,true);
+  IntMat tiles = ThreadGroups::tiles(el1,el2,1,1);
+  for (IntVec& tile : tiles)
+  {
+    IntVec triangles;
+    triangles.reserve(2*tile.size());
+    for (int iquad : tile)
+      triangles.insert(triangles.end(),{2*iquad,2*iquad+1});
+    tile.swap(triangles);
+  }
+
+  colorTasks(threadGroups,this->getElmWriteNodes(),tiles);
 }
 
 
