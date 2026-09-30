@@ -125,6 +125,18 @@ public:
                             const RealArray* gpar, bool,
                             int deriv, int nf) const;
 
+  //! \brief Evaluates the primary solution field with the Piola mapping.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] includeUnmapped If \e true, include non-Piola mapped fields
+  //!
+  //! \details The array \a gpar contains the \a u, \a v and \a w parameters
+  //! directly for each sampling point.
+  virtual bool evalSolutionPiola(Matrix& sField, const Vector& locSol,
+                                 const RealArray* gpar, bool,
+                                 bool includeUnmapped) const;
+
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
@@ -175,6 +187,9 @@ public:
 
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const;
+
+  //! \brief Returns true if the last passed integrand used Piola mapping.
+  bool usePiola() const { return piola; }
 
 private:
   //! \brief Finds the elements and associted sizes at given parametric point.

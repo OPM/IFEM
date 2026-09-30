@@ -15,6 +15,7 @@
 #include "LRSpline/Element.h"
 
 #include "ASMu3D.h"
+#include "ASMmxBase.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
@@ -22,6 +23,7 @@
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
 #include "SplineUtils.h"
+#include "Vec3Oper.h"
 #include "Function.h"
 #include "Profiler.h"
 #include <array>
@@ -478,12 +480,24 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
                                bool tangent) const
 {
   size_t n = face.MLGN.size();
-  size_t m = values.dim();
+  // On a Piola mapped basis the degrees of freedom are the components of the
+  // reference field, one component per basis, so the prescribed value is
+  // pulled back to the component belonging to the basis being constrained and
+  // a single value per node comes out of the fit whatever the function gives
+  const bool piola = this->isPiolaDirichlet(face.code);
+  const bool covariant = ASMmxBase::Type == ASMmxBase::CURL_COMPATIBLE;
+  size_t m = piola ? 1 : values.dim();
   SparseMatrix A(SparseMatrix::SUPERLU);
   StdVector B(n*m);
   A.resize(n,n);
 
   const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+
+  // The basis being constrained
+  int comp = 1;
+  for (size_t b = 1; b <= this->getNoBasis(); ++b)
+    if (this->getBasis(b) == face.lr)
+      comp = b;
 
   // find the normal direction for the face
   int faceDir;
@@ -500,9 +514,21 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
   const int t1 = 1 + abs(faceDir)%3; // first tangent direction
   const int t2 = 1 + t1%3;           // second tangent direction
 
+  // Only the normal velocity on a div-compatible basis can be given as a scalar
+  if (piola && values.dim() < 2 && (covariant || comp != abs(faceDir)))
+  {
+    std::cerr <<" *** ASMu3D::faceL2projection: Only the normal velocity on a"
+              <<" div-compatible basis can be prescribed as a scalar on a face,"
+              <<" not on basis "<< comp <<". Give the whole field."<< std::endl;
+    return false;
+  }
+
   // Get Gaussian quadrature points and weights
-  // Use the largest polynomial order of the two tangent directions
-  const int pmax = std::max(lrspline->order(t1-1),lrspline->order(t2-1));
+  // Use the largest polynomial order of the two tangent directions, of the
+  // integration basis and of the constrained basis, which on a mixed patch
+  // may have a higher order than the integration basis in some direction
+  const int pmax = std::max({lrspline->order(t1-1), lrspline->order(t2-1),
+                             face.lr->order(t1-1), face.lr->order(t2-1)});
   const int nGP  = this->getNoGaussPt(pmax,true);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
@@ -569,8 +595,17 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
         this->evaluateBasis(ielG-1, u, v, w, N, dNdu, ASM::GEOMETRY_BASIS);
 
         // Compute basis function derivatives
-        double dJxW = dA*wg[i]*wg[j]*utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2);
-        if (dJxW == 0.0) continue; // skip singular points
+        const double dSx = utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2);
+        if (dSx == 0.0) continue; // skip singular points
+
+        // A Piola mapped value is fitted over the reference face, to preserve
+        // its flux, or its circulation, as in ASMs3D
+        const double dJxW = dA*wg[i]*wg[j]*(piola ? 1.0 : dSx);
+
+        // The jacobian of the geometry, for the Piola pull-back
+        Matrix J;
+        if (piola)
+          J.multiply(Xnod,dNdu);
 
         // Cartesian coordinates of current integration point
         X.assign(Xnod * N);
@@ -596,6 +631,31 @@ bool ASMu3D::faceL2projection (const DirichletFace& face,
         }
         if (val.empty())
           val = values.getValue(X);
+
+        if (piola)
+        {
+          const std::array<Vec3,3> dX{ Vec3(J.getColumn(1).data(),nsd),
+                                       Vec3(J.getColumn(2).data(),nsd),
+                                       Vec3(J.getColumn(3).data(),nsd) };
+          if (values.dim() < 2)
+          {
+            // The prescribed value is the normal velocity itself, and the
+            // Piola transform preserves the normal flux
+            const double dS = Vec3(dX[t1-1],dX[t2-1]).length();
+            val.front() *= (faceDir > 0 ? dS : -dS);
+          }
+          else
+          {
+            const Vec3 u(val.data(),val.size());
+            if (covariant)
+              // The component along the parameter direction of this basis
+              val = { dX[comp-1]*u };
+            else
+              // A row of the adjugate of the jacobian is the cross product of
+              // the other two columns
+              val = { Vec3(dX[comp%3],dX[(comp+1)%3])*u };
+          }
+        }
 
         // Assemble into matrix A and vector B
         for (size_t il = 0; il < fMNPC.size(); il++) // local i-index
