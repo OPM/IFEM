@@ -105,9 +105,9 @@ namespace
         if (print)
         {
           IFEM::cout <<"sin("<< freq <<"*t";
-          if (phase > 1.0e-16)
+          if (phase > zTol)
             IFEM::cout <<" + "<< phase;
-          else if (phase < -1.0-16)
+          else if (phase < -zTol)
             IFEM::cout <<" - "<< -phase;
           IFEM::cout <<")";
         }
@@ -152,6 +152,21 @@ namespace
       return new LinearFunc(C*scale);
     }
   }
+
+  //! \brief Returns \e true if \a func contains a single real constant.
+  bool isConstant (const std::string& func, const std::string& type, Real& p)
+  {
+    if (type == "constant")
+      p = atof(func.c_str());
+    else
+    {
+      char* endPtr = nullptr;
+      p = strtod(func.c_str(),&endPtr);
+      if (strlen(endPtr) > 0)
+        return false; // more data, not a single numerical value
+    }
+    return true;
+  }
 }
 
 
@@ -186,7 +201,7 @@ LinearFunc::LinearFunc (const char* file, int c, Real s) : scale(s)
       fvals.push_back({x,v});
     else if (fvals.back().first-x < zTol*fvals.back().first)
     {
-      x = 0.5*(fvals.back().first+x);
+      x = (fvals.back().first+x)/Real(2);
       fvals.back().first = x;
       fvals.push_back({x,v});
     }
@@ -304,7 +319,7 @@ LinVecFunc::LinVecFunc (const char* file, int c)
       fvals.push_back({x,v});
     else if (fvals.back().first-x < zTol*fvals.back().first)
     {
-      x = 0.5*(fvals.back().first+x);
+      x = (fvals.back().first+x)/Real(2);
       fvals.back().first = x;
       fvals.push_back({x,v});
     }
@@ -375,7 +390,9 @@ Real RampFunc::deriv (Real x) const
 
 Real DiracFunc::evaluate (const Real& x) const
 {
-  return fabs(x-xmax) < 1.0e-4 ? amp : Real(0);
+  constexpr Real epsX = Real(1.0e-4);
+
+  return x-xmax < epsX && x-xmax > -epsX ? amp : Real(0);
 }
 
 
@@ -773,8 +790,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
       break;
     case 6:
       {
-        double x0 = atof(cline);
-        double x1 = atof(strtok(nullptr," "));
+        Real x0 = atof(cline);
+        Real x1 = atof(strtok(nullptr," "));
         if (print)
           IFEM::cout <<"Step"<< stepDir <<"("<< x0 <<","<< x1 <<"))";
         f = new StepXFunc(A,x0,x1,stepDir);
@@ -782,13 +799,13 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
       break;
     case 7:
       {
-        double x0 = atof(cline);
-        double y0 = atof(strtok(nullptr," "));
+        Real x0 = atof(cline);
+        Real y0 = atof(strtok(nullptr," "));
         cline = strtok(nullptr," ");
         if (cline && cline[0] == 't')
         {
-          double x1 = atof(strtok(nullptr," "));
-          double y1 = atof(strtok(nullptr," "));
+          Real x1 = atof(strtok(nullptr," "));
+          Real y1 = atof(strtok(nullptr," "));
           if (print)
             IFEM::cout <<"StepXY(["<< x0 <<","<< x1
                        <<"]x["<< y0 <<","<< y1 <<"]))";
@@ -819,7 +836,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
           IFEM::cout <<","<< (char)('X'+dir);
         if (t)
         {
-          double time = atof(t);
+          Real time = atof(t);
           if (print)
             IFEM::cout <<")*Ramp("<< time;
           f = new Interpolate1D(cline,dir,col,time);
@@ -977,9 +994,8 @@ RealFunc* utl::parseRealFunc (const std::string& func,
       IFEM::cout << func;
     f = new ChebyshevFunc(func, true);
   }
-  else if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
+  else if (isConstant(func,type,p))
   {
-    p = atof(func.c_str());
     if (print)
       IFEM::cout << p;
     f = new ConstFunc(p);
@@ -1098,9 +1114,8 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
   {
     if (type == "linear")
       f = parseRealFunc(func,type);
-    else if (type == "constant" ||
-             func.find_first_of("\t ") == std::string::npos)
-      IFEM::cout <<": "<< (p = atof(func.c_str()));
+    else if (isConstant(func,type,p))
+      IFEM::cout <<": "<< p;
     else
       f = parseRealFunc(func,type);
   }
@@ -1126,8 +1141,9 @@ TractionFunc* utl::parseTracFunc (const tinyxml2::XMLElement* elem)
   const VecTimeFunc* frot  = nullptr;
   const ScalarFunc*  angle = nullptr;
   const RealFunc*    shape = nullptr;
-  const tinyxml2::XMLElement* child = elem->FirstChildElement();
-  while (child && child->Value() && child->FirstChild())
+  for (const tinyxml2::XMLElement* child = elem->FirstChildElement();
+       child && child->Value() && child->FirstChild();
+       child = child->NextSiblingElement())
   {
     std::string type;
     utl::getAttribute(child,"type",type,true);
@@ -1159,7 +1175,6 @@ TractionFunc* utl::parseTracFunc (const tinyxml2::XMLElement* elem)
       shape = parseRealFunc(child->FirstChild()->Value(),type);
       IFEM::cout << std::endl;
     }
-    child = child->NextSiblingElement();
   }
 
   if (angle && rotaxis >= 'X' && rotaxis <= 'Z')
