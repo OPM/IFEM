@@ -149,13 +149,16 @@ private:
   struct DirichletFace
   {
     Go::SplineSurface* surf;  //!< Pointer to spline surface for the boundary
+    int                dir;   //!< Parameter direction of the boundary {-3,..,3}
     int                dof;   //!< Local DOF to constrain along the boundary
     int                code;  //!< Inhomogeneous Dirichlet condition code
+    char               basis; //!< Basis the constrained DOF belongs to
     std::vector<Ipair> nodes; //!< Nodes subjected to projection on the boundary
 
     //! \brief Default constructor.
-    DirichletFace(Go::SplineSurface* ss = nullptr, int d = 0, int c = 0)
-    : surf(ss), dof(d), code(c) {}
+    DirichletFace(Go::SplineSurface* ss = nullptr,
+                  int dr = 0, int d = 0, int c = 0, char b = 1)
+    : surf(ss), dir(dr), dof(d), code(c), basis(b) {}
   };
 
 public:
@@ -439,6 +442,18 @@ public:
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of global node numbers (zero-based)
   virtual void setNodeNumbers(const IntVec& nodes);
+
+  //! \brief Fits a Dirichlet condition on a Piola mapped basis on a face.
+  //! \param[in] dface The boundary face to fit over
+  //! \param[in] sf Prescribed normal velocity, if given as a scalar function
+  //! \param[in] vf Prescribed vector field, if given as a vector function
+  //! \param[in] time Current time
+  //! \param[in] tangent If \e true, use time-derivatives of prescribed values
+  //! \return Spline surface with the resulting control point values
+  Go::SplineSurface* projectPiolaDirichlet(const DirichletFace& dface,
+                                           const RealFunc* sf,
+                                           const VecFunc* vf,
+                                           double time, bool tangent) const;
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields

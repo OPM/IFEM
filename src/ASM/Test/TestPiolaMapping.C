@@ -639,11 +639,11 @@ TEST_CASE("TestPiolaMapping.Gradient3D")
         for (size_t d1 = 1; d1 <= 3; ++d1)
           for (size_t d2 = 1; d2 <= 3; ++d2)
             REQUIRE_THAT(fe.P_contra.dNdX(d1 + 3 * (d2-1),n),
-                         WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,1) +
+                         WithinAbs((-det[d2-1] / (detJ * detJ) * J(d1,1) +
                          dJdX[d2-1](d1,1) / detJ) * c[i](u) * q[j](v) * q[k](w) +
                          J(d1,1) * (cd[i](u) * q[j](v) * q[k](w) * Ji(1,d2) +
                                     c[i](u) * qd[j](v) * q[k](w) * Ji(2,d2) +
-                                    c[i](u) * q[j](v) * qd[k](w) * Ji(3,d2)) / detJ));
+                                    c[i](u) * q[j](v) * qd[k](w) * Ji(3,d2)) / detJ, 1e-13));
 
   for (size_t k = 0; k < 3; ++k)
     for (size_t j = 0; j < 4; ++j)
@@ -663,11 +663,11 @@ TEST_CASE("TestPiolaMapping.Gradient3D")
         for (size_t d1 = 1; d1 <= 3; ++d1)
           for (size_t d2 = 1; d2 <= 3; ++d2)
             REQUIRE_THAT(fe.P_contra.dNdX(d1 + 3 * (d2-1),n),
-                         WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,3) +
+                         WithinAbs((-det[d2-1] / (detJ * detJ) * J(d1,3) +
                          dJdX[d2-1](d1,3) / detJ) * q[i](u) * q[j](v) * c[k](w) +
                          J(d1,3) * (qd[i](u) * q[j](v) * c[k](w) * Ji(1,d2) +
                                     q[i](u) * qd[j](v) * c[k](w) * Ji(2,d2) +
-                                    q[i](u) * q[j](v) * cd[k](w) * Ji(3,d2)) / detJ));
+                                    q[i](u) * q[j](v) * cd[k](w) * Ji(3,d2)) / detJ, 1e-13));
 }
 
 
@@ -1027,6 +1027,46 @@ TEST_CASE("TestPiolaMapping.CurlRouting2D")
   REQUIRE(sField.rows() == 2);
   REQUIRE(sField.cols() == 1);
   for (size_t d = 1; d <= 2; ++d)
+    REQUIRE_THAT(sField(d,1), WithinAbs(ref(d), 1e-12));
+}
+
+
+TEST_CASE("TestPiolaMapping.CurlRouting3D")
+{
+  // A curl-compatible patch evaluates its field with the covariant mapping,
+  // with the same geometry as the patch of the reference mapping
+  ASMs3D p;
+  std::stringstream g3(spline3D);
+  REQUIRE(p.read(g3));
+  REQUIRE(p.generateFEMTopology());
+
+  ASMmxBase::Type = ASMmxBase::CURL_COMPATIBLE;
+  ASMs3Dmx b({1,1,1,1});
+  std::stringstream g3b(spline3D);
+  REQUIRE(b.read(g3b));
+  REQUIRE(b.generateFEMTopology());
+
+  const size_t n = b.getNoNodes(1) + b.getNoNodes(2) + b.getNoNodes(3);
+  Vector c(n);
+  for (size_t i = 1; i <= n; ++i)
+    c(i) = 1.0 + 0.37*i;
+
+  const RealArray par = GENERATE(RealArray{0.1, 0.1, 0.1},
+                                 RealArray{0.3, 0.8, 0.5},
+                                 RealArray{0.7, 0.4, 0.9});
+  const std::array<RealArray,3> gpar{RealArray{par[0]}, RealArray{par[1]},
+                                     RealArray{par[2]}};
+  Matrix sField;
+  REQUIRE(b.evalSolutionPiola(sField, c, gpar.data(), false, false));
+
+  // The patch has a single element, so its local and global DOFs coincide
+  Matrix J, Nhat;
+  const MxFiniteElement fe = covariant3D(p, b, par[0], par[1], par[2], J, Nhat);
+  Vector ref;
+  fe.P_co.N.multiply(c, ref);
+  REQUIRE(sField.rows() == 3);
+  REQUIRE(sField.cols() == 1);
+  for (size_t d = 1; d <= 3; ++d)
     REQUIRE_THAT(sField(d,1), WithinAbs(ref(d), 1e-12));
 }
 

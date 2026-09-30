@@ -327,6 +327,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != lrspline.get();
+  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  piola = piolaType != 0;
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, ASMmxBase::Type != SUBGRID));
@@ -339,7 +341,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
   for (std::unique_ptr<ASMu3D::BasisFunctionCache>& cache : myCache) {
     cache->setIntegrand(&integrand);
-    cache->init(use2ndDer ? 2 : 1);
+    cache->init(use2ndDer ||
+                (piola && cache->basis == ASM::GEOMETRY_BASIS) ? 2 : 1);
   }
 
   ASMu3D::BasisFunctionCache& cache = *myCache.front();
@@ -478,6 +481,9 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             // basis function derivatives w.r.t. Cartesian coordinates
             if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
               ok = false;
+            else if (piola)
+              fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
+                              piolaType & Integrand::PIOLA_COVARIANT);
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
@@ -524,7 +530,10 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMu3Dmx::integrate(B)");
 
-  const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != lrspline.get();
+  const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  const bool separateGeometry = geo != lrspline.get();
+  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const bool piolaMapping = piolaType != 0;
 
   // Get Gaussian quadrature points and weights
   int nGP = integrand.getBouIntegrationPoints(nGauss);
@@ -661,7 +670,14 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           fe.w = param[2] = gpar[2](k3+1);
         }
 
-        if (separateGeometry)
+        if (separateGeometry && piolaMapping) {
+          // The Piola mapping needs the second derivatives of the geometry
+          Go::BasisDerivs2 splineg;
+          geo->computeBasis(fe.u, fe.v, fe.w, splineg, els.back()-1);
+          SplineUtils::extractBasis(splineg,bfs.back().N,
+                                    bfs.back().dNdu,bfs.back().d2Ndu2);
+        }
+        else if (separateGeometry)
           this->evaluateBasis(els.back()-1, fe.u, fe.v, fe.w,
                               bfs.back().N, bfs.back().dNdu, ASM::GEOMETRY_BASIS);
 
@@ -670,8 +686,17 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           this->evaluateBasis(els[b-1]-1, fe, bfs[b-1].dNdu, b);
 
         // Compute basis function derivatives and the face normal
-        if (fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2) < 0.0)
+        const double detJ = fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2);
+        if (detJ < 0.0)
           ok = false;
+        else if (piolaMapping) {
+          // The mapping is scaled by |J|, not by the face dilation
+          const double dS_ip = fe.detJxW;
+          fe.detJxW = detJ;
+          fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
+                          piolaType & Integrand::PIOLA_COVARIANT);
+          fe.detJxW = dS_ip;
+        }
 
         if (faceDir < 0) normal *= -1.0;
 
@@ -756,6 +781,103 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMu3Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
+                                  const RealArray* gpar, bool,
+                                  bool includeUnmapped) const
+{
+  size_t nPoints = gpar[0].size();
+  if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
+    return false;
+
+  if (std::any_of(nfx.begin(), nfx.begin() + 3,
+                  [](const unsigned char in) { return in > 1; })) {
+    std::cerr << "*** ASMu3Dmx::evalSolution: Piola mapping requires "
+              << "a single field on each Piola mapped basis" << std::endl;
+    return false;
+  }
+
+  // A compatible space may have more bases than fields, the last basis
+  // without any, such as for a curl-compatible field alone
+  const size_t nbf = std::min(nb.size(), nfx.size());
+  const size_t lenAll = std::inner_product(nb.begin(), nb.begin() + nbf,
+                                           nfx.begin(), 0u);
+  const size_t lenVel = nb[0] + nb[1] + nb[2];
+  const size_t len = includeUnmapped ? lenAll : lenVel;
+  const size_t nFields = includeUnmapped
+                       ? std::accumulate(nfx.begin(), nfx.end(), 0) : 3;
+
+  if (locSol.size() != len && !(!includeUnmapped && locSol.size() == lenAll)) {
+    std::cerr << "*** ASMu3Dmx::evalSolutionPiola: Unexpected solution size ("
+              << locSol.size() << "), expected " << len;
+    if (!includeUnmapped && lenAll != len)
+      std::cerr << " or " << lenAll;
+    std::cerr << std::endl;
+    return false;
+  }
+  const size_t nBasis = includeUnmapped ? nfx.size() : 3;
+
+  const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+
+  Go::BasisPts spline;
+
+  // Evaluate the primary solution field at each point
+  sField.resize(nFields, nPoints);
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    std::vector<int>    els;
+    std::vector<size_t> elem_size;
+    this->getElementsAt({gpar[0][i],gpar[1][i],gpar[2][i]},els,&elem_size);
+    const double* locPtr = locSol.ptr();
+    Vectors coefs(nfx.size());
+    MxFiniteElement fe(elem_size);
+    for (size_t j = 0; j < nBasis; ++j)
+    {
+      const LR::Element* el = m_basis[j]->getElement(els[j]-1);
+
+      // Evaluate basis function values at current parametric point
+      m_basis[j]->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline,els[j]-1);
+      coefs[j].resize(spline.basisValues.size() * nfx[j]);
+      size_t r = 1;
+      for (const LR::Basisfunction* b : el->support())
+        for (size_t n = 0; n < nfx[j]; ++n)
+          coefs[j](r++) = *(locPtr + b->getId()*nfx[j] + n);
+      fe.basis(j+1) = spline.basisValues;
+      locPtr += nfx[j] * nb[j];
+    }
+    Go::BasisDerivs splineg;
+    geo->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],splineg,els.back()-1);
+    BasisFunctionVals bf;
+    Matrix Xnod;
+    SplineUtils::extractBasis(splineg, bf.N, bf.dNdu);
+    this->getElementCoordinates(Xnod,els[itgBasis-1]);
+    Matrix J;
+    J.multiply(Xnod, bf.dNdu);
+    // A curl-compatible space is mapped covariantly, others contravariantly
+    const Matrix* P = &fe.P_contra.N;
+    if (ASMmxBase::Type == ASMmxBase::CURL_COMPATIBLE) {
+      Matrix Ji(J);
+      Ji.inverse();
+      fe.covariantPiolaBasis(Ji);
+      P = &fe.P_co.N;
+    }
+    else
+      fe.piolaBasis(J.det(), J);
+    Vector c(coefs[0]);
+    c.push_back(coefs[1].begin(), coefs[1].end());
+    c.push_back(coefs[2].begin(), coefs[2].end());
+    Vector Ytmp;
+    P->multiply(c, Ytmp);
+    if (includeUnmapped)
+      for (size_t b = 3; b < nfx.size(); ++b)
+        for (size_t n = 0; n < nfx[b]; ++n)
+          Ytmp.push_back(coefs[b].dot(fe.basis(b+1), n, nfx[b]));
+    sField.fillColumn(1+i,Ytmp);
+  }
+
+  return true;
+}
+
+
 bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                              const RealArray* gpar, bool) const
 {
@@ -775,6 +897,8 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const bool separateGeometry = geo != lrspline.get();
+  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const bool piolaMapping = separateGeometry && piolaType != 0;
 
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++)
@@ -790,7 +914,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     BasisValues     bfs(m_basis.size() + separateGeometry);
     Matrix Jac, Xnod;
     Matrix3D Hess;
-    if (use2ndDer)
+    if (use2ndDer || piolaMapping)
       for (size_t b = 0; b < bfs.size(); ++b) {
         Go::BasisDerivs2 spline;
         const LR::LRSplineVolume* sv = b < m_basis.size() ? m_basis[b].get() : geo;
@@ -817,6 +941,10 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // basis function derivatives w.r.t. Cartesian coordinates
     if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
       continue; // skip singular points
+
+    if (piolaMapping)
+      fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
+                      piolaType & Integrand::PIOLA_COVARIANT);
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))

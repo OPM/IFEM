@@ -1985,9 +1985,12 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
       return false;
     }
 
-    // Loop over the (non-corner) nodes of this boundary face
+    // Loop over the (non-corner) nodes of this boundary face. A condition on
+    // a Piola mapped basis takes all its values from the fit, since direct
+    // evaluation at the corners would give a physical field there.
+    const bool piolaBC = this->isPiolaDirichlet(dfac.code);
     for (size_t j = 0; j < dfac.MLGN.size(); j++)
-      if (!dfac.isCorner(dfac.MLGN[j]))
+      if (piolaBC || !dfac.isCorner(dfac.MLGN[j]))
         for (int dofs = dfac.dof; dofs > 0; dofs /= 10)
         {
           int dof = dofs%10;
@@ -1997,7 +2000,7 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
           if (mit != mpcs.end())
           {
             // Now update the prescribed value in the constraint equation
-            if (dfac.dof < 10) dof = 1; // scalar condition
+            if (dfac.dof < 10 || piolaBC) dof = 1; // scalar condition
             (*mit)->setSlaveCoeff(controlPts[dof-1][j]);
 #if SP_DEBUG > 1
             std::cout <<"Updated constraint: "<< **mit;
