@@ -1036,9 +1036,15 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.emplace_back(this->getBoundary(dir,basis),dof,code);
+    dirich.emplace_back(this->getBoundary(dir,basis),dir,dof,code,basis);
   else if (code < 0)
     bcode = -code;
+
+  // The corners of a condition on a Piola mapped basis also have to take
+  // their value from the projection. Evaluating the prescribed function
+  // directly there, as is done for an ordinary condition, would use a physical
+  // field where a coefficient of the reference basis is wanted.
+  const bool piolaBC = code > 0 && this->isPiolaDirichlet(code);
 
   switch (dir)
     {
@@ -1050,7 +1056,11 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 	  if (open && (i2 == 1 || i2 == n2 || i3 == 1 || i3 == n3))
 	    continue; // skip all edge nodes if an open boundary is requested
 	  else if ((i2 == 1 || i2 == n2) && (i3 == 1 || i3 == n3))
+	  {
 	    this->prescribe(node,dof,bcode); // corner node
+	    if (piolaBC)
+	      dirich.back().nodes.emplace_back(n2*(i3-1)+i2,node);
+	  }
 	  else
 	  {
 	    // If the Dirichlet condition is to be projected, add this node to
@@ -1069,7 +1079,11 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 	  if (open && (i1 == 1 || i1 == n1 || i3 == 1 || i3 == n3))
 	    continue; // skip all edge nodes if an open boundary is requested
 	  else if ((i1 == 1 || i1 == n1) && (i3 == 1 || i3 == n3))
+	  {
 	    this->prescribe(node,dof,bcode); // corner node
+	    if (piolaBC)
+	      dirich.back().nodes.emplace_back(n1*(i3-1)+i1,node);
+	  }
 	  else
 	  {
 	    // If the Dirichlet condition is to be projected, add this node to
@@ -1088,7 +1102,11 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 	  if (open && (i1 == 1 || i1 == n1 || i2 == 1 || i2 == n2))
 	    continue; // skip all edge nodes if an open boundary is requested
 	  else if ((i1 == 1 || i1 == n1) && (i2 == 1 || i2 == n2))
+	  {
 	    this->prescribe(node,dof,bcode); // corner node
+	    if (piolaBC)
+	      dirich.back().nodes.emplace_back(n1*(i2-1)+i1,node);
+	  }
 	  else
 	  {
 	    // If the Dirichlet condition is to be projected, add this node to
@@ -1216,7 +1234,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.emplace_back(this->getBoundary(dir),dof,code);
+    dirich.emplace_back(this->getBoundary(dir),dir,dof,code);
   else if (code < 0)
     bcode = -code;
 
@@ -1463,7 +1481,26 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
   {
     // Project the function onto the spline surface basis
     Go::SplineSurface* dsurf = nullptr;
-    if ((fit = func.find(dirich[i].code)) != func.end())
+    if (this->isPiolaDirichlet(dirich[i].code))
+    {
+      // The basis is Piola mapped, so the prescribed physical field has to
+      // be pulled back to a coefficient of the reference basis before it is
+      // fitted over the boundary.
+      const RealFunc* sf = nullptr;
+      const VecFunc*  vf = nullptr;
+      if ((fit = func.find(dirich[i].code)) != func.end())
+        sf = fit->second;
+      else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
+        vf = vfit->second;
+      else
+      {
+        std::cerr <<" *** ASMs3D::updateDirichlet: Code "<< dirich[i].code
+                  <<" is not associated with any function."<< std::endl;
+        return false;
+      }
+      dsurf = this->projectPiolaDirichlet(dirich[i],sf,vf,time,tangent);
+    }
+    else if ((fit = func.find(dirich[i].code)) != func.end())
       dsurf = SplineUtils::project(dirich[i].surf,*fit->second,1,time,tangent);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
       dsurf = SplineUtils::project(dirich[i].surf,*vfit->second,
