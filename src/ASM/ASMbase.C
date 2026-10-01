@@ -601,7 +601,37 @@ bool ASMbase::addMPC (MPC*& mpc, int code, bool verbose, bool overrideD)
 }
 
 
-bool ASMbase::add2PC (int slave, int dir, int master, int code)
+bool ASMbase::connectNode (int lnode, ASMbase& neighbor, int nnode,
+                           bool coordCheck)
+{
+  if (lnode < 1 || nnode < 1 ||
+      static_cast<size_t>(lnode) > this->getNoNodes() ||
+      static_cast<size_t>(nnode) > neighbor.getNoNodes())
+  {
+    std::cerr <<" *** ASMbase::connectNode: Invalid node indices "
+              << lnode <<", "<< nnode <<" for patches with "
+              << this->getNoNodes() <<" and "<< neighbor.getNoNodes()
+              <<" nodes"<< std::endl;
+    return false;
+  }
+
+  const double xtol = 1.0e-4;
+  if (coordCheck && !neighbor.getCoord(nnode).equal(this->getCoord(lnode),xtol))
+  {
+    std::cerr <<" *** ASMbase::connectNode: Non-matching nodes "
+              << nnode <<": "<< neighbor.getCoord(nnode)
+              <<"\n                                       and "
+              << lnode <<": "<< this->getCoord(lnode) << std::endl;
+    return false;
+  }
+
+  // Does nothing if the two already share a global node number
+  ASMbase::collapseNodes(neighbor,nnode,*this,lnode);
+  return true;
+}
+
+
+bool ASMbase::add2PC (int slave, int dir, int master, int code, Real coeff)
 {
   if (dir < 1 || dir > nf) return true;
   if (slave == master) return true;
@@ -610,7 +640,7 @@ bool ASMbase::add2PC (int slave, int dir, int master, int code)
   bool stat = this->addMPC(cons,code);
   if (cons)
   {
-    cons->addMaster(master,dir);
+    cons->addMaster(master,dir,coeff);
 #if SP_DEBUG > 1
     std::cout <<"Added constraint: "<< *cons;
 #endif

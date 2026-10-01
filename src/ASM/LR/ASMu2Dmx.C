@@ -1281,8 +1281,14 @@ bool ASMu2Dmx::connectPatch (int edge, ASM2D& neighbor, int nedge, bool revers,
   ASMu2Dmx* neighMx = dynamic_cast<ASMu2Dmx*>(&neighbor);
   if (!neighMx) return false;
 
+  // Asking for every basis means every basis that is tied at all: one left
+  // discontinuous across an interface has nothing to connect there. The
+  // structured and the three-dimensional LR implementations read a zero
+  // that way, and the legacy text topology parser reaches this directly
+  // rather than through SIM2D::connectPatches, so it is the one path where
+  // a zero still arrives.
   for (size_t i = 1; i <= m_basis.size(); ++i)
-    if (basis == 0 || i == (size_t)basis)
+    if (basis == 0 ? this->isContinuousBasis(i) : i == (size_t)basis)
       if (!this->connectBasis(edge,*neighMx,nedge,revers,i,0,0,coordCheck,thick))
         return false;
 
