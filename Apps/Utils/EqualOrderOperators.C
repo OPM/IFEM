@@ -15,6 +15,8 @@
 #include "Vec3.h"
 #include "Vec3Oper.h"
 
+#include <iostream>
+
 
 namespace
 {
@@ -208,6 +210,33 @@ void EqualOrderOperators::Weak::LaplacianCoeff (Matrix& EM, const Vec3& K,
   Matrix BK(fe.grad(basis));
   BK.scale((K*scale*fe.detJxW).vec(fe.grad(basis).cols()));
   EM.multiply(BK,fe.grad(basis),false,true,true);
+}
+
+
+void EqualOrderOperators::Weak::MassCoeff (Matrix& EM, const Matrix& C,
+                                           const FiniteElement& fe,
+                                           double scale, int basis)
+{
+  const size_t cmp = EM.rows() / fe.basis(basis).size();
+  const double coef = scale * fe.detJxW;
+
+  if (C.rows() < cmp || C.cols() < cmp) {
+    std::cerr <<" *** EqualOrderOperators::Weak::MassCoeff: The coefficient is "
+              << C.rows() <<"x"<< C.cols() <<", which does not carry the "
+              << cmp <<" components of the field."<< std::endl;
+    return;
+  }
+
+  Matrix A;
+  for (size_t k = 1; k <= cmp; ++k)
+    for (size_t l = 1; l <= cmp; ++l)
+      if (C(k,l) != 0.0) {
+        A.outer_product(fe.basis(basis), fe.basis(basis), false, coef*C(k,l));
+        if (cmp > 1)
+          addComponent(EM, A, k, l, cmp);
+        else
+          EM.add(A);
+      }
 }
 
 
