@@ -95,6 +95,16 @@ namespace utl //! General utility classes and functions.
                          [tol](T v) { return std::fabs(v) <= tol; });
     }
 
+    //! \brief Position of the first element which is not a finite number.
+    //! \details The position is one-based, as the degrees of freedom of a
+    //! solution vector are counted, and zero if every element is finite.
+    size_t notFinite() const
+    {
+      const ConstVecIter it = std::find_if(myVec.begin(), myVec.end(),
+                                           [](T v) { return !std::isfinite(v); });
+      return it == myVec.end() ? 0 : 1 + std::distance(myVec.begin(),it);
+    }
+
     //! \brief Convenience alias for const iterators.
     using ConstVecIter = typename std::vector<T>::const_iterator;
     //! \brief Convenience alias for non-const iterators.

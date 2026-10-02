@@ -72,17 +72,8 @@ bool AdaptiveSIM::assembleAndSolveSystem ()
   solution.resize(model.getNoRHS());
   for (size_t i = 0; i < solution.size(); i++)
     if (!model.solveSystem(solution[i],printSol,&rCond,"displacement",i))
-      return false;
-    else if (i == 0)
-    {
-      for (double value : solution[i])
-        if (std::isnan(value))
-        {
-          std::cerr <<" *** Solution contains NaN, aborting..."<< std::endl;
-          return false;
-        }
-    }
-    else if (solution.size() > 2)
+      return false; // this also refuses a solution which is not finite
+    else if (i > 0 && solution.size() > 2)
       printSol = 0; // Print summary only for the first two solutions
 
   return true;
