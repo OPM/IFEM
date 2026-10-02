@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "SIMdependency.h"
+#include "SIMbase.h"
 #include "IntegrandBase.h"
 #include "ASMbase.h"
 #include "Fields.h"
@@ -151,9 +152,18 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
     // See ASMbase::extractNodeVec for interpretation of negative value on basis
     int basis = dp.components < 0 ? dp.components : dp.differentBasis;
     ASMbase* pch = pindx < dp.patches.size() ? dp.patches[pindx] : model[pindx];
+
+    // A scalar field on a patch with more than one field is either a solution
+    // vector of the patch, from which the component to use is picked, or a
+    // nodal field with one value per node
+    bool allFields = dp.differentBasis && dp.components != pch->getNoFields(basis);
+    if (allFields && dp.components == 1)
+      if (const SIMbase* sim = dynamic_cast<const SIMbase*>(dp.sim); sim)
+        allFields = gvec->size() != sim->getNoNodes();
+
     if (dp.MADOF)
       pch->extractNodalVec(*gvec,*lvec,dp.MADOF);
-    else if (dp.differentBasis && dp.components != pch->getNoFields(basis))
+    else if (allFields)
       pch->extractNodeVec(*gvec,*lvec);
     else
       pch->extractNodeVec(*gvec,*lvec,abs(dp.components),basis);
@@ -168,7 +178,7 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
       if (dp.components == 1)
         problem->setNamedField(dp.name,Field::create(pch,*lvec,
                                                      dp.differentBasis,
-                                                     dp.comp_use));
+                                                     allFields ? dp.comp_use : 0));
       else
         problem->setNamedFields(dp.name,Fields::create(pch,*lvec,
                                                        dp.differentBasis));
