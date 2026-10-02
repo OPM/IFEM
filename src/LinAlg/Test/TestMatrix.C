@@ -15,6 +15,7 @@
 #include "Catch2Support.h"
 
 #include <iomanip>
+#include <limits>
 #include <numeric>
 #include <fstream>
 
@@ -40,6 +41,22 @@ TEMPLATE_TEST_CASE("TestVector.Multiply", "", float, double)
 TEMPLATE_TEST_CASE("TestVector.Norm", "", float, double)
 {
   vectorNormTest<TestType>();
+}
+
+
+TEMPLATE_TEST_CASE("TestVector.NotFinite", "", float, double)
+{
+  utl::vector<TestType> u(4);
+  std::iota(u.begin(),u.end(),TestType(1));
+  REQUIRE(u.notFinite() == 0);
+
+  u(3) = std::numeric_limits<TestType>::quiet_NaN();
+  REQUIRE(u.notFinite() == 3);
+
+  u(2) = std::numeric_limits<TestType>::infinity();
+  REQUIRE(u.notFinite() == 2); // the first one, not the last
+
+  REQUIRE(utl::vector<TestType>().notFinite() == 0);
 }
 
 

@@ -1615,6 +1615,16 @@ bool SIMbase::solveEqSystem (Vector& solution, size_t idxRHS, double* rCond,
   else
     status = false;
 
+  // Sanity check: Ensure that the solution vector is finite
+  size_t badDof = status ? solution.notFinite() : 0;
+  if (badDof > 0)
+  {
+    std::cerr <<" *** SIMbase::solveEqSystem: The solution is not finite,"
+              <<" degree of freedom "<< badDof <<" of "<< solution.size()
+              <<" is "<< solution[badDof-1] <<"."<< std::endl;
+    return false;
+  }
+
 #if SP_DEBUG > 2
   printSol = 1000*SP_DEBUG;
 #endif
