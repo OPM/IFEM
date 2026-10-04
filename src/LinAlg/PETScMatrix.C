@@ -57,22 +57,34 @@ void assemPETSc (const Matrix& eM, PETScMatrix& SM, StdVector* SV,
   auto A = SM.getBlockMatrices();
   if (A.empty())
     A.push_back(SM.getMatrix());
+
+  // The free dofs of the element by block, with their equations in the block,
+  // such that each block of the element matrix is added by a single call
+  const size_t nb = dd.getNoBlocks() > 1 ? dd.getNoBlocks() : 1;
+  std::vector<std::vector<PetscInt>> eqs(nb);
+  std::vector<IntVec> dofs(nb);
   for (int j = 1; j <= nedof; ++j) {
     int jeq = meen[j-1];
     if (jeq < 1)
       continue;
 
-    MatSetValue(A[getBlk(jeq, jeq)], getEq(jeq), getEq(jeq), eM(j,j), ADD_VALUES);
-
-    for (int i = 1; i < j; ++i) {
-      int ieq = meen[i-1];
-      if (ieq < 1)
-        continue;
-
-      MatSetValue(A[getBlk(ieq, jeq)], getEq(ieq), getEq(jeq), eM(i,j), ADD_VALUES);
-      MatSetValue(A[getBlk(jeq, ieq)], getEq(jeq), getEq(ieq), eM(j,i), ADD_VALUES);
-    }
+    const size_t b = nb > 1 ? glb2Blk[jeq-1][0] : 0;
+    eqs[b].push_back(getEq(jeq));
+    dofs[b].push_back(j);
   }
+
+  std::vector<PetscScalar> vals;
+  for (size_t bi = 0; bi < nb; ++bi)
+    for (size_t bj = 0; bj < nb; ++bj)
+      if (!eqs[bi].empty() && !eqs[bj].empty()) {
+        vals.resize(eqs[bi].size()*eqs[bj].size());
+        auto it = vals.begin();
+        for (int i : dofs[bi])
+          for (int j : dofs[bj])
+            *it++ = eM(i,j);
+        MatSetValues(A[bi*nb+bj], eqs[bi].size(), eqs[bi].data(),
+                     eqs[bj].size(), eqs[bj].data(), vals.data(), ADD_VALUES);
+      }
 
   // Add (appropriately weighted) elements corresponding to constrained
   // (dependent and prescribed) dofs in eM into SM and/or SV
