@@ -30,7 +30,7 @@ TEST_CASE("TestSplineFields.Grad2D")
 
 TEST_CASE("TestSplineFields.GradSepGeom2D")
 {
-  Fields2DTests<ASMSquare>::Grad();
+  Fields2DTests<ASMSquare>::GradSepGeom();
 }
 
 
@@ -42,7 +42,7 @@ TEST_CASE("TestSplineFields.Hessian2D")
 
 TEST_CASE("TestSplineFields.HessianSepGeom2D")
 {
-  Fields2DTests<ASMSquare>::Hessian();
+  Fields2DTests<ASMSquare>::HessianSepGeom();
 }
 
 
