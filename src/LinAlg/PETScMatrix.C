@@ -706,7 +706,8 @@ void PETScMatrix::init ()
     MatZeroEntries(m);
 
   assembled = false;
-  factored = false;
+  if (!solParams.hasValue("reset_pc"))
+    factored = false;
 }
 
 
