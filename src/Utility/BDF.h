@@ -43,7 +43,14 @@ namespace TimeIntegration //! Utilities for time integration.
     //! \brief Returns the degree of the time derivative approximation.
     short int getDegree() const { return degree; }
 
+    //! \brief Returns the ratio of the new step size to the previous one.
+    double getStepRatio() const { return tau; }
+
     //! \brief Advances the time stepping scheme.
+    //! \param[in] dt The time step size of the new step
+    //! \param[in] dtn The time step size of the previous step
+    //! \details With the step sizes, the coefficients are those of a
+    //! variable step size, otherwise of a constant one.
     bool advanceStep(double dt = 0.0, double dtn = 0.0);
 
     //! \brief Returns the BDF coefficients.
@@ -59,14 +66,26 @@ namespace TimeIntegration //! Utilities for time integration.
     {
       const T& v0 = values.front();
       if (step > 1 && this->getActualOrder() == 2) // second order
-        return 2.0*v0 - values[1];
+        return (1.0+tau)*v0 - tau*values[1];
       else // first order
         return v0;
     }
 
   protected:
+    //! \brief Computes the coefficients of a variable step size.
+    //! \param[out] c The coefficients
+    //! \param[in] dts The step sizes, the new one first
+    //! \details The coefficients are those of the derivative of the
+    //! interpolant through the points at the new time and the previous
+    //! times, at the new time, scaled by the new step size to the power of
+    //! the degree of the derivative.
+    void variableCoefs(std::vector<double>& c,
+                       const std::vector<double>& dts) const;
+
     short int           degree; //!< Degree of the time derivative approximation
     int                 step;   //!< Time step counter
+    double              tau = 1.0;  //!< Ratio of the new to the previous step
+    double              dtnn = 0.0; //!< The step size before the previous
     std::vector<double> coefs;  //!< The BDF coefficients
     std::vector<double> coefs1; //!< BDF coefficients for first time step
   };
