@@ -1306,8 +1306,11 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
   if (!umfSymbolic) {
     umfpack_di_symbolic(nrow, ncol, IA.data(), JA.data(),
                         A.ptr(), &umfSymbolic, nullptr, info);
-    if (info[UMFPACK_STATUS] != UMFPACK_OK)
+    if (info[UMFPACK_STATUS] != UMFPACK_OK) {
+      std::cerr <<" *** SparseMatrix::solveUMF: Symbolic factorization failed,"
+                <<" UMFPACK status "<< info[UMFPACK_STATUS] << std::endl;
       return false;
+    }
   }
 
   void* numeric = nullptr;
@@ -1319,11 +1322,21 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
   Vector X(B.size());
   size_t nrhs = B.size() / nrow;
   bool okAll = info[UMFPACK_STATUS] == UMFPACK_OK;
+  if (!okAll)
+    std::cerr <<" *** SparseMatrix::solveUMF: Numerical factorization failed,"
+              <<" UMFPACK status "<< info[UMFPACK_STATUS] <<", peak memory "
+              << info[UMFPACK_PEAK_MEMORY]*info[UMFPACK_SIZE_OF_UNIT]*1.0e-9
+              <<" GB of the estimated "
+              << info[UMFPACK_PEAK_MEMORY_ESTIMATE]*info[UMFPACK_SIZE_OF_UNIT]*1.0e-9
+              <<" GB"<< std::endl;
   for (size_t i = 0; i < nrhs && okAll; ++i) {
     umfpack_di_solve(UMFPACK_A,
                      IA.data(), JA.data(), A.ptr(),
                      &X[i*nrow], &B[i*nrow], numeric, nullptr, info);
     okAll = info[UMFPACK_STATUS] == UMFPACK_OK;
+    if (!okAll)
+      std::cerr <<" *** SparseMatrix::solveUMF: Solution failed,"
+                <<" UMFPACK status "<< info[UMFPACK_STATUS] << std::endl;
   }
   if (okAll)
     B = X;
