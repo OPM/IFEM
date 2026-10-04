@@ -56,6 +56,30 @@ TEST_CASE("TestStabilizationUtils.GetTauPt")
 }
 
 
+TEST_CASE("TestStabilizationUtils.GetTauPtDiffJac")
+{
+  const double mu = GENERATE(1.0e-3, 0.3, 10.0);
+
+  Vector U(3);
+  U.fill(1.0);
+  Matrix J(3, 3);
+  J.fill(2.0);
+  Vector du(3);
+  du.fill(3.0);
+
+  Matrix G;
+  utl::getGmat(J, &du[0], G);
+
+  // Compared to central differences
+  const double tau = StabilizationUtils::getTauPt(0.1, mu, U, G, 4.0, 5.0);
+  const double h = 1.0e-6*mu;
+  const double dtau = (StabilizationUtils::getTauPt(0.1, mu+h, U, G, 4.0, 5.0) -
+                       StabilizationUtils::getTauPt(0.1, mu-h, U, G, 4.0, 5.0)) / (2.0*h);
+  REQUIRE_THAT(StabilizationUtils::getTauPtDiffJac(mu, G, tau, 5.0),
+               WithinRel(dtau, 1e-6));
+}
+
+
 TEST_CASE("TestStabilizationUtils.GetTauNSPt")
 {
   Vector U(3);

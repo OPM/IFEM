@@ -66,6 +66,15 @@ namespace StabilizationUtils {
   Vector getTauPtJac(const Vector& U, const Matrix& G,
                    const double tauM);
 
+  //! \brief Computes the variation of the stabilization parameter of
+  //! getTauPt with respect to the diffusion parameter.
+  //! \param[in] mu Diffusion/viscosity parameter
+  //! \param[in] G  The G matrix
+  //! \param[in] tau The stabilization parameter
+  //! \param[in] Cl VMS parameter
+  double getTauPtDiffJac(double mu, const Matrix& G, const double tau,
+                         const double Cl = 36.0);
+
   //! \brief Computes variation of stability parameters with respect to velocity.
   //! \param[in] U  Velocity vector
   //! \param[in] G  The G matrix
