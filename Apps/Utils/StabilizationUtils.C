@@ -77,6 +77,15 @@ Vector getTauPtJac (const Vector& U, const Matrix& G,
 }
 
 
+double getTauPtDiffJac (double mu, const Matrix& G,
+                        const double tau, const double Cl)
+{
+  double Gnorm2 = G.norm2();
+  Gnorm2 *= Gnorm2;
+  return -pow(tau,3)*Cl*mu*Gnorm2;
+}
+
+
 std::pair<Vector,Vector>
 getTauNSPtJac (const Vector& U, const Matrix& G,
                     const double tauM, const double& tauC)
