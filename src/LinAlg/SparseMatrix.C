@@ -29,6 +29,7 @@
 #include <omp.h>
 #endif
 #include <algorithm>
+#include <map>
 
 #if defined(HAS_SUPERLU_MT)
 #define sluop_t superlumt_options_t
@@ -147,6 +148,7 @@ SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
   numThreads = nt;
   slu = nullptr;
   umfSymbolic = nullptr;
+  umfOrdering = -1;
 }
 
 
@@ -160,6 +162,7 @@ SparseMatrix::SparseMatrix (size_t m, size_t n, SparseSolver eqSolver)
   numThreads = 0;
   slu = nullptr;
   umfSymbolic = nullptr;
+  umfOrdering = -1;
 }
 
 
@@ -174,6 +177,7 @@ SparseMatrix::SparseMatrix (const SparseMatrix& B)
   numThreads = B.numThreads;
   slu = nullptr; // The SuperLU data (if any) is not copied
   umfSymbolic = nullptr; // The UMFPACK data (if any) is not copied
+  umfOrdering = B.umfOrdering;
 }
 
 
@@ -1296,6 +1300,31 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 }
 
 
+bool SparseMatrix::setOrdering (const std::string& ordering)
+{
+#ifdef HAS_UMFPACK
+  static const std::map<std::string,int> orderings = {
+    { "amd",     UMFPACK_ORDERING_AMD },
+    { "best",    UMFPACK_ORDERING_BEST },
+    { "cholmod", UMFPACK_ORDERING_CHOLMOD },
+    { "metis",   UMFPACK_ORDERING_METIS },
+    { "none",    UMFPACK_ORDERING_NONE }
+  };
+
+  std::map<std::string,int>::const_iterator it = orderings.find(ordering);
+  if (it != orderings.end())
+  {
+    umfOrdering = it->second;
+    return true;
+  }
+#endif
+
+  std::cerr <<" *** SparseMatrix::setOrdering: Unknown UMFPACK ordering \""
+            << ordering <<"\""<< std::endl;
+  return false;
+}
+
+
 bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
 {
   if (!factored)
@@ -1304,8 +1333,12 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
 #ifdef HAS_UMFPACK
   double info[UMFPACK_INFO];
   if (!umfSymbolic) {
+    double control[UMFPACK_CONTROL];
+    umfpack_di_defaults(control);
+    if (umfOrdering >= 0)
+      control[UMFPACK_ORDERING] = umfOrdering;
     umfpack_di_symbolic(nrow, ncol, IA.data(), JA.data(),
-                        A.ptr(), &umfSymbolic, nullptr, info);
+                        A.ptr(), &umfSymbolic, control, info);
     if (info[UMFPACK_STATUS] != UMFPACK_OK) {
       std::cerr <<" *** SparseMatrix::solveUMF: Symbolic factorization failed,"
                 <<" UMFPACK status "<< info[UMFPACK_STATUS] << std::endl;
