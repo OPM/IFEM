@@ -115,6 +115,16 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm* adm,
     return new ISTLMatrix(*adm,spar);
 #endif
 
+  if (mType == LinAlg::UMFPACK && spar.hasValue("ordering"))
+  {
+    SparseMatrix* A = new SparseMatrix(SparseMatrix::UMFPACK);
+    if (A->setOrdering(spar.getStringValue("ordering")))
+      return A;
+
+    delete A;
+    return nullptr;
+  }
+
   return SystemMatrix::create(adm,mType);
 }
 

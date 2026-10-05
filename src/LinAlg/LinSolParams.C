@@ -186,6 +186,8 @@ bool LinSolParams::read (const tinyxml2::XMLElement* elem)
       this->addValue("dtol", value);
     else if ((value = utl::getValue(child,"maxits")))
       this->addValue("maxits", value);
+    else if ((value = utl::getValue(child,"ordering")))
+      this->addValue("ordering", value);
   }
 
   if (parseblock == 0)
