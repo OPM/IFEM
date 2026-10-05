@@ -107,3 +107,16 @@ TEST_CASE("TestLinSolParams.ParseHypre")
   REQUIRE_THAT(params.getBlock(0).getDoubleValue("hypre_threshold"), WithinRel(0.01));
   REQUIRE(params.getBlock(0).getStringValue("hypre_coarsen_scheme") == "agg");
 }
+
+
+TEST_CASE("TestLinSolParams.ParseOrdering")
+{
+  tinyxml2::XMLDocument doc;
+  doc.LoadFile("src/LinAlg/Test/refdata/linsolver_ordering.xml");
+
+  LinSolParams params;
+  params.read(doc.RootElement());
+
+  REQUIRE(params.hasValue("ordering"));
+  REQUIRE(params.getStringValue("ordering") == "metis");
+}
