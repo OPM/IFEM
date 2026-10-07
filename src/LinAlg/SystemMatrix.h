@@ -224,7 +224,7 @@ public:
                               int num_thread_SLU = 1);
   //! \brief Static method creating a matrix of the given type.
   static SystemMatrix* create(const ProcessAdm* adm, LinAlg::MatrixType mType,
-                              const LinSolParams& spar);
+                              const LinSolParams& spar, int num_thread_SLU = 1);
 
 protected:
   //! \brief Default constructor.
