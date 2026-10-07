@@ -49,7 +49,11 @@ namespace ISTL {
 class BlockPreconditioner : public Preconditioner {
 public:
   //! \brief The category the preconditioner is part of.
+#if DUNE_VERSION_LT(DUNE_ISTL, 2, 11)
   Dune::SolverCategory::Category category() const
+#else
+  Dune::SolverCategory::Category category() const override
+#endif
   { return Dune::SolverCategory::sequential; }
 
   //! \brief Constructor
