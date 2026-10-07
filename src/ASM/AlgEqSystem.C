@@ -59,7 +59,8 @@ bool AlgEqSystem::init (LinAlg::MatrixType mtype, const LinSolParams* spar,
 
   if (!A.empty()) {
     if (spar)
-      A[0]._A = SystemMatrix::create(adm,mtype,*spar);
+      A[0]._A = SystemMatrix::create(adm,mtype,*spar,
+                                     abs(num_threads_SLU));
     else
       A[0]._A = SystemMatrix::create(adm,mtype,abs(num_threads_SLU));
     if (!A[0]._A) return false;

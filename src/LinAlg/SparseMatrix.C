@@ -148,7 +148,7 @@ SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
   numThreads = nt;
   slu = nullptr;
   umfSymbolic = nullptr;
-  umfOrdering = -1;
+  ordering = -1;
 }
 
 
@@ -162,7 +162,7 @@ SparseMatrix::SparseMatrix (size_t m, size_t n, SparseSolver eqSolver)
   numThreads = 0;
   slu = nullptr;
   umfSymbolic = nullptr;
-  umfOrdering = -1;
+  ordering = -1;
 }
 
 
@@ -177,7 +177,7 @@ SparseMatrix::SparseMatrix (const SparseMatrix& B)
   numThreads = B.numThreads;
   slu = nullptr; // The SuperLU data (if any) is not copied
   umfSymbolic = nullptr; // The UMFPACK data (if any) is not copied
-  umfOrdering = B.umfOrdering;
+  ordering = B.ordering;
 }
 
 
@@ -1079,7 +1079,7 @@ bool SparseMatrix::solveSLU (Vector& B)
   //   permc_spec = 1: minimum degree ordering on structure of A'*A
   //   permc_spec = 2: minimum degree ordering on structure of A'+A
   //   permc_spec = 3: approximate minimum degree for unsymmetric matrices
-  int permc_spec = 1;
+  int permc_spec = ordering >= 0 ? ordering : 1;
   get_perm_c(permc_spec, &slu->A, slu->perm_c);
 
   // Create right-hand-side/solution vector(s)
@@ -1097,6 +1097,8 @@ bool SparseMatrix::solveSLU (Vector& B)
   if (!slu) {
     // Create a new SuperLU matrix
     slu = new SuperLUdata(nrow,ncol,1);
+    if (ordering >= 0)
+      slu->opts->ColPerm = static_cast<colperm_t>(ordering);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
                            A.ptr(), JA.data(), IA.data(),
                            SLU_NC, SLU_D, SLU_GE);
@@ -1175,7 +1177,8 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
     //   permc_spec = 1: minimum degree ordering on structure of A'*A
     //   permc_spec = 2: minimum degree ordering on structure of A'+A
     //   permc_spec = 3: approximate minimum degree for unsymmetric matrices
-    int permc_spec = 1;
+    // pdgssvx takes the ordering from perm_c, it does not read opts->ColPerm.
+    int permc_spec = ordering >= 0 ? ordering : 1;
     get_perm_c(permc_spec, &slu->A, slu->perm_c);
   }
   else if (factored)
@@ -1209,6 +1212,8 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   if (!slu) {
     // Create a new SuperLU matrix
     slu = new SuperLUdata(nrow,ncol,1);
+    if (ordering >= 0)
+      slu->opts->ColPerm = static_cast<colperm_t>(ordering);
     slu->etree = new int[ncol];
     slu->C = new Real[ncol];
     slu->R = new Real[nrow];
@@ -1300,27 +1305,52 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 }
 
 
-bool SparseMatrix::setOrdering (const std::string& ordering)
+bool SparseMatrix::setOrdering (const std::string& name)
 {
+  std::map<std::string,int> orderings;
+  if (solver == UMFPACK) {
 #ifdef HAS_UMFPACK
-  static const std::map<std::string,int> orderings = {
-    { "amd",     UMFPACK_ORDERING_AMD },
-    { "best",    UMFPACK_ORDERING_BEST },
-    { "cholmod", UMFPACK_ORDERING_CHOLMOD },
-    { "metis",   UMFPACK_ORDERING_METIS },
-    { "none",    UMFPACK_ORDERING_NONE }
-  };
+    orderings = {
+      { "amd",     UMFPACK_ORDERING_AMD },
+      { "best",    UMFPACK_ORDERING_BEST },
+      { "cholmod", UMFPACK_ORDERING_CHOLMOD },
+      { "metis",   UMFPACK_ORDERING_METIS },
+      { "none",    UMFPACK_ORDERING_NONE }
+    };
+#endif
+  }
+  else if (solver == SUPERLU) {
+#if defined(HAS_SUPERLU_MT)
+    // The permc_spec values of get_perm_c
+    orderings = {
+      { "none",          0 },
+      { "mmd_ata",       1 },
+      { "mmd_at_plus_a", 2 },
+      { "colamd",        3 }
+    };
+#elif defined(HAS_SUPERLU)
+    // The METIS orderings require SuperLU to be built with METIS
+    orderings = {
+      { "none",            NATURAL },
+      { "mmd_ata",         MMD_ATA },
+      { "mmd_at_plus_a",   MMD_AT_PLUS_A },
+      { "colamd",          COLAMD },
+      { "metis_at_plus_a", METIS_AT_PLUS_A },
+      { "metis_ata",       METIS_ATA }
+    };
+#endif
+  }
 
-  std::map<std::string,int>::const_iterator it = orderings.find(ordering);
+  std::map<std::string,int>::const_iterator it = orderings.find(name);
   if (it != orderings.end())
   {
-    umfOrdering = it->second;
+    ordering = it->second;
     return true;
   }
-#endif
 
-  std::cerr <<" *** SparseMatrix::setOrdering: Unknown UMFPACK ordering \""
-            << ordering <<"\""<< std::endl;
+  std::cerr <<" *** SparseMatrix::setOrdering: Unknown ordering \""<< name
+            <<"\" for the "<< (solver == UMFPACK ? "UMFPACK" : "SuperLU")
+            <<" solver."<< std::endl;
   return false;
 }
 
@@ -1335,8 +1365,8 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
   if (!umfSymbolic) {
     double control[UMFPACK_CONTROL];
     umfpack_di_defaults(control);
-    if (umfOrdering >= 0)
-      control[UMFPACK_ORDERING] = umfOrdering;
+    if (ordering >= 0)
+      control[UMFPACK_ORDERING] = ordering;
     umfpack_di_symbolic(nrow, ncol, IA.data(), JA.data(),
                         A.ptr(), &umfSymbolic, control, info);
     if (info[UMFPACK_STATUS] != UMFPACK_OK) {
