@@ -183,6 +183,29 @@ TEST_CASE("TestEqualOrderOperators.Mass")
 }
 
 
+TEST_CASE("TestEqualOrderOperators.MassTensorTrial")
+{
+  MyElement fe;
+
+  Tensor K(2);
+  K(1,1) = 1.0; K(1,2) = 2.0;
+  K(2,1) = 3.0; K(2,2) = 4.0;
+
+  // The test functions of the element, (1,2), and other trial functions
+  Vector N(2);
+  N(1) = 3.0;
+  N(2) = 5.0;
+  Matrix EM_vec(2*2,2*2);
+  EqualOrderOperators::Weak::Mass(EM_vec, N, K, fe, 2.0);
+
+  const Real2DMat EM_vec_ref = {{ 6.0, 12.0, 10.0, 20.0},
+                                {18.0, 24.0, 30.0, 40.0},
+                                {12.0, 24.0, 20.0, 40.0},
+                                {36.0, 48.0, 60.0, 80.0}};
+  check_matrix_equal(EM_vec, EM_vec_ref);
+}
+
+
 TEST_CASE("TestEqualOrderOperators.Source")
 {
   MyElement fe;

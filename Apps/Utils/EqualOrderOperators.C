@@ -26,12 +26,13 @@ namespace
   //! \param[in] cmp1 First components to add matrix to
   //! \param[in] cmp2 Second components to add matrix to
   //! \param[in] nf Number of components in total matrix
+  //! \param[in] scale Scaling factor for the matrix
   void addComponent (Matrix& EM, const Matrix& A,
-                     size_t cmp1, size_t cmp2, size_t nf)
+                     size_t cmp1, size_t cmp2, size_t nf, double scale = 1.0)
   {
     for (size_t i = 1; i <= A.rows(); ++i)
       for (size_t j = 1; j <= A.cols(); ++j)
-        EM(nf*(i-1)+cmp1, nf*(j-1)+cmp2) += A(i, j);
+        EM(nf*(i-1)+cmp1, nf*(j-1)+cmp2) += scale*A(i, j);
   }
 
   //! \brief Helper applying a divergence (1) or a gradient (2) operation.
@@ -338,6 +339,21 @@ void EqualOrderOperators::Weak::Mass (Matrix& EM, const FiniteElement& fe,
   }
   else
     EM.outer_product(fe.basis(basis),fe.basis(basis),true,scale*fe.detJxW);
+}
+
+
+void EqualOrderOperators::Weak::Mass (Matrix& EM,
+                                      const Vector& N, const Tensor& K,
+                                      const FiniteElement& fe,
+                                      double scale, int basis)
+{
+  const size_t cmp = EM.rows() / fe.basis(basis).size();
+  Matrix A;
+  A.outer_product(fe.basis(basis),N,false,scale*fe.detJxW);
+  for (size_t k = 1; k <= cmp; ++k)
+    for (size_t l = 1; l <= cmp; ++l)
+      if (K(k,l) != 0.0)
+        addComponent(EM, A, k, l, cmp, K(k,l));
 }
 
 

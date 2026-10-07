@@ -195,6 +195,17 @@ public:
                           const FiniteElement& fe,
                           double scale=1.0, int basis=1);
 
+    //! \brief Compute a mass term of a vector field, weighted by a tensor,
+    //! with the trial functions evaluated at another point.
+    //! \param[out] EM The element matrix to add contribution to
+    //! \param[in] N The trial functions, those of \a fe at the other point
+    //! \param[in] K The tensor weighting the components
+    //! \param[in] fe The finite element to evaluate the test functions for
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
+    static void Mass(Matrix& EM, const Vector& N, const Tensor& K,
+                     const FiniteElement& fe, double scale=1.0, int basis=1);
+
     //! \brief Compute a source term.
     //! \param[out] EV The element vector to add contribution to
     //! \param[in] fe The finite element to evaluate for
