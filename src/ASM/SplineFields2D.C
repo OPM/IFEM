@@ -84,6 +84,23 @@ bool SplineFields2D::valueNode (size_t node, Vector& vals) const
 
 bool SplineFields2D::valueFE (const ItgPoint& x, Vector& vals) const
 {
+  Vector N;
+  std::vector<int> ip;
+  if (!this->basisFE(x,N,ip))
+    return false;
+
+  // Evaluate the solution field at the given point
+  Matrix Vnod;
+  utl::gather(ip,nf,values,Vnod);
+  Vnod.multiply(N,vals); // vals = Vnod * N
+
+  return true;
+}
+
+
+bool SplineFields2D::basisFE (const ItgPoint& x, Vector& N,
+                              std::vector<int>& ip) const
+{
   if (!basis) return false;
 
   // Evaluate the basis functions at the given point
@@ -91,15 +108,11 @@ bool SplineFields2D::valueFE (const ItgPoint& x, Vector& vals) const
 #pragma omp critical
   basis->computeBasis(x.u,x.v,spline);
 
-  // Evaluate the solution field at the given point
-  std::vector<int> ip;
+  ip.clear();
   ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
 		     basis->order_u(),basis->order_v(),
 		     spline.left_idx,ip);
-
-  Matrix Vnod;
-  utl::gather(ip,nf,values,Vnod);
-  Vnod.multiply(spline.basisValues,vals); // vals = Vnod * basisValues
+  N = spline.basisValues;
 
   return true;
 }

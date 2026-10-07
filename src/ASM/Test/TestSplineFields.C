@@ -15,6 +15,12 @@
 #include "Test/FieldTests.h"
 
 
+TEST_CASE("TestSplineFields.Basis2D")
+{
+  Fields2DTests<ASMSquare>::Basis();
+}
+
+
 TEST_CASE("TestSplineFields.Value2D")
 {
   Fields2DTests<ASMSquare>::Value();
@@ -61,6 +67,12 @@ TEST_CASE("TestSplineFields.Grad2Dmx")
 TEST_CASE("TestSplineFields.Hessian2Dmx")
 {
   Fields2DTests<ASMmxSquare>::Hessianmx();
+}
+
+
+TEST_CASE("TestSplineFields.Basis3D")
+{
+  Fields3DTests<ASMCube>::Basis();
 }
 
 

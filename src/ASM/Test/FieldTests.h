@@ -288,6 +288,36 @@ private:
 template<class Patch>
 struct Fields2DTests
 {
+  static void Basis()
+  {
+    Patch patch;
+    REQUIRE(patch.raiseOrder(1,1));
+    REQUIRE(patch.generateFEMTopology());
+    const std::vector<double> coefs(Patch::quadv.begin(), Patch::quadv.end());
+    std::unique_ptr<Fields> fvector(Fields::create(&patch,coefs));
+    REQUIRE(fvector);
+
+    const auto param = GENERATE(Catch::Generators::from_range(test_points2D));
+    SECTION("Basis (" + std::to_string(param.u) + "," + std::to_string(param.v) + ")")
+    {
+      // The basis functions are a partition of unity, and weight the
+      // coefficients of their indices to the value of the field
+      Vector N;
+      std::vector<int> ip;
+      REQUIRE(fvector->basisFE(param,N,ip));
+      REQUIRE(N.size() == ip.size());
+      REQUIRE_THAT(N.sum(), WithinRel(1.0));
+
+      Vector v(2), vb(2);
+      REQUIRE(fvector->valueFE(param,v));
+      for (size_t i = 0; i < ip.size(); i++)
+        for (size_t k = 0; k < 2; k++)
+          vb[k] += N[i]*coefs[2*ip[i]+k];
+      for (size_t k = 1; k <= 2; k++)
+        REQUIRE_THAT(vb(k), WithinRel(v(k)));
+    }
+  }
+
   static void Value()
   {
     Patch patch;
@@ -716,6 +746,38 @@ private:
 template<class Patch>
 struct Fields3DTests
 {
+  static void Basis()
+  {
+    Patch patch;
+    REQUIRE(patch.raiseOrder(1,1,1,false));
+    REQUIRE(patch.generateFEMTopology());
+    const std::vector<double> coefs(Patch::quadv.begin(), Patch::quadv.end());
+    std::unique_ptr<Fields> fvector(Fields::create(&patch,coefs));
+    REQUIRE(fvector);
+
+    const auto param = GENERATE(Catch::Generators::from_range(test_points3D));
+    SECTION("Basis (" + std::to_string(param.u) + ","
+                      + std::to_string(param.v) + ","
+                      + std::to_string(param.w) + ")")
+    {
+      // The basis functions are a partition of unity, and weight the
+      // coefficients of their indices to the value of the field
+      Vector N;
+      std::vector<int> ip;
+      REQUIRE(fvector->basisFE(param,N,ip));
+      REQUIRE(N.size() == ip.size());
+      REQUIRE_THAT(N.sum(), WithinRel(1.0));
+
+      Vector v(3), vb(3);
+      REQUIRE(fvector->valueFE(param,v));
+      for (size_t i = 0; i < ip.size(); i++)
+        for (size_t k = 0; k < 3; k++)
+          vb[k] += N[i]*coefs[3*ip[i]+k];
+      for (size_t k = 1; k <= 3; k++)
+        REQUIRE_THAT(vb(k), WithinRel(v(k)));
+    }
+  }
+
   static void Value()
   {
     Patch patch;
