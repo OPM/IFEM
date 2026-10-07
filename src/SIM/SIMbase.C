@@ -206,6 +206,18 @@ void printNodalConnectivity (const ASM::PatchVec& model, std::ostream& os)
 #endif
 
 
+bool SIMbase::preprocessA ()
+{
+  if (myProblem)
+    myInts.emplace(0,myProblem);
+
+  if (mySol)
+    mySol->setupSecondarySolutions();
+
+  return true;
+}
+
+
 bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 {
   if (myModel.empty())
@@ -223,9 +235,6 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 
   static int substep = 10;
   this->printHeading(substep);
-
-  if (mySol)
-    mySol->setupSecondarySolutions();
 
   // Perform some sub-class specific pre-preprocessing, if any
   if (!this->preprocessA())

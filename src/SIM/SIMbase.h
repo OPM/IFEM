@@ -625,7 +625,7 @@ protected:
 
   //! \brief Preprocessing performed before the FEM model generation.
   //! \return \e false if the model asks for something that cannot be honoured
-  virtual bool preprocessA() { return true; }
+  virtual bool preprocessA();
   //! \brief Specialized preprocessing performed before assembly initialization.
   virtual bool preprocessBeforeAsmInit(int&) { return true; }
   //! \brief Preprocessing performed after the system assembly initialization.
