@@ -123,9 +123,7 @@ public:
   //! \brief Sets the patch to use.
   void initPatch(size_t pIdx);
 
-  //! \brief Make sure we have a secondary solution.
-  //! \details If none is given, we use derivation (automatic or finite difference)
-  //!          to obtain one.
+  //! \brief Ensures that we always have a secondary solution.
   virtual void setupSecondarySolutions();
 
 private:

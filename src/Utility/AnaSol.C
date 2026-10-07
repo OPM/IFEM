@@ -25,40 +25,39 @@
 #endif
 
 
-namespace {
-
-//! \brief Function returning the gradient of a scalar or vector function.
-template<class FromFunc, class ToFunc, class Ret>
-class GradientFunc : public ToFunc
+namespace
 {
-public:
-  //! \brief The constructor initializes the function to use.
-  GradientFunc(const FromFunc& f) : func(f) {}
+  //! \brief Function returning the gradient of a scalar or vector function.
+  template<class FromFunc, class ToFunc, class Ret>
+  class GradientFunc : public ToFunc
+  {
+  public:
+    //! \brief The constructor initializes the reference to the target function.
+    explicit GradientFunc(const FromFunc& f) : func(f) {}
 
-protected:
-  //! \brief Evaluates the gradient in a point.
-  Ret evaluate(const Vec3& X) const { return func.gradient(X); }
+  protected:
+    //! \brief Evaluates the gradient in a point.
+    Ret evaluate(const Vec3& X) const override { return func.gradient(X); }
 
-private:
-  const FromFunc& func; //!< Reference to scalar/vector function
-};
+  private:
+    const FromFunc& func; //!< Reference to a scalar or vector function
+  };
 
 
-//! \brief Specialization for symmetric tensors.
-//! \details We need to construct a symmtensor from the returned tensor.
-template<>
-SymmTensor GradientFunc<VecFunc,STensorFunc,SymmTensor>::evaluate(const Vec3& X) const
-{
-  Tensor tmp = func.gradient(X);
-  const size_t nsd = tmp.dim();
-  SymmTensor ret(nsd);
-  for (size_t i = 1; i <= nsd; ++i)
-    for (size_t j = i; j <= nsd; ++j)
-      ret(i,j) = tmp(i,j);
+  //! \brief Specialization for symmetric tensors.
+  template<>
+  SymmTensor GradientFunc<VecFunc,STensorFunc,SymmTensor>::evaluate(const Vec3& X) const
+  {
+    // Construct a SymmTensor from the returned Tensor (assuming it is symmetric)
+    Tensor tmp = func.gradient(X);
+    const size_t nsd = tmp.dim();
+    SymmTensor ret(nsd);
+    for (size_t i = 1; i <= nsd; ++i)
+      for (size_t j = i; j <= nsd; ++j)
+        ret(i,j) = tmp(i,j);
 
-  return ret;
-}
-
+    return ret;
+  }
 }
 
 
@@ -127,18 +126,13 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
 AnaSol::AnaSol (const tinyxml2::XMLElement* elem, bool scalarSol)
   : vecSol(nullptr), vecSecSol(nullptr), stressSol(nullptr)
 {
-  const char* type = elem->Attribute("type");
-  if (type && !strcasecmp(type,"fields"))
+  std::string type;
+  if (utl::getAttribute(elem,"type",type,true) && type == "fields")
     this->parseFieldFunctions(elem,scalarSol);
-  else {
-    bool useAD = false;
-    utl::getAttribute(elem, "autodiff", useAD);
-    utl::getAttribute(elem, "symmetric", symmetric);
-    if (useAD)
-      this->parseExpressionFunctions<autodiff::var>(elem,scalarSol);
-    else
-      this->parseExpressionFunctions<Real>(elem,scalarSol);
-  }
+  else if (bool ad = false; utl::getAttribute(elem,"autodiff",ad) && ad)
+    this->parseExpressionFunctions<autodiff::var>(elem,scalarSol);
+  else
+    this->parseExpressionFunctions<Real>(elem,scalarSol);
 }
 
 
@@ -174,12 +168,14 @@ void AnaSol::initPatch (size_t pIdx)
 
 
 template<class Scalar>
-void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool scalarSol)
+void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem,
+                                       bool scalarSol)
 {
   using EvalF = EvalFuncSpatial<Scalar>;
   using VecF = EvalMultiFunction<VecFunc,Vec3,Scalar>;
   using TensorF = EvalMultiFunction<TensorFunc,Tensor,Scalar>;
   using STensorF = EvalMultiFunction<STensorFunc,SymmTensor,Scalar>;
+
   std::string variables;
   const tinyxml2::XMLElement* var = elem->FirstChildElement("variables");
   if (var && var->FirstChild())
@@ -300,6 +296,8 @@ void AnaSol::parseExpressionFunctions (const tinyxml2::XMLElement* elem, bool sc
     stressSol = new STensorF(sigma,variables);
     parseDerivatives(static_cast<STensorF*>(stressSol),stress);
   }
+  else if (vecSol)
+    utl::getAttribute(elem,"symmetric",symmetric);
 }
 
 
@@ -366,17 +364,22 @@ void AnaSol::parseFieldFunctions (const tinyxml2::XMLElement* elem, bool scalarS
 }
 
 
+/*!
+  If no secondary solution has been explicitly defined,
+  this method uses derivation (automatic or finite difference)
+  to obtain the gradient of the primary solution, which then
+  is assigned as the analytic secondary solution field.
+*/
+
 void AnaSol::setupSecondarySolutions ()
 {
-  // if we are given a stress sol, no scalar secondaries should be registered.
-  // this is tailored to assumptions in elasticity applications.
-  if (!stressSol && !scalSol.empty()) {
-    scalSecSol.resize(scalSol.size());
+  if (!stressSol) {
+    if (scalSecSol.size() < scalSol.size())
+      scalSecSol.resize(scalSol.size(),nullptr);
     for (size_t i = 0; i < scalSol.size(); ++i)
-      if (!scalSecSol[i])
+      if (!scalSecSol[i] && scalSol[i])
         scalSecSol[i] = new GradientFunc<RealFunc,VecFunc,Vec3>(*scalSol[i]);
   }
-
   if (vecSol) {
     if (symmetric && !stressSol)
       stressSol = new GradientFunc<VecFunc,STensorFunc,SymmTensor>(*vecSol);
