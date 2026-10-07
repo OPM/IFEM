@@ -224,7 +224,7 @@ public:
                               int num_thread_SLU = 1);
   //! \brief Static method creating a matrix of the given type.
   static SystemMatrix* create(const ProcessAdm* adm, LinAlg::MatrixType mType,
-                              const LinSolParams& spar);
+                              const LinSolParams& spar, int num_thread_SLU = 1);
 
 protected:
   //! \brief Default constructor.
@@ -241,6 +241,9 @@ public:
 
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const = 0;
+
+  //! \brief Sets the fill-reducing ordering of the equation solver.
+  virtual bool setOrdering(const std::string&) { return true; }
 
   //! \brief Locks or unlocks the sparsity pattern.
   virtual bool lockPattern(bool) { return false; }

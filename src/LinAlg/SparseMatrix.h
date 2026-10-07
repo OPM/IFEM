@@ -56,9 +56,9 @@ public:
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new SparseMatrix(*this); }
 
-  //! \brief Sets the fill-reducing ordering of the UMFPACK solver.
-  //! \param[in] ordering amd, best, cholmod, metis or none
-  bool setOrdering(const std::string& ordering);
+  //! \brief Sets the fill-reducing ordering of the equation solver.
+  //! \param[in] ordering Ordering to use (solver dependent)
+  virtual bool setOrdering(const std::string& ordering);
 
   //! \brief Locks or unlocks the sparsity pattern.
   //! \param[in] doLock If \e true, lock pattern, otherwise unlock it
@@ -294,7 +294,7 @@ private:
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver
   int      numThreads; //!< Number of threads to use for the SuperLU_MT solver
   void*   umfSymbolic; //!< Symbolically factored matrix for UMFPACK
-  int     umfOrdering; //!< Fill-reducing ordering of UMFPACK, -1 for default
+  int        ordering; //!< Fill-reducing ordering of the solver, -1 for default
 
 protected:
   bool factored; //!< Set to \e true when the matrix is factorized
