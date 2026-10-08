@@ -15,14 +15,16 @@
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
+#include <algorithm>
 #include <sstream>
 #ifdef HAS_CEREAL
 #include <cereal/cereal.hpp>
 #include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp>
 #endif
 
 
-TimeStep::TimeStep () : step(0), iter(time.it), lstep(0)
+TimeStep::TimeStep () : step(0), iter(time.it), lstep(0), endStep(0)
 {
   starTime = time.t = 0.0;
   stopTime = time.dt = 1.0;
@@ -32,6 +34,10 @@ TimeStep::TimeStep () : step(0), iter(time.it), lstep(0)
   f1 = 1.5;
   f2 = 0.25;
   maxStep = niter = 0;
+  maxCut = nCut = 0;
+  dtSched = 1.0;
+  dtCut = dtHint = 0.0;
+  limited = false;
   stepIt = mySteps.end();
 }
 
@@ -40,6 +46,7 @@ TimeStep& TimeStep::operator= (const TimeStep& ts)
 {
   step = ts.step;
   lstep = ts.lstep;
+  endStep = ts.endStep;
   starTime = ts.starTime;
   stopTime = ts.stopTime;
   dtMin = ts.dtMin;
@@ -49,12 +56,19 @@ TimeStep& TimeStep::operator= (const TimeStep& ts)
   f1 = ts.f1;
   f2 = ts.f2;
   maxStep = ts.maxStep;
+  maxCut = ts.maxCut;
+  nCut = ts.nCut;
   niter = ts.niter;
   iter = ts.iter;
+  dtSched = ts.dtSched;
+  dtCut = ts.dtCut;
+  dtHint = ts.dtHint;
+  limited = ts.limited;
+  taken = ts.taken;
 
   time = ts.time;
   mySteps = ts.mySteps;
-  stepIt = mySteps.begin();
+  stepIt = mySteps.begin() + (ts.stepIt - ts.mySteps.begin());
   return *this;
 }
 
@@ -113,6 +127,7 @@ bool TimeStep::parse (const tinyxml2::XMLElement* elem)
   utl::getAttribute(elem,"maxStep",maxStep);
   utl::getAttribute(elem,"f1",f1);
   utl::getAttribute(elem,"f2",f2);
+  utl::getAttribute(elem,"maxCutbacks",maxCut);
 
   if (f1 < 1.0) f1 = 1.0;
   if (f2 > 1.0) f2 = 1.0;
@@ -202,11 +217,20 @@ bool TimeStep::hasReached (double t) const
 
 bool TimeStep::reset (int istep)
 {
+  nCut = 0;
   if (mySteps.empty()) {
+    // Without time step definitions, the time and step size limits are kept
     step = istep;
     return true;
   }
-  lstep = step = 0;
+
+  // The replay of the steps starts without limits, and a suggested size of
+  // the step after the last one taken is kept for it
+  if (static_cast<size_t>(step) == taken.dt.size())
+    taken.dtHint = dtHint;
+  dtCut = dtHint = 0.0;
+  limited = false;
+  lstep = endStep = step = 0;
   stepIt = mySteps.begin();
   if (istep == 0)
     stopTime = mySteps.back().second;
@@ -220,9 +244,10 @@ bool TimeStep::reset (int istep)
 }
 
 
-bool TimeStep::increment ()
+void TimeStep::scheduleIncrement ()
 {
-  time.dtn = time.dt;
+  if (limited && mySteps.empty() && maxCFL <= 0.0)
+    time.dt = dtSched; // Continue from the step size before it was limited
 
   if (maxCFL > 0.0 && time.CFL > 1.0e-12) {
     // Increase CFL by a given factor
@@ -237,8 +262,12 @@ bool TimeStep::increment ()
     }
   }
   else if (stepIt != mySteps.end())
+  {
     if (++lstep <= stepIt->first.size())
       time.dt = stepIt->first[lstep-1];
+    else if (step > 0)
+      time.dt = dtSched; // Beyond the definition, as scheduled before
+  }
 
   if (dtMin < dtMax && maxCFL <= 0.0 && step > 1)
   {
@@ -254,6 +283,57 @@ bool TimeStep::increment ()
       time.dt = dtMax;
   }
 
+  if (dtHint > 0.0 && mySteps.empty() && maxCFL <= 0.0)
+  {
+    // Without time step definitions, a suggested step size replaces it,
+    // within the step size bounds
+    time.dt = dtHint;
+    if (dtMin < dtMax)
+      time.dt = std::max(std::min(dtHint,dtMax),dtMin);
+    dtHint = 0.0;
+  }
+
+  // Limit the scheduled step size after a cut-back, or as suggested,
+  // a suggestion not below the minimum step size
+  dtSched = time.dt;
+  double dtLim = dtHint;
+  if (dtLim > 0.0 && dtMin < dtMax && dtLim < dtMin)
+    dtLim = dtMin;
+  if (dtCut > 0.0)
+  {
+    // Let the step size grow back to the scheduled one after a cut-back
+    dtCut *= f1;
+    if (dtCut < dtSched)
+      dtLim = dtLim > 0.0 ? std::min(dtLim,dtCut) : dtCut;
+    else
+      dtCut = 0.0;
+  }
+  dtHint = 0.0;
+  if ((limited = dtLim > 0.0 && dtLim < dtSched))
+    time.dt = dtLim;
+}
+
+
+bool TimeStep::increment ()
+{
+  time.dtn = time.dt;
+
+  // A step taken before, as in a replay of the time steps, has its size,
+  // and advances in the time step definitions as it did
+  const bool replay = static_cast<size_t>(step) < taken.dt.size();
+  const size_t lprev = lstep;
+  if (replay)
+  {
+    time.dt = taken.dt[step];
+    dtSched = taken.sched[step];
+    dtHint = 0.0;
+    if (stepIt != mySteps.end() && taken.defined[step])
+      ++lstep;
+  }
+  else
+    this->scheduleIncrement();
+  const char defined = lstep != lprev;
+
   if (this->hasReached(stopTime))
   {
     if (step > 0)
@@ -268,25 +348,21 @@ bool TimeStep::increment ()
   }
 
   niter = iter;
+  nCut = 0;
+  endStep = 0;
   time.t += time.dt;
 
-  if (stepIt != mySteps.end())
+  if (stepIt != mySteps.end() && this->hasReached(stepIt->second))
   {
-    if (stepIt->first.size() <= lstep)
-      stepIt->first.push_back(time.dt);
-
-    if (this->hasReached(stepIt->second))
+    if (time.t != stepIt->second)
     {
-      if (time.t != stepIt->second)
-      {
-        // Adjust the size of the last time step
-        time.dt += stepIt->second - time.t;
-        time.t = stepIt->second;
-        stepIt->first.back() = time.dt;
-      }
-      lstep = 0;
-      ++stepIt;
+      // Adjust the size of the last time step
+      time.dt += stepIt->second - time.t;
+      time.t = stepIt->second;
     }
+    endStep = lstep+1;
+    lstep = 0;
+    ++stepIt;
   }
 
   if (time.t > stopTime)
@@ -296,35 +372,99 @@ bool TimeStep::increment ()
     time.t = stopTime;
   }
 
+  if (!replay)
+  {
+    // Record the step, which a replay of the steps repeats
+    taken.dt.push_back(time.dt);
+    taken.sched.push_back(dtSched);
+    taken.defined.push_back(defined);
+    taken.dtCut = dtCut;
+    taken.limited = limited;
+    taken.niter = niter;
+    taken.dtHint = 0.0;
+  }
+  else if (static_cast<size_t>(step) == taken.dt.size())
+  {
+    // The replay continues as the last step taken did
+    dtCut = taken.dtCut;
+    limited = taken.limited;
+    niter = taken.niter;
+    dtHint = taken.dtHint;
+  }
+
   return true;
 }
 
 
 bool TimeStep::cutback ()
 {
-  if (time.dt <= dtMin)
+  // Without a maximum number of cut-backs, the minimum step size is the limit
+  const bool useMin = maxCut < 1 || dtMin < dtMax;
+  if ((useMin && time.dt <= dtMin) || (maxCut > 0 && nCut >= maxCut))
   {
     // Already reached the minimum step size, cannot do further cut-back
     IFEM::cout <<" *** Iterations diverged, terminating..."<< std::endl;
     return false;
   }
 
-  // Reduce the time step size by the factor f2 < 1.0 or 0.5
+  // Reduce the time step size to the suggested one, if smaller,
+  // or else by the factor f2 < 1.0 or 0.5
   double dt = time.dt;
-  time.dt *= (f2 < 1.0 ? f2 : 0.5);
-  if (time.dt < dtMin)
+  if (dtHint > 0.0 && dtHint < dt)
+    time.dt = dtHint;
+  else
+    time.dt *= (f2 < 1.0 ? f2 : 0.5);
+  dtHint = 0.0;
+  if (useMin && time.dt < dtMin)
     time.dt = dtMin;
 
+  ++nCut;
   iter = 0;
   niter = 10;
   time.first = 'c';
   time.t += time.dt - dt;
-  if (stepIt != mySteps.end())
-    stepIt->first.back() = time.dt;
+
+  // The reduced step no longer ends the time step definition it ended
+  if (endStep > 0)
+  {
+    --stepIt;
+    lstep = endStep-1;
+    endStep = 0;
+  }
+
+  if (maxCut > 0)
+  {
+    // Limit the following steps, which grow back to the scheduled step size
+    dtCut = time.dt;
+    limited = true;
+  }
+  else
+    dtSched = time.dt; // Continue with the reduced step size
+
+  // The step taken is the reduced one, and a replay of the steps ends with it
+  if (step > 0)
+  {
+    taken.dt.truncate(step);
+    taken.sched.truncate(step);
+    taken.defined.truncate(step);
+    taken.dt.setBack(time.dt);
+    taken.sched.setBack(dtSched);
+    taken.dtCut = dtCut;
+    taken.limited = limited;
+    taken.niter = niter;
+    taken.dtHint = 0.0;
+  }
 
   IFEM::cout <<"  ** Iterations diverged, trying cut-back with dt="
              << time.dt << std::endl;
   return true;
+}
+
+
+void TimeStep::suggestNextStep (double dt)
+{
+  if (dt > 0.0 && (dtHint <= 0.0 || dt < dtHint))
+    dtHint = dt;
 }
 
 
@@ -349,6 +489,30 @@ template<class T> void doSerializeOps (T& ar, TimeStep& tp)
   ar(tp.time.CFL);
   ar(tp.time.first);
 }
+
+
+//! \brief Saves the runs of values \a v to the archive \a ar.
+template<class Archive, class T>
+void saveRuns (Archive& ar, const T& v)
+{
+  ar(v.vals,v.ends);
+}
+
+
+//! \brief Loads the runs of values \a v from the archive \a ar.
+template<class Archive, class T>
+bool loadRuns (Archive& ar, T& v)
+{
+  ar(v.vals,v.ends);
+  if (v.ends.size() != v.vals.size())
+    return false;
+
+  for (size_t i = 0; i < v.ends.size(); i++)
+    if (v.ends[i] <= (i > 0 ? v.ends[i-1] : 0))
+      return false;
+
+  return true;
+}
 #endif
 
 
@@ -361,6 +525,21 @@ bool TimeStep::serialize (std::map<std::string,std::string>& data) const
     doSerializeOps(ar,*const_cast<TimeStep*>(this));
   }
   data.insert(std::make_pair("TimeStep",str.str()));
+
+  // The position in the time step definitions, the step size limits, and the
+  // time steps taken, for a replay of the steps. Their sizes are run-length
+  // encoded, as they mostly repeat a scheduled size.
+  std::ostringstream str2;
+  {
+    cereal::BinaryOutputArchive ar(str2);
+    const int seg = stepIt - mySteps.begin();
+    ar(seg,lstep,iter,niter,dtSched,dtCut,dtHint,limited);
+    saveRuns(ar,taken.dt);
+    saveRuns(ar,taken.sched);
+    saveRuns(ar,taken.defined);
+    ar(taken.dtCut,taken.limited,taken.niter,taken.dtHint);
+  }
+  data.emplace("TimeStep::schedule",str2.str());
   return true;
 #else
   return false;
@@ -376,7 +555,34 @@ bool TimeStep::deSerialize (const std::map<std::string,std::string>& data)
     std::stringstream str(it->second);
     cereal::BinaryInputArchive ar(str);
     doSerializeOps(ar,*this);
-    return this->reset(step);
+
+    it = data.find("TimeStep::schedule");
+    if (it == data.end())
+    {
+      // Replay the time step definitions, as new steps
+      taken = Taken();
+      return this->reset(step);
+    }
+
+    std::stringstream str2(it->second);
+    cereal::BinaryInputArchive ar2(str2);
+    int seg = 0;
+    ar2(seg,lstep,iter,niter,dtSched,dtCut,dtHint,limited);
+    if (seg < 0 || seg > static_cast<int>(mySteps.size()))
+      return false;
+
+    if (!loadRuns(ar2,taken.dt) || !loadRuns(ar2,taken.sched) ||
+        !loadRuns(ar2,taken.defined))
+      return false;
+    ar2(taken.dtCut,taken.limited,taken.niter,taken.dtHint);
+    if (taken.sched.size() != taken.dt.size() ||
+        taken.defined.size() != taken.dt.size())
+      return false;
+
+    stepIt = mySteps.begin() + seg;
+    endStep = 0;
+    nCut = 0;
+    return true;
   }
 #endif
   return false;
