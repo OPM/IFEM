@@ -14,6 +14,8 @@
 #ifndef _BDF_H_
 #define _BDF_H_
 
+#include <map>
+#include <string>
 #include <vector>
 
 
@@ -49,9 +51,18 @@ namespace TimeIntegration //! Utilities for time integration.
     //! \brief Advances the time stepping scheme.
     //! \param[in] dt The time step size of the new step
     //! \param[in] dtn The time step size of the previous step
-    //! \details With the step sizes, the coefficients are those of a
-    //! variable step size, otherwise of a constant one.
     bool advanceStep(double dt = 0.0, double dtn = 0.0);
+
+    //! \brief Serializes the state of the scheme for restarting purposes.
+    //! \param data Container for serialized data
+    //! \param[in] name Name of the simulator the scheme belongs to
+    bool serialize(std::map<std::string,std::string>& data,
+                   const std::string& name) const;
+    //! \brief Sets the state of the scheme from a serialized state.
+    //! \param[in] data Container for serialized data
+    //! \param[in] name Name of the simulator the scheme belongs to
+    bool deSerialize(const std::map<std::string,std::string>& data,
+                     const std::string& name);
 
     //! \brief Returns the BDF coefficients.
     virtual const std::vector<double>& getCoefs() const;
@@ -75,10 +86,6 @@ namespace TimeIntegration //! Utilities for time integration.
     //! \brief Computes the coefficients of a variable step size.
     //! \param[out] c The coefficients
     //! \param[in] dts The step sizes, the new one first
-    //! \details The coefficients are those of the derivative of the
-    //! interpolant through the points at the new time and the previous
-    //! times, at the new time, scaled by the new step size to the power of
-    //! the degree of the derivative.
     void variableCoefs(std::vector<double>& c,
                        const std::vector<double>& dts) const;
 

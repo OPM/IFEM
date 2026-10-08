@@ -13,6 +13,12 @@
 
 #include "BDF.h"
 #include <cstddef>
+#include <sstream>
+#ifdef HAS_CEREAL
+#include <cereal/cereal.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp>
+#endif
 
 
 TimeIntegration::BDF::BDF (int order)
@@ -106,6 +112,53 @@ void TimeIntegration::BDF::variableCoefs (std::vector<double>& c,
   const double scale = degree == 1 ? dts.front() : dts.front()*dts.front();
   for (double& ck : c)
     ck *= scale;
+}
+
+
+bool TimeIntegration::BDF::serialize (std::map<std::string,std::string>& data,
+                                      const std::string& name) const
+{
+  if (coefs1.size() < 2)
+    return true; // stationary problem, no state
+
+#ifdef HAS_CEREAL
+  std::ostringstream str;
+  {
+    cereal::BinaryOutputArchive ar(str);
+    ar(step,tau,dtnn,coefs);
+  }
+  data["BDF::"+name] = str.str();
+  return true;
+#else
+  return false;
+#endif
+}
+
+
+bool TimeIntegration::BDF::deSerialize (const std::map<std::string,
+                                                       std::string>& data,
+                                        const std::string& name)
+{
+  if (coefs1.size() < 2)
+    return true; // stationary problem, no state
+
+  std::map<std::string,std::string>::const_iterator it;
+  if ((it = data.find("BDF::"+name)) == data.end())
+  {
+    // Without a serialized state, continue at full order
+    if (step < degree)
+      step = degree;
+    return true;
+  }
+
+#ifdef HAS_CEREAL
+  std::istringstream str(it->second);
+  cereal::BinaryInputArchive ar(str);
+  ar(step,tau,dtnn,coefs);
+  return true;
+#else
+  return false;
+#endif
 }
 
 
