@@ -184,3 +184,74 @@ TEST_CASE("TestBDF.BDFD2_2_Variable")
   REQUIRE_THAT(apply(bdf, t, [](double x) { return x*x*x; }) / (dt3*dt3),
                WithinRel(6.0*t[0], 1e-12));
 }
+
+
+#ifdef HAS_CEREAL
+TEST_CASE("TestBDF.Serialize")
+{
+  TimeIntegration::BDF bdf(2);
+  bdf.advanceStep(0.1,0.1);
+  bdf.advanceStep(0.1,0.1);
+  bdf.advanceStep(0.2,0.1);
+
+  std::map<std::string,std::string> data;
+  REQUIRE(bdf.serialize(data,"Test"));
+
+  // The restored scheme continues where the serialized one was
+  TimeIntegration::BDF restored(2);
+  REQUIRE(restored.deSerialize(data,"Test"));
+  REQUIRE(restored.getOrder() == 2);
+  REQUIRE_THAT(restored.getStepRatio(), WithinRel(bdf.getStepRatio()));
+  for (int i = 0; i < 3; i++)
+    REQUIRE_THAT(restored[i], WithinRel(bdf[i]));
+
+  bdf.advanceStep(0.1,0.2);
+  restored.advanceStep(0.1,0.2);
+  for (int i = 0; i < 3; i++)
+    REQUIRE_THAT(restored[i], WithinRel(bdf[i]));
+
+  // Without a serialized state, the scheme is advanced to its full order
+  TimeIntegration::BDF fresh(2);
+  REQUIRE(fresh.deSerialize(data,"Other"));
+  fresh.advanceStep();
+  REQUIRE(fresh.getOrder() == 2);
+
+  // A stationary scheme has no state, and is restored without one
+  TimeIntegration::BDF stationary;
+  std::map<std::string,std::string> none;
+  REQUIRE(stationary.serialize(none,"Test"));
+  REQUIRE(none.empty());
+  REQUIRE(stationary.deSerialize(none,"Test"));
+}
+
+
+TEST_CASE("TestBDF.SerializeBDFD2")
+{
+  // The step size before the previous one is part of the state
+  TimeIntegration::BDFD2 bdf(2);
+  bdf.advanceStep(0.1,0.1);
+  bdf.advanceStep(0.2,0.1);
+  bdf.advanceStep(0.1,0.2);
+
+  std::map<std::string,std::string> data;
+  REQUIRE(bdf.serialize(data,"Test"));
+
+  TimeIntegration::BDFD2 restored(2);
+  REQUIRE(restored.deSerialize(data,"Test"));
+  bdf.advanceStep(0.3,0.1);
+  restored.advanceStep(0.3,0.1);
+  for (int i = 0; i < 4; i++)
+    REQUIRE_THAT(restored[i], WithinRel(bdf[i]));
+
+  // Without a serialized state, the scheme continues at its full order,
+  // past the start-up coefficients of its second step
+  TimeIntegration::BDFD2 fresh(2);
+  REQUIRE(fresh.deSerialize(data,"Other"));
+  fresh.advanceStep();
+  REQUIRE(fresh.getOrder() == 2);
+  TimeIntegration::BDFD2 full(2);
+  for (int i = 0; i < 3; i++)
+    full.advanceStep();
+  REQUIRE(fresh.getCoefs() == full.getCoefs());
+}
+#endif
