@@ -823,7 +823,9 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool knoll)
   else
     KSPSetInitialGuessNonzero(ksp,solParams.getStringValue("type") == "preonly" ?
                                    PETSC_FALSE : PETSC_TRUE);
-  KSPSolve(ksp,b,x);
+  if (!this->checkPetsc(KSPSolve(ksp,b,x),"solve the equation system"))
+    return false;
+
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp,&reason);
   if (reason < 0) {
@@ -991,6 +993,19 @@ Real PETScMatrix::Linfnorm () const
 }
 
 
+bool PETScMatrix::checkPetsc (int ierr, const char* what) const
+{
+  if (ierr == 0)
+    return true;
+
+  std::cerr <<" *** PETScMatrix: Failed to "<< what <<", PETSc error "
+            << ierr <<". The message above says what\n     PETSc could not"
+            <<" do; asking for something it was not built with is the"
+            <<" common\n     cause."<< std::endl;
+  return false;
+}
+
+
 bool PETScMatrix::setParameters (bool setup)
 {
   // Set linear solver method
@@ -1031,8 +1046,9 @@ bool PETScMatrix::setParameters (bool setup)
     PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELFP,nullptr);
 
     PCSetFromOptions(pc);
-    if (setup)
-      PCSetUp(pc);
+    if (setup &&
+        !this->checkPetsc(PCSetUp(pc),"set up the preconditioner"))
+      return false;
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
 
     // Preconditioner for blocks
@@ -1052,8 +1068,8 @@ bool PETScMatrix::setParameters (bool setup)
   }
 
   KSPSetFromOptions(ksp);
-  if (setup)
-    KSPSetUp(ksp);
+  if (setup && !this->checkPetsc(KSPSetUp(ksp),"set up the solver"))
+    return false;
 
   if (setup && solParams.getIntValue("verbosity") >= 1)
     KSPView(ksp, PETSC_VIEWER_STDOUT_(*adm.getCommunicator()));

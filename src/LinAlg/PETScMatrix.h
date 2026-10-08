@@ -299,6 +299,12 @@ public:
   //! \brief Get vector of index sets.
   const std::vector<IS>& getIS() const { return isvec; }
 
+  //! \brief Reports a PETSc call which failed.
+  //! \param[in] ierr The code the call returned, zero for success
+  //! \param[in] what What the call was being asked to do
+  //! \return \e true if the call succeeded
+  bool checkPetsc(int ierr, const char* what) const;
+
   //! \brief Set the linear solver parameters (solver type, preconditioner, tolerances).
   //! \param[in] setup True to setup KSP/PC
   //! \return True on success
