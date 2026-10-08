@@ -154,14 +154,42 @@ public:
 
     this->printHeading(heading);
 
+    // Save the solver state to restart a failing time step from
+    HDF5Restart::SerializeData state;
+    bool cutback = tp.hasCutback() && this->saveSolverState(state);
+
     // Solve for each time step up to final time
     while (this->advanceStep())
-      if (!this->S1.solveStep(tp))
+    {
+      // Restart the time step with a smaller step size if it fails
+      bool ok = this->S1.solveStep(tp);
+      while (!ok && cutback && tp.cutback())
+        if (!this->S1.deSerialize(state))
+        {
+          std::cerr <<" *** SIMSolver: Could not restore the solver state"
+                    <<" to cut back from."<< std::endl;
+          return 3;
+        }
+        else if (!this->S1.advanceStep(tp))
+        {
+          std::cerr <<" *** SIMSolver: Could not advance the restored"
+                    <<" solver state."<< std::endl;
+          return 3;
+        }
+        else
+          ok = this->S1.solveStep(tp);
+
+      if (!ok)
         return saveDivergedSol && !this->S1.saveStep(tp,nBlock) ? 4 : 3;
       else if (!this->saveState(geoBlk,nBlock))
         return 4;
       else
         IFEM::pollControllerFifo();
+
+      // Save the solver state to restart a failing time step from
+      if (cutback)
+        cutback = this->saveSolverState(state);
+    }
 
     return 0;
   }
@@ -223,6 +251,24 @@ protected:
         dumpLog = true;
 
     return true;
+  }
+
+  //! \brief Saves the solver state before a time step, to cut back to.
+  //! \param state Container for the serialized state
+  //! \return \e false if the solver state can not be serialized
+  bool saveSolverState(HDF5Restart::SerializeData& state)
+  {
+    state.clear();
+    if (this->S1.serialize(state))
+      return true;
+
+    IFEM::cout <<"\n  ** The solver state can not be saved,"
+               <<" time steps will not be cut back."<< std::endl;
+#ifndef HAS_CEREAL
+    IFEM::cout <<"     This build has no serialization support (cereal)."
+               << std::endl;
+#endif
+    return false;
   }
 
   //! \brief Saves geometry and results to VTF and HDF5 for current time step.

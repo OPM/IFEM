@@ -20,6 +20,9 @@
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
 
+#include <algorithm>
+#include <iostream>
+
 class DataExporter;
 
 
@@ -99,6 +102,23 @@ public:
   //! \copydoc ISolver::advanceStep(TimeStep&)
   bool advanceStep(TimeStep& tp)
   {
+    // A retry of the step after a cut-back keeps the load history. The
+    // coefficients of a multistep method assume the spacing of the history,
+    // which the reduced step size, and its recovery, do not have.
+    if (tp.step == lastStep) {
+      if (order > 2) {
+        std::cerr <<" *** SIMImplicitLMM: The Adams-Moulton method of order "
+                  << order <<" can not cut back the step size."<< std::endl;
+        return false;
+      }
+      // The load of a step which converged here before the cut-back,
+      // as when another solver of a coupled step failed
+      delete loads[0];
+      loads[0] = nullptr;
+      return solver.advanceStep(tp);
+    }
+    lastStep = tp.step;
+
     // Evaluate fluxes for initial conditions.
     if (tp.step == 1) {
       hasICs = true;
@@ -119,6 +139,7 @@ public:
     delete loads.back();
     for (int j = order-2; j >= 0; --j)
       loads[j+1] = loads[j];
+    loads[0] = nullptr; // The load of the new step, when it has converged
 
     return solver.advanceStep(tp);
   }
@@ -198,6 +219,7 @@ protected:
   int order; //!< Order of method
   bool hasICs; //!< If \e true, start with full order
   std::string fieldName; //!< Name of primary solution fields (for ICs)
+  int lastStep = 0; //!< The step the load history was last advanced to
 };
 
 }

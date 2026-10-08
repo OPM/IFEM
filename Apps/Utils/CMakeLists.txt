@@ -69,7 +69,9 @@ ifem_add_test_app(
     Test/TestPiolaOperators.C
     Test/TestMultiPatchModelGenerator.C
     Test/TestSIMCoupled.C
+    Test/TestSIMExplicitLMM.C
     Test/TestSIMNodalConstraint.C
+    Test/TestSIMSolver.C
     Test/TestSIMStat.C
     Test/TestStabilizationUtils.C
     Test/TestTimeIntUtils.C
