@@ -18,6 +18,8 @@
 #include "TimeIntUtils.h"
 #include "TimeStep.h"
 
+#include <algorithm>
+#include <iostream>
 #include <memory>
 #include <sstream>
 #include <utility>
@@ -130,6 +132,19 @@ public:
   //! \copydoc ISolver::advanceStep(TimeStep&)
   bool advanceStep(TimeStep& tp)
   {
+    // A retry of the step after a cut-back keeps the load history. The
+    // coefficients of a multistep method assume the spacing of the history,
+    // which the reduced step size, and its recovery, do not have.
+    if (tp.step == lastStep) {
+      if (order > 1) {
+        std::cerr <<" *** SIMExplicitLMM: The Adams-Bashforth method of order "
+                  << order <<" can not cut back the step size."<< std::endl;
+        return false;
+      }
+      return solver.advanceStep(tp);
+    }
+    lastStep = tp.step;
+
     // Evaluate fluxes for initial conditions.
     if (tp.step == 1) {
       hasICs = true;
@@ -206,6 +221,7 @@ protected:
   const std::string fieldName; //!< Name of primary solution fields (for ICs)
   bool hasICs = false; //!< If true, start with full order
   bool linear = false; //!< If true, mass matrix is constant
+  int lastStep = 0; //!< The step the load history was last advanced to
 };
 
 }
