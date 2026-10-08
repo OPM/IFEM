@@ -15,6 +15,7 @@
 #define TIME_STEP_H_
 
 #include "TimeDomain.h"
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <map>
@@ -59,6 +60,10 @@ public:
   //! \brief Restarts current increment with a smaller step size on divergence.
   //! \return \e false Cannot do further cut-back, time step size too small
   bool cutback();
+  //! \brief Returns \e true if the simulation driver should cut back on failure.
+  bool hasCutback() const { return maxCut > 0; }
+  //! \brief Suggests a size of the next time increment.
+  void suggestNextStep(double dt);
   //! \brief Returns \e true if the end of the simulation has been reached.
   bool finished() const;
 
@@ -78,14 +83,82 @@ public:
   double maxCFL;   //!< CFL restriction on time step size (0.0: no restriction)
 
 private:
+  //! \brief Sets the size of a new time step, as scheduled and limited.
+  void scheduleIncrement();
+
   int niter;     //!< Number of iterations in previous time step
   int nInitStep; //!< Number of fixed timesteps in the beginning
   int maxStep;   //!< Maximum number of time steps
+  int maxCut;    //!< Maximum number of cut-backs of a time step
+  int nCut;      //!< Number of cut-backs of current time step
 
   double dtMin;  //!< Minimum time increment size
   double dtMax;  //!< Maximun time increment size
   double f1;     //!< Scale factor for increased time step size
   double f2;     //!< Scale factor for reduced time step size
+
+  double dtSched; //!< Scheduled size of current time increment
+  double dtCut;   //!< Step size limit after a cut-back (0.0: no limit)
+  double dtHint;  //!< Suggested size of the next increment (0.0: none)
+  bool   limited; //!< If \e true, current increment is smaller than scheduled
+
+  //! \brief A sequence of values stored as runs of equal values.
+  //! \details The values of the time steps mostly repeat, and the runs are
+  //! maintained as values are added, so that saving them does not depend on
+  //! the number of values.
+  template<class T> struct Runs
+  {
+    std::vector<T>      vals; //!< The value of each run
+    std::vector<size_t> ends; //!< One past the last index of each run
+
+    //! \brief Returns the number of values.
+    size_t size() const { return ends.empty() ? 0 : ends.back(); }
+    //! \brief Returns the value at index \a i.
+    T operator[](size_t i) const
+    {
+      return vals[std::upper_bound(ends.begin(),ends.end(),i) - ends.begin()];
+    }
+    //! \brief Appends a value.
+    void push_back(const T& x)
+    {
+      if (!vals.empty() && x == vals.back())
+        ++ends.back();
+      else
+      {
+        ends.push_back(this->size()+1);
+        vals.push_back(x);
+      }
+    }
+    //! \brief Truncates the sequence to its first \a n values.
+    void truncate(size_t n)
+    {
+      while (!ends.empty() && (ends.size() > 1 ? ends[ends.size()-2] : 0) >= n)
+      {
+        vals.pop_back();
+        ends.pop_back();
+      }
+      if (!ends.empty())
+        ends.back() = std::min(ends.back(),n);
+    }
+    //! \brief Replaces the last value.
+    void setBack(const T& x)
+    {
+      this->truncate(this->size()-1);
+      this->push_back(x);
+    }
+  };
+
+  //! \brief The time steps taken, which a replay of the steps repeats.
+  struct Taken
+  {
+    Runs<double> dt;    //!< Size of each time step taken
+    Runs<double> sched; //!< Scheduled size of each time step taken
+    Runs<char> defined; //!< If 1, the step advanced in the definitions
+    double dtCut = 0.0;  //!< Step size limit after the last step taken
+    bool limited = false; //!< If \e true, the last step taken was limited
+    int niter = 0;       //!< Number of iterations before the last step taken
+    double dtHint = 0.0; //!< Suggested size of the step after the last one
+  } taken; //!< The time steps taken
 
   typedef std::pair<std::vector<double>,double> Step; //!< Time step definition
   typedef std::vector<Step> TimeSteps;                //!< Time step container
@@ -94,6 +167,7 @@ private:
   TimeSteps::iterator stepIt;  //!< Running iterator over the time steps
 
   size_t lstep; //!< Local step counter, i.e., within current \a *stepIt
+  size_t endStep; //!< One more than \a lstep of a step ending its \a *stepIt
 };
 
 #endif

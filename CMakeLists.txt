@@ -583,6 +583,7 @@ IFEM_add_test_app(
       src/SIM/Test/TestSIMargsBase.C
       src/SIM/Test/TestSIMdependency.C
       src/SIM/Test/TestSolution.C
+      src/SIM/Test/TestTimeStep.C
       src/SIM/Test/TestXMLInputBase.C
       src/Utility/Test/TestAnaSol.C
       src/Utility/Test/TestBDF.C
