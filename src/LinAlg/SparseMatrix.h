@@ -18,6 +18,7 @@
 #include <map>
 #include <set>
 #include <array>
+#include <string>
 
 typedef std::pair<size_t,size_t> IJPair;    //!< 1-based matrix indices
 typedef std::map<IJPair,Real>    ValueMap;  //!< Index to matrix value mapping
@@ -54,6 +55,12 @@ public:
 
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new SparseMatrix(*this); }
+
+  //! \brief Sets the fill-reducing ordering of the equation solver.
+  //! \param[in] ordering For UMFPACK amd, best, cholmod, metis or none.
+  //! For SuperLU none, mmd_ata, mmd_at_plus_a or colamd, and for the serial
+  //! SuperLU also metis_at_plus_a or metis_ata, if it is built with METIS.
+  bool setOrdering(const std::string& ordering);
 
   //! \brief Locks or unlocks the sparsity pattern.
   //! \param[in] doLock If \e true, lock pattern, otherwise unlock it
@@ -289,6 +296,7 @@ private:
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver
   int      numThreads; //!< Number of threads to use for the SuperLU_MT solver
   void*   umfSymbolic; //!< Symbolically factored matrix for UMFPACK
+  int        ordering; //!< Fill-reducing ordering of the solver, -1 for default
 
 protected:
   bool factored; //!< Set to \e true when the matrix is factorized

@@ -11,12 +11,16 @@
 //==============================================================================
 
 #include "SparseMatrix.h"
+#include "LinSolParams.h"
 
 #include "Catch2Support.h"
 
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
+
+#include <memory>
+#include <string>
 
 
 TEST_CASE("TestSparseMatrix.CalcCSR")
@@ -163,3 +167,94 @@ TEST_CASE("TestSparseMatrix.MxV")
 #endif
   }
 }
+
+
+namespace {
+
+  //! \brief Solves the five-point Laplacian on an 8x8 grid.
+  //! \details It is large enough for METIS. The solution is 1,2,...,n.
+  void solveLaplacian(SparseMatrix& Amat)
+  {
+    const size_t m = 8, n = m*m;
+    Amat.resize(n,n);
+    for (size_t j = 0; j < m; j++)
+      for (size_t i = 0; i < m; i++)
+      {
+        const size_t r = 1 + i + m*j;
+        Amat(r,r) = 4.0;
+        if (i > 0)   Amat(r,r-1) = -1.0;
+        if (i < m-1) Amat(r,r+1) = -1.0;
+        if (j > 0)   Amat(r,r-m) = -1.0;
+        if (j < m-1) Amat(r,r+m) = -1.0;
+      }
+
+    StdVector x(n), b(n);
+    for (size_t i = 1; i <= n; i++)
+      x(i) = i;
+    REQUIRE(Amat.multiply(x,b));
+
+    REQUIRE(Amat.solve(b));
+    for (size_t i = 1; i <= n; i++)
+      REQUIRE_THAT(b(i), WithinRel(static_cast<double>(i), 1.0e-12));
+  }
+
+}
+
+
+#ifdef HAS_UMFPACK
+TEST_CASE("TestSparseMatrix.UMFPACKOrdering")
+{
+  const std::string ordering = GENERATE("amd","best","cholmod","metis","none");
+  CAPTURE(ordering);
+
+  LinSolParams spar;
+  spar.addValue("ordering",ordering);
+  std::unique_ptr<SystemMatrix> sys(SystemMatrix::create(nullptr,
+                                                         LinAlg::UMFPACK,
+                                                         spar));
+  REQUIRE(sys);
+  SparseMatrix& Amat = static_cast<SparseMatrix&>(*sys);
+  solveLaplacian(Amat);
+}
+
+
+TEST_CASE("TestSparseMatrix.UMFPACKBadOrdering")
+{
+  LinSolParams spar;
+  spar.addValue("ordering","colamd2");
+  std::unique_ptr<SystemMatrix> sys(SystemMatrix::create(nullptr,
+                                                         LinAlg::UMFPACK,
+                                                         spar));
+  REQUIRE(!sys);
+}
+#endif
+
+
+#if defined(HAS_SUPERLU) || defined(HAS_SUPERLU_MT)
+TEST_CASE("TestSparseMatrix.SuperLUOrdering")
+{
+  // The METIS orderings are left out, as SuperLU may be built without METIS
+  const std::string ordering = GENERATE("none","mmd_ata","mmd_at_plus_a",
+                                        "colamd");
+  CAPTURE(ordering);
+
+  LinSolParams spar;
+  spar.addValue("ordering",ordering);
+  std::unique_ptr<SystemMatrix> sys(SystemMatrix::create(nullptr,
+                                                         LinAlg::SPARSE,
+                                                         spar));
+  REQUIRE(sys);
+  solveLaplacian(static_cast<SparseMatrix&>(*sys));
+}
+
+
+TEST_CASE("TestSparseMatrix.SuperLUBadOrdering")
+{
+  LinSolParams spar;
+  spar.addValue("ordering","amd");
+  std::unique_ptr<SystemMatrix> sys(SystemMatrix::create(nullptr,
+                                                         LinAlg::SPARSE,
+                                                         spar));
+  REQUIRE(!sys);
+}
+#endif

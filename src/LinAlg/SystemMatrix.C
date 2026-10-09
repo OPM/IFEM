@@ -104,7 +104,8 @@ void StdVector::dump (const utl::vector<Real>& x, const char* label,
 
 SystemMatrix* SystemMatrix::create (const ProcessAdm* adm,
                                     LinAlg::MatrixType mType,
-                                    const LinSolParams& spar)
+                                    const LinSolParams& spar,
+                                    int num_thread_SLU)
 {
 #ifdef HAS_PETSC
   if (mType == LinAlg::PETSC && adm)
@@ -115,7 +116,19 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm* adm,
     return new ISTLMatrix(*adm,spar);
 #endif
 
-  return SystemMatrix::create(adm,mType);
+  SystemMatrix* A = SystemMatrix::create(adm,mType,num_thread_SLU);
+  if ((mType == LinAlg::UMFPACK || mType == LinAlg::SPARSE) &&
+      spar.hasValue("ordering"))
+  {
+    SparseMatrix* sA = static_cast<SparseMatrix*>(A);
+    if (sA->setOrdering(spar.getStringValue("ordering")))
+      return sA;
+
+    delete sA;
+    return nullptr;
+  }
+
+  return A;
 }
 
 
