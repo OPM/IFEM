@@ -149,6 +149,7 @@ SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
   slu = nullptr;
   umfSymbolic = nullptr;
   ordering = -1;
+  umfNumeric = nullptr;
 }
 
 
@@ -163,6 +164,7 @@ SparseMatrix::SparseMatrix (size_t m, size_t n, SparseSolver eqSolver)
   slu = nullptr;
   umfSymbolic = nullptr;
   ordering = -1;
+  umfNumeric = nullptr;
 }
 
 
@@ -178,6 +180,7 @@ SparseMatrix::SparseMatrix (const SparseMatrix& B)
   slu = nullptr; // The SuperLU data (if any) is not copied
   umfSymbolic = nullptr; // The UMFPACK data (if any) is not copied
   ordering = B.ordering;
+  umfNumeric = nullptr;
 }
 
 
@@ -185,6 +188,8 @@ SparseMatrix::~SparseMatrix ()
 {
   delete slu;
 #ifdef HAS_UMFPACK
+  if (umfNumeric)
+    umfpack_di_free_numeric(&umfNumeric);
   if (umfSymbolic)
     umfpack_di_free_symbolic(&umfSymbolic);
 #endif
@@ -208,6 +213,11 @@ bool SparseMatrix::lockPattern (bool doLock)
 void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
 {
   factored = false;
+#ifdef HAS_UMFPACK
+  if (umfNumeric)
+    umfpack_di_free_numeric(&umfNumeric);
+  umfNumeric = nullptr;
+#endif
   if (c == 0) c = r;
   if (r == nrow && c == ncol && !forceEditable)
   {
@@ -1378,27 +1388,35 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
     }
   }
 
-  void* numeric = nullptr;
-  umfpack_di_numeric(IA.data(), JA.data(), A.ptr(), umfSymbolic,
-                     &numeric, nullptr, info);
+  if (!factored) {
+    if (umfNumeric)
+      umfpack_di_free_numeric(&umfNumeric);
+    umfNumeric = nullptr;
+    umfpack_di_numeric(IA.data(), JA.data(), A.ptr(), umfSymbolic,
+                       &umfNumeric, nullptr, info);
+    if (info[UMFPACK_STATUS] != UMFPACK_OK) {
+      constexpr double GB = 1024.0*1024.0*1024.0;
+      const double unitGB = info[UMFPACK_SIZE_OF_UNIT] / GB;
+      std::cerr <<" *** SparseMatrix::solveUMF: Numerical factorization failed,"
+                <<" UMFPACK status "<< info[UMFPACK_STATUS] <<", peak memory "
+                << info[UMFPACK_PEAK_MEMORY]*unitGB <<" GB of the estimated "
+                << info[UMFPACK_PEAK_MEMORY_ESTIMATE]*unitGB <<" GB"<< std::endl;
+      return false;
+    }
+    umfRcond = info[UMFPACK_RCOND];
+    factored = true;
+  }
+
   if (rcond)
-    *rcond = info[UMFPACK_RCOND];
+    *rcond = umfRcond;
 
   Vector X(B.size());
   size_t nrhs = B.size() / nrow;
-  bool okAll = info[UMFPACK_STATUS] == UMFPACK_OK;
-  if (!okAll) {
-    constexpr double GB = 1024.0*1024.0*1024.0;
-    const double unitGB = info[UMFPACK_SIZE_OF_UNIT] / GB;
-    std::cerr <<" *** SparseMatrix::solveUMF: Numerical factorization failed,"
-              <<" UMFPACK status "<< info[UMFPACK_STATUS] <<", peak memory "
-              << info[UMFPACK_PEAK_MEMORY]*unitGB <<" GB of the estimated "
-              << info[UMFPACK_PEAK_MEMORY_ESTIMATE]*unitGB <<" GB"<< std::endl;
-  }
+  bool okAll = true;
   for (size_t i = 0; i < nrhs && okAll; ++i) {
     umfpack_di_solve(UMFPACK_A,
                      IA.data(), JA.data(), A.ptr(),
-                     &X[i*nrow], &B[i*nrow], numeric, nullptr, info);
+                     &X[i*nrow], &B[i*nrow], umfNumeric, nullptr, info);
     okAll = info[UMFPACK_STATUS] == UMFPACK_OK;
     if (!okAll)
       std::cerr <<" *** SparseMatrix::solveUMF: Solution failed,"
@@ -1406,7 +1424,6 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
   }
   if (okAll)
     B = X;
-  umfpack_di_free_numeric(&numeric);
   return okAll;
 #else
   std::cerr <<"SparseMatrix::solve: UMFPACK solver not available"<< std::endl;
