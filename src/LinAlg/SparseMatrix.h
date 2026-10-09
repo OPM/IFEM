@@ -295,6 +295,8 @@ private:
   int      numThreads; //!< Number of threads to use for the SuperLU_MT solver
   void*   umfSymbolic; //!< Symbolically factored matrix for UMFPACK
   int        ordering; //!< Fill-reducing ordering of the solver, -1 for default
+  void*   umfNumeric;  //!< Numerically factored matrix for UMFPACK
+  Real    umfRcond = Real(0); //!< Condition estimate of that factorization
 
 protected:
   bool factored; //!< Set to \e true when the matrix is factorized
