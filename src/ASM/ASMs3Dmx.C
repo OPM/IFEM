@@ -520,7 +520,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
+    oneGroup.concurrent(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1286,33 +1286,19 @@ std::array<int,3> ASMs3Dmx::getMaxSplineOrder () const
 }
 
 
-void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
-                                     bool ignoreGlobalLM)
+void ASMs3Dmx::generateThreadGroups (const Integrand&, bool silence, bool)
 {
-  if (threadGroupsVol.stripDir == ThreadGroups::NONE)
-    threadGroupsVol.oneGroup(nel);
-  else
-  {
-    const std::array<int,3> p = this->getMaxSplineOrder();
-    this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
-                                       silence, ignoreGlobalLM);
-  }
+  const std::array<int,3> p = this->getMaxSplineOrder();
+  this->ASMs3D::generateTileGroups(p[0]-1, p[1]-1, p[2]-1, silence);
 }
 
 
-void ASMs3Dmx::generateThreadGroups (char lIndex, bool silence, bool)
+void ASMs3Dmx::generateThreadGroups (char lIndex, bool, bool)
 {
-  std::map<char,ThreadGroups>::iterator tit = threadGroupsFace.find(lIndex);
-  if (tit != threadGroupsFace.end())
-  {
-    if (tit->second.stripDir == ThreadGroups::NONE)
-      tit->second.oneGroup(nel);
-  }
-  else
+  if (threadGroupsFace.find(lIndex) == threadGroupsFace.end())
   {
     const std::array<int,3> p = this->getMaxSplineOrder();
-    this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
-                                       lIndex,silence,false);
+    this->ASMs3D::generateTileGroups(p[0]-1, p[1]-1, p[2]-1, lIndex);
   }
 }
 

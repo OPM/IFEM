@@ -425,17 +425,6 @@ public:
   //! \param[in] basis Which basis to collapse face for
   virtual bool collapseFace(int face, int edge = 0, int basis = 1);
 
-  //! \brief Adds MPCs representing a rigid coupling to this patch.
-  //! \param[in] lindx Local index of the boundary item that should be rigid
-  //! \param[in] ldim Dimension of the boundary item that should be rigid
-  //! \param[in] basis Which basis to add rigid coupling for (mixed methods)
-  //! \param gMaster Global node number of the master node
-  //! \param[in] Xmaster Position of the master nodal point
-  //! \param[in] extraPt If \e true, the master point is not a patch node
-  //! \return \e true if a new global node was added, otherwise \e false
-  virtual bool addRigidCpl(int lindx, int ldim, int basis,
-                           int& gMaster, const Vec3& Xmaster, bool extraPt);
-
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of global node numbers (zero-based)
   virtual void setNodeNumbers(const IntVec& nodes);
@@ -449,11 +438,6 @@ public:
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
                                const std::map<int,int>* g2l, bool tangent);
-
-  //! \brief Connects a list of node pairs to each other.
-  //! \param[in] nodes List of node number pairs that should share common DOFs.
-  //! \param[in] xtol Coordinate tolerance for matching nodes
-  virtual bool selfInterconnect(const std::vector<Ipair>& nodes, double xtol);
 
 
   // Methods for integration of finite element quantities.
@@ -748,22 +732,20 @@ protected:
                        std::vector<utl::Point>& XC) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
-  //! \param[in] strip1 Strip width in first direction
-  //! \param[in] strip2 Strip width in second direction
-  //! \param[in] strip3 Strip width in third direction
+  //! \param[in] tile1 Tile width in first direction, in non-zero knot spans
+  //! \param[in] tile2 Tile width in second direction, in non-zero knot spans
+  //! \param[in] tile3 Tile width in third direction, in non-zero knot spans
   //! \param[in] silence If \e true, suppress threading group outprint
-  //! \param[in] ignoreGlobalLM Sanity check option
-  void generateThreadGroups(size_t strip1, size_t strip2, size_t strip3,
-                            bool silence, bool ignoreGlobalLM);
+  void generateTileGroups(size_t tile1, size_t tile2, size_t tile3,
+                          bool silence);
 
   //! \brief Generates element groups for multi-threading of boundary integrals.
-  //! \param[in] strip1 Strip width in first direction
-  //! \param[in] strip2 Strip width in second direction
-  //! \param[in] strip3 Strip width in third direction
+  //! \param[in] tile1 Tile width in first direction, in non-zero knot spans
+  //! \param[in] tile2 Tile width in second direction, in non-zero knot spans
+  //! \param[in] tile3 Tile width in third direction, in non-zero knot spans
   //! \param[in] lIndex Local index [1,6] of the boundary face
-  //! \param[in] silence If \e true, suppress threading group outprint
-  void generateThreadGroups(size_t strip1, size_t strip2, size_t strip3,
-                            char lIndex, bool silence, bool);
+  void generateTileGroups(size_t tile1, size_t tile2, size_t tile3,
+                          char lIndex);
 
   //! \brief Hook for changing number of threads.
   virtual void changeNumThreads();
@@ -791,6 +773,9 @@ public:
 
   //! \brief Generate element groups from a partition.
   virtual void generateProjThreadGroupsFromElms(const IntVec& elms);
+
+  //! \brief Validates the threading groups based on the assembly data in %SAM.
+  virtual bool validateThreadGroups(const SAM* sam) const;
 
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int n1, int n2, int n3, int p1, int p2, int p3,

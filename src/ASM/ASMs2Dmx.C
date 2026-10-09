@@ -501,7 +501,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
+    oneGroup.concurrent(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1317,15 +1317,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
-                                     bool ignoreGlobalLM)
+void ASMs2Dmx::generateThreadGroups (const Integrand&, bool silence, bool)
 {
-  if (threadGroups.stripDir == ThreadGroups::NONE)
-  {
-    threadGroups.oneGroup(nel);
-    return;
-  }
-
   int p1 = 0, p2 = 0;
   for (const auto& it : m_basis) {
     if (it->order_u() > p1)
@@ -1334,14 +1327,14 @@ void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
       p2 = it->order_v();
   }
 
-  // with subgrid we need to increase the strip size to avoid
-  // problems for basis 1 (which has half the element size)
+  // with subgrid we need to increase the tile size to avoid
+  // extra colors for basis 1 (which has half the element size)
   if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
     p1 += 1 + (p1 % 2);
     p2 += 1 + (p2 % 2);
   }
 
-  this->ASMs2D::generateThreadGroups(p1-1, p2-1, silence, ignoreGlobalLM);
+  this->ASMs2D::generateTileGroups(p1-1, p2-1, silence);
 }
 
 
