@@ -19,6 +19,7 @@
 #include <array>
 
 class FiniteElement;
+class MxFiniteElement;
 class Tensor;
 class Vec3;
 
@@ -187,6 +188,32 @@ public:
                    const FiniteElement& fe,
                    const std::array<int,3>& idx,
                    const RealArray& V);
+
+  //! \brief Returns the projection onto the tangent plane of a boundary.
+  //! \param[in] normal Outward unit normal of the boundary
+  //! \param[in] nsd Number of spatial dimensions
+  static Matrix TangentialProjection(const Vec3& normal, size_t nsd);
+
+  //! \brief Forms the tangential jump of the mapped basis over an interface.
+  //! \param[out] jump The jump, one row per spatial direction and one column
+  //! per basis function of the two sides together
+  //! \param[in] fe1 Element data on one side of the interface
+  //! \param[in] fe2 Element data on the other side of it
+  //! \param[in] normal Interface normal, out of the side \a fe1 is on
+  static void InterfaceJump(Matrix& jump,
+                            const MxFiniteElement& fe1,
+                            const MxFiniteElement& fe2,
+                            const Vec3& normal);
+
+  //! \brief Forms the tangential mean of the mapped basis over an interface.
+  //! \param[out] mean The mean, laid out as the jump is
+  //! \param[in] fe1 Element data on one side of the interface
+  //! \param[in] fe2 Element data on the other side of it
+  //! \param[in] normal Interface normal, out of the side \a fe1 is on
+  static void InterfaceMean(Matrix& mean,
+                            const MxFiniteElement& fe1,
+                            const MxFiniteElement& fe2,
+                            const Vec3& normal);
 };
 
 #endif
