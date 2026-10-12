@@ -59,6 +59,43 @@ std::pair<double,double> FormWeights (WeakOperators::ConvectionForm form)
   }
 }
 
+
+void interfaceCombination (Matrix& out,
+                           const MxFiniteElement& fe1,
+                           const MxFiniteElement& fe2,
+                           const Vec3& normal, double w1, double w2)
+{
+  const size_t nsd = fe1.P_contra.N.rows();
+  const size_t n1 = fe1.P_contra.N.cols();
+  const size_t n2 = fe2.P_contra.N.cols();
+
+  // Where a column of one side's mapping belongs among the columns of the
+  // whole is found by counting the bases past
+  std::vector<size_t> at1(n1), at2(n2);
+  for (size_t b = 1, c = 0, i1 = 0, i2 = 0; b <= nsd; ++b)
+  {
+    for (size_t i = 0; i < fe1.basis(b).size(); ++i)
+      at1[i1++] = c++;
+    for (size_t i = 0; i < fe2.basis(b).size(); ++i)
+      at2[i2++] = c++;
+  }
+
+  Matrix whole(nsd,n1+n2);
+  for (size_t side = 0; side < 2; ++side)
+  {
+    const MxFiniteElement& fe = side ? fe2 : fe1;
+    const std::vector<size_t>& at = side ? at2 : at1;
+    const double w = side ? w2 : w1;
+    for (size_t c = 0; c < at.size(); ++c)
+      for (size_t j = 1; j <= nsd; ++j)
+        whole(j,1+at[c]) = w*fe.P_contra.N(j,1+c);
+  }
+
+  out.multiply(PiolaOperators::TangentialProjection(normal,nsd),whole);
+}
+
+
+
 }
 
 
@@ -312,4 +349,35 @@ void PiolaOperators::Copy (Vectors& EV,
     EV[idx[b-1]].add(V, 1.0, ofs);
     ofs += fe.basis(b).size();
   }
+}
+
+
+Matrix PiolaOperators::TangentialProjection (const Vec3& normal, size_t nsd)
+{
+  Matrix P(nsd,nsd);
+  for (size_t i = 1; i <= nsd; ++i) {
+    P(i,i) = Real(1);
+    for (size_t j = 1; j <= nsd; ++j)
+      P(i,j) -= normal[i-1]*normal[j-1];
+  }
+
+  return P;
+}
+
+
+void PiolaOperators::InterfaceJump (Matrix& jump,
+                                    const MxFiniteElement& fe1,
+                                    const MxFiniteElement& fe2,
+                                    const Vec3& normal)
+{
+  interfaceCombination(jump,fe1,fe2,normal,1.0,-1.0);
+}
+
+
+void PiolaOperators::InterfaceMean (Matrix& mean,
+                                    const MxFiniteElement& fe1,
+                                    const MxFiniteElement& fe2,
+                                    const Vec3& normal)
+{
+  interfaceCombination(mean,fe1,fe2,normal,0.5,0.5);
 }
