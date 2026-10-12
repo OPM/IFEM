@@ -24,8 +24,13 @@ function(ifem_add_test_app)
       return()
     endif()
   endif()
+  # The Catch2 found by IFEM is not seen in the scope of an application
+  # built with it as a submodule, so it is looked up here
   if(NOT Catch2_FOUND)
-    return()
+    find_package(Catch2 QUIET)
+    if(NOT Catch2_FOUND)
+      return()
+    endif()
   endif()
 
   foreach(source ${PARAM_SOURCES})
