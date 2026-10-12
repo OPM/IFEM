@@ -819,6 +819,9 @@ protected:
   //! \brief Returns a const pointer to the external energy path integral value.
   const double* getExtEnerg() const { return &extEnergy; }
 
+  //! \brief Returns whether a Piola transformation is used or not.
+  bool usesPiolaTransform() const;
+
 private:
   //! \brief Returns an extraordinary MADOF array.
   //! \param[in] basis The basis to specify number of DOFs for

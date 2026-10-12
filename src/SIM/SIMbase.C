@@ -903,6 +903,12 @@ size_t SIMbase::getNoSolutions (bool allocated) const
 }
 
 
+bool SIMbase::usesPiolaTransform () const
+{
+  return myProblem && myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING;
+}
+
+
 size_t SIMbase::getNoEquations () const
 {
   return mySam ? mySam->getNoEquations() : 0;
@@ -1616,8 +1622,7 @@ bool SIMbase::solveEqSystem (Vector& solution, size_t idxRHS, double* rCond,
     status = false;
 
   // Sanity check: Ensure that the solution vector is finite
-  size_t badDof = status ? solution.notFinite() : 0;
-  if (badDof > 0)
+  if (size_t badDof = status ? solution.notFinite() : 0; badDof > 0)
   {
     std::cerr <<" *** SIMbase::solveEqSystem: The solution is not finite,"
               <<" degree of freedom "<< badDof <<" of "<< solution.size()

@@ -990,6 +990,8 @@ bool SIMoutput::writeGlvV (const RealArray& vec, const char* fieldName,
   if (mergeVtf && myModel.size() > 1)
     return true; // not implemented for merged patches, ignore
 
+  const bool piolaMapping = this->usesPiolaTransform();
+
   Matrix field;
   Vector lovec;
   IntVec vID;
@@ -1006,7 +1008,7 @@ bool SIMoutput::writeGlvV (const RealArray& vec, const char* fieldName,
     if (msgLevel > 1)
       IFEM::cout <<"Writing vector field for patch "<< pch->idx+1 << std::endl;
 
-    if (!pch->evalSolution(field,lovec,opt.nViz))
+    if (!pch->evalSolution(field,lovec,opt.nViz,0,piolaMapping))
       return false;
 
     if (!myVtf->writeVres(field,++nBlock,++geomID,this->getNoSpaceDim()))
@@ -1032,8 +1034,7 @@ bool SIMoutput::writeGlvS (const Vector& scl, const char* fieldName,
   if (mergeVtf && myModel.size() > 1)
     return false; // not implemented for merged patches, abort..
 
-  const bool piolaMapping = myProblem ?
-    myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
+  const bool piolaMapping = this->usesPiolaTransform();
 
   Matrix field;
   Vector lovec;
@@ -1114,14 +1115,12 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
     return idBlock; // no primary solution (silently ignore)
 
   size_t nf = scalarOnly ? 1 : this->getNoFields();
-  bool piolaMapping = false;
   if (myProblem)
-  {
-    if (size_t nf1 = myProblem->getNoFields(1); nf1 > 0) nf = nf1;
-    piolaMapping = myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING;
-  }
+    if (size_t nf1 = myProblem->getNoFields(1); nf1 > 0)
+      nf = nf1;
 
-  bool writeDeformation = !pvecName || psolComps < 0;
+  const bool piolaMapping = this->usesPiolaTransform();
+  const bool writeDeformation = !pvecName || psolComps < 0;
 
   size_t nVcomp = nf > this->getNoSpaceDim() ? this->getNoSpaceDim() : nf;
   bool haveXsol = false;
@@ -1682,8 +1681,7 @@ bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
   if (mergeVtf && myModel.size() > 1)
     return true; // not implemented for merged patches, ignore
 
-  const bool piolaMapping = state && myProblem ?
-    myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING : false;
+  const bool piolaMapping = this->usesPiolaTransform();
 
   IntVec sID;
   Vector lovec;
