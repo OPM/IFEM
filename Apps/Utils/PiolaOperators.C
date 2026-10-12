@@ -116,7 +116,7 @@ void PiolaOperators::Weak::Convection (Matrices& EM,
 
 void PiolaOperators::Weak::Gradient (Matrices& EM,
                                      const FiniteElement& fe,
-                                     std::array<int,3>& idx,
+                                     const std::array<int,3>& idx,
                                      double scale)
 {
   const size_t nsd = fe.dNdX.cols();

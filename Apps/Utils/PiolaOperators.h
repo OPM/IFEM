@@ -44,7 +44,7 @@ public:
     //! \param[in] cnvForm Form of advection operator
     static void Advection(Matrices& EM, const FiniteElement& fe,
                           const Vec3& AC,
-                          const std::array<std::array<int, 3>, 3>& idx,
+                          const std::array<std::array<int,3>,3>& idx,
                           double scale = 1.0,
                           WeakOperators::ConvectionForm cnvForm = WeakOperators::CONVECTIVE);
 
@@ -58,7 +58,7 @@ public:
     //! \param[in] form Which form of the convective form to use
     static void Convection(Matrices& EM, const FiniteElement& fe,
                            const Vec3& U, const Tensor& dUdX,
-                           const std::array<std::array<int, 3>, 3>& idx,
+                           const std::array<std::array<int,3>,3>& idx,
                            double scale,
                            WeakOperators::ConvectionForm form = WeakOperators::CONVECTIVE);
 
@@ -69,7 +69,7 @@ public:
     //! \param[in] scale Scaling factor for contribution
     static void Gradient(Matrices& EM,
                          const FiniteElement& fe,
-                         std::array<int,3>& idx,
+                         const std::array<int,3>& idx,
                          double scale = 1.0);
 
     //! \brief Compute an integration constraint.
@@ -164,7 +164,7 @@ public:
     //! \param[in] stress Whether to add extra stress formulation terms
     static void Laplacian(Vectors& EV, const FiniteElement& fe,
                           const Tensor& dUdX,
-                          const std::array<int, 3>& idx, double scale = 1.0,
+                          const std::array<int,3>& idx, double scale = 1.0,
                           bool stress = false);
   };
 
