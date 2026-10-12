@@ -1,3 +1,14 @@
+# Find catch2
+macro(FindCatch2)
+  if(TARGET Catch2::Catch2)
+    return()
+  endif()
+  find_package(Catch2)
+  if(TARGET Catch2::Catch2)
+    include(Catch)
+  endif()
+endmacro()
+
 # Add a catch2 unit test application
 #   Registers tests as ctest entries using test discovery mechanism.
 # Single-valued parameters:
@@ -24,7 +35,9 @@ function(ifem_add_test_app)
       return()
     endif()
   endif()
-  if(NOT Catch2_FOUND)
+  FindCatch2()
+  if(NOT TARGET Catch2::Catch2)
+    message(WARNING "Unit tests are skipped due to missing Catch2 installation")
     return()
   endif()
 
@@ -342,14 +355,9 @@ if(IFEM_TEST_MEMCHECK)
   endif()
 endif()
 
-include(CTest)
+FindCatch2()
 
-find_package(Catch2)
-if(Catch2_FOUND)
-  include(Catch)
-elseif(IFEM_BUILD_TESTING)
-  message(WARNING "Unit tests are skipped due to missing Catch2 installation")
-endif()
+include(CTest)
 
 find_program(VTFLS_COMMAND vtfls)
 if(VTFLS_COMMAND)
