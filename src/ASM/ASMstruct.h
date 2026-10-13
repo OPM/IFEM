@@ -97,16 +97,6 @@ protected:
   //! of the dimension-specific sub-classes.
   bool addXNodes(unsigned short int dim, size_t nXn, IntVec& nodes);
 
-  //! \brief Performs a sanity check on the thread groups.
-  //! \param[in] nodes The nodes to santiy check
-  //! \param[in] group The group to check for
-  //! \param[in] ignoreGlobalLM If \e true, ignore global lagrange multipliers
-  //! \return \e true if the groups pass checks, otherwise \e false
-  //!
-  //! \details This checks that no nodes exist on several threads.
-  bool checkThreadGroups(const std::vector<std::set<int>>& nodes,
-                         int group, bool ignoreGlobalLM);
-
   //! \brief Computes the element border parameters.
   //! \param[in] iel 1-based element index
   //! \param[out] u Parameter values of the element borders

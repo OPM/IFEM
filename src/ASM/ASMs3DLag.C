@@ -353,7 +353,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
+    oneGroup.concurrent(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroupsVol;
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1196,10 +1196,17 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs3DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
-  if (threadGroupsVol.stripDir == ThreadGroups::NONE)
-    threadGroupsVol.oneGroup(nel);
+  if (!multiThreaded())
+    threadGroupsVol.sequential(nel);
   else
-    threadGroupsVol.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),(nz-1)/(p3-1),1);
+  {
+    // Neighboring elements share nodes, so single-element tiles will do
+    const std::vector<bool> el1((nx-1)/(p1-1),true);
+    const std::vector<bool> el2((ny-1)/(p2-1),true);
+    const std::vector<bool> el3((nz-1)/(p3-1),true);
+    colorTasks(threadGroupsVol, this->getElmWriteNodes(),
+               ThreadGroups::tiles(el1,el2,el3,1,1,1));
+  }
 
   projThreadGroups = threadGroupsVol;
 }
@@ -1207,34 +1214,46 @@ void ASMs3DLag::generateThreadGroups (const Integrand&, bool, bool)
 
 void ASMs3DLag::generateThreadGroups (char lIndex, bool, bool)
 {
-  std::map<char,ThreadGroups>::iterator tit = threadGroupsFace.find(lIndex);
-  if (tit != threadGroupsFace.end())
-  {
-    if (tit->second.stripDir == ThreadGroups::NONE)
-      tit->second.oneGroup(nel);
+  if (threadGroupsFace.find(lIndex) != threadGroupsFace.end())
     return;
-  }
-
-  ThreadGroups& fGrp = threadGroupsFace[lIndex];
-  switch (lIndex)
-  {
-    case 1:
-    case 2:
-      fGrp.calcGroups((ny-1)/(p2-1), (nz-1)/(p3-1), 1);
-      break;
-    case 3:
-    case 4:
-      fGrp.calcGroups((nx-1)/(p1-1), (nz-1)/(p3-1), 1);
-      break;
-    default:
-      fGrp.calcGroups((nx-1)/(p1-1), (ny-1)/(p2-1), 1);
-  }
 
   // Find elements that are on the boundary face 'lIndex'
   IntVec map;
   this->findBoundaryElms(map,lIndex);
 
-  fGrp.applyMap(map);
+  ThreadGroups& fGrp = threadGroupsFace[lIndex];
+  if (!multiThreaded())
+  {
+    fGrp.sequential(map.size());
+    fGrp.applyMap(map);
+    return;
+  }
+
+  const std::vector<bool> el1((nx-1)/(p1-1),true);
+  const std::vector<bool> el2((ny-1)/(p2-1),true);
+  const std::vector<bool> el3((nz-1)/(p3-1),true);
+
+  IntMat tiles;
+  switch (lIndex)
+  {
+    case 1:
+    case 2:
+      tiles = ThreadGroups::tiles(el2,el3,1,1);
+      break;
+    case 3:
+    case 4:
+      tiles = ThreadGroups::tiles(el1,el3,1,1);
+      break;
+    default:
+      tiles = ThreadGroups::tiles(el1,el2,1,1);
+  }
+
+  // The boundary integrals assemble through the volume elements
+  for (IntVec& tile : tiles)
+    for (int& iel : tile)
+      iel = map[iel];
+
+  colorTasks(fGrp,this->getElmWriteNodes(),tiles);
 }
 
 

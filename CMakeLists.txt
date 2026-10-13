@@ -200,6 +200,7 @@ target_sources(
     src/Utility/ftnfiles.f
     src/Utility/Functions.C
     src/Utility/GaussQuadrature.C
+    src/Utility/GraphColoring.C
     src/Utility/HDF5Base.C
     src/Utility/HDF5Reader.C
     src/Utility/HDF5Restart.C
@@ -377,6 +378,7 @@ set(IFEM_PUBLIC_HEADERS
   src/Utility/Function.h
   src/Utility/Functions.h
   src/Utility/GaussQuadrature.h
+  src/Utility/GraphColoring.h
   src/Utility/HDF5Base.h
   src/Utility/HDF5Reader.h
   src/Utility/HDF5Restart.h
@@ -590,6 +592,7 @@ IFEM_add_test_app(
       src/Utility/Test/TestExprAutoDiff.C
       src/Utility/Test/TestFunctions.C
       src/Utility/Test/TestGaussQuadrature.C
+      src/Utility/Test/TestGraphColoring.C
       src/Utility/Test/TestImageReader.C
       src/Utility/Test/TestLegendre.C
       src/Utility/Test/TestLinearFunc.C

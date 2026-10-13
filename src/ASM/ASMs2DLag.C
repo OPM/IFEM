@@ -489,7 +489,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
   ThreadGroups oneGroup;
   if (glInt.threadSafe())
-    oneGroup.oneStripe(nel, myElms);
+    oneGroup.concurrent(nel, myElms);
   const ThreadGroups& groups = glInt.threadSafe() ? oneGroup : threadGroups;
 
 
@@ -943,10 +943,15 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs2DLag::generateThreadGroups (const Integrand&, bool, bool)
 {
-  if (threadGroups.stripDir == ThreadGroups::NONE)
-    threadGroups.oneGroup(nel);
+  if (!multiThreaded())
+    threadGroups.sequential(nel);
   else
-    threadGroups.calcGroups((nx-1)/(p1-1),(ny-1)/(p2-1),1);
+  {
+    // Neighboring elements share nodes, so single-element tiles will do
+    const std::vector<bool> el1((nx-1)/(p1-1),true), el2((ny-1)/(p2-1),true);
+    colorTasks(threadGroups, this->getElmWriteNodes(),
+               ThreadGroups::tiles(el1,el2,1,1));
+  }
 
   projThreadGroups = threadGroups;
 }

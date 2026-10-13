@@ -92,95 +92,16 @@ void LR::getGaussPointParameters (const LRSpline* lrspline, RealArray& uGP,
 }
 
 
-void LR::generateThreadGroups (ThreadGroups& threadGroups,
-                               const LRSpline* lr,
-                               const std::vector<LRSpline*>& addConstraints)
+void LR::generateThreadGroups (ThreadGroups& threadGroups, const LRSpline* lr)
 {
-  int nElement = lr->nElements();
-#ifdef USE_OPENMP
-  if (omp_get_max_threads() > 1 && threadGroups.stripDir != ThreadGroups::NONE)
+  if (ASMbase::multiThreaded())
   {
-    threadGroups[0].clear();
-    threadGroups[1].clear();
-
-    IntVec status(nElement,0); // status vector for elements:
-
-    std::vector<IntSet> additionals;
-    if (!addConstraints.empty()) {
-      additionals.resize(nElement);
-      for (LR::Element* e : lr->getAllElements()) {
-        for (LRSpline* lr2 : addConstraints) {
-           int elB = lr2->getElementContaining(e->midpoint());
-           for (LR::Basisfunction* b2 : lr2->getElement(elB)->support())
-             for (LR::Element* el3 : b2->support()) {
-               RealArray midpoint = el3->midpoint();
-               std::vector<RealArray> points;
-               if (lr2->nElements() != lr->nElements()) {
-                 RealArray diff(midpoint.size());
-                 for (size_t j = 0; j < midpoint.size(); ++j)
-                   diff[j] = (el3->getParmax(j) - el3->getParmin(j)) / 4.0;
-                 if (midpoint.size() == 2)
-                   points = {{midpoint[0] + diff[0], midpoint[1] + diff[1]},
-                             {midpoint[0] - diff[0], midpoint[1] - diff[1]},
-                             {midpoint[0] - diff[0], midpoint[1] + diff[1]},
-                             {midpoint[0] + diff[0], midpoint[1] - diff[1]}};
-                 else
-                   points = {{midpoint[0] + diff[0], midpoint[1] - diff[1], midpoint[2] - diff[2]},
-                             {midpoint[0] + diff[0], midpoint[1] + diff[1], midpoint[2] - diff[2]},
-                             {midpoint[0] + diff[0], midpoint[1] + diff[1], midpoint[2] + diff[2]},
-                             {midpoint[0] - diff[0], midpoint[1] - diff[1], midpoint[2] - diff[2]},
-                             {midpoint[0] - diff[0], midpoint[1] + diff[1], midpoint[2] - diff[2]},
-                             {midpoint[0] - diff[0], midpoint[1] + diff[1], midpoint[2] + diff[2]},
-                             {midpoint[0] + diff[0], midpoint[1] - diff[1], midpoint[2] + diff[2]},
-                             {midpoint[0] - diff[0], midpoint[1] - diff[1], midpoint[2] + diff[2]}};
-               } else
-                 points = {midpoint};
-
-               for (const RealArray& vec : points)
-                 additionals[e->getId()].insert(lr->getElementContaining(vec));
-             }
-        }
-      }
-    }
-
-    // -1 is unusable for current color, 0 is available,
-    // any other value is the assigned color
-
-    int fixedElements = 0;
-    for (int nColors = 0; fixedElements < nElement; nColors++)
-    {
-      // reset un-assigned element tags
-      for (int i=0; i<nElement; i++)
-        if (status[i]<0)
-          status[i] = 0;
-
-      // look for available elements
-      IntVec thisColor;
-      for (LR::Element* e : lr->getAllElements()) {
-        int i = e->getId();
-        if (status[i] == 0) {
-          status[i] = nColors+1;
-          thisColor.push_back(i);
-          fixedElements++;
-          for (LR::Basisfunction* b : e->support())
-            for (LR::Element* el2 : b->support()) {
-              int j = el2->getId();
-              if (status[j] == 0)  // if not assigned a color yet
-                status[j] = -1; // set as unavailable (with current color)
-              if (static_cast<size_t>(j) < additionals.size())
-                for (int extra : additionals[j])
-                  if (status[extra] == 0)
-                    status[extra] = -1;
-            }
-        }
-      }
-      threadGroups[0].push_back(thisColor);
-    }
-    return;
+    IntMat mnpc;
+    LR::createMNPC(lr,mnpc);
+    ASMbase::colorTasks(threadGroups,mnpc);
   }
-#endif
-
-  threadGroups.oneGroup(nElement); // No threading, all elements in one group
+  else
+    threadGroups.sequential(lr->nElements()); // No threading, all in sequence
 }
 
 
@@ -488,7 +409,13 @@ Vec3 ASMLRSpline::getElementCenter (int iel) const
 }
 
 
-bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
+bool ASMLRSpline::validateThreadGroups (const SAM* sam) const
+{
+  return this->validateGroups(threadGroups,sam,this->getThreadElms());
+}
+
+
+bool ASMLRSpline::checkThreadGroups (const ThreadGroups& groups,
                                      const std::vector<const LR::LRSpline*>& bases,
                                      const LR::LRSpline* threadBasis)
 {
@@ -496,16 +423,21 @@ bool ASMLRSpline::checkThreadGroups (const IntMat& groups,
   for (size_t gId = 1; gId <= groups.size(); gId++)
     for (size_t bId = 1; bId <= bases.size(); bId++)
     {
-      IntSet nodes;
+      IntSet nodes; // the functions of the tasks checked so far
       const LR::LRSpline* basis = bases[bId-1];
-      for (int elm : groups[gId-1]) {
-        RealArray midpoint = threadBasis->getElement(elm)->midpoint();
-        int bElm = basis->getElementContaining(midpoint);
-        for (const LR::Basisfunction* func : basis->getElement(bElm)->support())
-          if (!nodes.insert(func->getId()).second) {
+      for (const IntVec& task : groups[gId-1]) {
+        IntSet taskNodes;
+        for (int elm : task) {
+          RealArray midpoint = threadBasis->getElement(elm)->midpoint();
+          int bElm = basis->getElementContaining(midpoint);
+          for (const LR::Basisfunction* func : basis->getElement(bElm)->support())
+            taskNodes.insert(func->getId());
+        }
+        for (int func : taskNodes)
+          if (!nodes.insert(func).second) {
             std::cerr <<" *** ASMLRSpline::checkThreadGroups: Function "
-                      << func->getId() <<" on basis "<< bId
-                      <<" is present for multiple elements in group "<< gId
+                      << func <<" on basis "<< bId
+                      <<" is present for multiple tasks in group "<< gId
                       << std::endl;
             ok = false;
           }

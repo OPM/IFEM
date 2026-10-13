@@ -585,8 +585,21 @@ public:
   //! \param[in] ignoreGlobalLM If \e true ignore global multipliers in sanity check
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
+  //! \brief Generates element groups for multi-threading of boundary integrals.
+  //! \param[in] lIndex Local index [1,6] of the boundary face
+  virtual void generateThreadGroups(char lIndex, bool, bool);
+
+  //! \brief Validates the threading groups based on the assembly data in %SAM.
+  //! \details This includes the groups of the boundary faces.
+  virtual bool validateThreadGroups(const SAM* sam) const;
 
 protected:
+  //! \brief Generates element groups for the elements of a basis on a face.
+  //! \param[in] lIndex Local index [1,6] of the boundary face
+  //! \param[in] basis The basis whose face elements are integrated over
+  //! \details The face elements are colored by what they write to.
+  void generateFaceGroups(char lIndex, const LR::LRSplineVolume* basis);
+
 
   // Internal utility methods
   // ========================
@@ -732,6 +745,9 @@ protected:
 
   //! Basis function cache
   std::vector<std::unique_ptr<BasisFunctionCache>> myCache;
+
+  //! Element groups for multi-threaded assembly of boundary integrals
+  std::map<char,ThreadGroups> threadGroupsFace;
 
 private:
   mutable double vMin; //!< Minimum element volume for adaptive refinement

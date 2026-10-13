@@ -49,6 +49,7 @@ class VecFunc;
 class Vec3;
 class Tensor;
 class SAM;
+class ThreadGroups;
 
 namespace ASM {
   class InterfaceChecker;
@@ -1082,7 +1083,46 @@ protected:
   //! \brief Writes a Lagrangian basis to the given stream.
   bool writeLagBasis(std::ostream& os, const char* type) const;
 
+  //! \brief Returns the nodes each element writes to during assembly.
+  //! \param[in] elms 0-based connectivity index of each element to consider,
+  //! use the \a nel regular elements in their natural order if empty
+  //! \details This is the nodal connectivity of the element, extended with the
+  //! master nodes of the multi-point constraints on its slave nodes.
+  //! Nodes are identified by their global node number, such that local nodes
+  //! sharing one (collapsed nodes) are the same node, and masters in other
+  //! patches are included. The global %Lagrange multipliers are left out.
+  //! Every element writes to them, but their vector value is overwritten
+  //! after the assembly. The returned node indices are 0-based and dense.
+  IntMat getElmWriteNodes(const IntVec& elms = {}) const;
+
+  //! \brief Validates element groups against the assembly data in %SAM.
+  //! \param[in] groups The element groups to validate
+  //! \param[in] sam Data for managing the assembly of the equation system
+  //! \param[in] elms 0-based connectivity index of the elements in the groups,
+  //! the group entries are the connectivity indices themselves if empty
+  //! \return \e false if two tasks of a color contribute to one equation
+  //! \details The elements of a task are assembled in sequence by one thread,
+  //! so only elements of different tasks of a color may be in conflict.
+  //! Equations of global %Lagrange multipliers are not checked,
+  //! see getElmWriteNodes().
+  bool validateGroups(const ThreadGroups& groups, const SAM* sam,
+                      const IntVec& elms = {}) const;
+
 public:
+  //! \brief Colors tasks such that no two tasks of a color share a node.
+  //! \param[out] groups The colored tasks
+  //! \param[in] elmNodes The 0-based nodes each element writes to
+  //! \param[in] tasks The elements of each task, one task per element if empty
+  //! \details A task writes to the nodes of all its elements. Single-element
+  //! tasks are colored by the algorithm selected through ASM::coloring, while
+  //! other tasks, typically tiles of a structured grid, are colored greedily in
+  //! their given order.
+  static void colorTasks(ThreadGroups& groups, const IntMat& elmNodes,
+                         const IntMat& tasks = {});
+
+  //! \brief Returns \e true if more than one thread is available.
+  static bool multiThreaded();
+
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
 
   static int dbgElm; //!< One-based element index to print debugging info for

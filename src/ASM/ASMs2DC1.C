@@ -161,7 +161,6 @@ void ASMs2DC1::closeBoundaries (int dir, int, int)
 	for (unsigned char d = 1; d <= nf && n1 > 3; d++)
 	  this->addC1MPC(MLGN[master-1],d,MLGN[master],MLGN[master+n1-3]);
       }
-      threadGroups.stripDir = ThreadGroups::U;
       break;
 
     case 2: // Edges are closed in J-direction
@@ -172,7 +171,6 @@ void ASMs2DC1::closeBoundaries (int dir, int, int)
 	  this->addC1MPC(MLGN[master-1],d,MLGN[master+n1-1],
 		         MLGN[master+n1*(n2-2)-1]);
       }
-      threadGroups.stripDir = ThreadGroups::V;
       break;
     }
 }
@@ -318,11 +316,6 @@ bool ASMs2DC1::addRigidCpl (int lindx, int ldim, int basis,
       return false;
     }
   }
-
-  if (threadGroups.stripDir != ThreadGroups::NONE)
-    IFEM::cout <<"  ** ASMs2DC1::addRigidCpl: Multi-threading deactivated"
-               <<" for Patch "<< idx+1 << std::endl;
-  threadGroups.stripDir = ThreadGroups::NONE;
 
   return extraPt;
 }
