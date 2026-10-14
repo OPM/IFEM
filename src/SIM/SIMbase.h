@@ -749,6 +749,10 @@ public:
   SystemMatrix* getRayleighDampingMatrix(size_t iM = 1, size_t iK = 0) const;
   //! \brief Returns current system left-hand-side matrix.
   SystemMatrix* getLHSmatrix(size_t idx = 0, bool copy = false) const;
+
+  //! \brief Hands the LHS matrix of the equation system to the caller.
+  //! \param[in] idx Index of the coefficient matrix to hand over
+  SystemMatrix* releaseLHSmatrix(size_t idx = 0);
   //! \brief Returns current system right-hand-side vector.
   SystemVector* getRHSvector(size_t idx = 0, bool copy = false) const;
   //! \brief Adds a system vector to the given right-hand-side vector.
