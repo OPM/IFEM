@@ -579,6 +579,7 @@ IFEM_add_test_app(
       src/SIM/Test/TestNewmark.C
       src/SIM/Test/TestNonLinSIM.C
       src/SIM/Test/TestSIM.C
+      src/SIM/Test/TestSIMdependency.C
       src/SIM/Test/TestSolution.C
       src/SIM/Test/TestXMLInputBase.C
       src/Utility/Test/TestAnaSol.C
