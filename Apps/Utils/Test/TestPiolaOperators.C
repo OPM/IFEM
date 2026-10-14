@@ -45,13 +45,13 @@ public:
       for (size_t i = 1; i <= this->basis(b).size(); ++i)
         this->basis(b)(i) = 0.5 + 0.25*i + 0.125*b;
 
-    P.resize(2,6);
-    dPdX.resize(4,6);
+    P_contra.N.resize(2,6);
+    P_contra.dNdX.resize(4,6);
     for (size_t j = 1; j <= 6; ++j) {
       for (size_t k = 1; k <= 2; ++k)
-        P(k,j) = 0.3 + 0.7*j - 1.1*k + 0.05*j*k;
+        P_contra.N(k,j) = 0.3 + 0.7*j - 1.1*k + 0.05*j*k;
       for (size_t r = 1; r <= 4; ++r)
-        dPdX(r,j) = 1.0 - 0.3*j + 0.9*r - 0.11*j*r;
+        P_contra.dNdX(r,j) = 1.0 - 0.3*j + 0.9*r - 0.11*j*r;
     }
   }
 
@@ -68,7 +68,7 @@ public:
   Tensor gradient() const
   {
     Matrix dV;
-    dV.multiplyMat(dPdX, coefficients());
+    dV.multiplyMat(P_contra.dNdX, coefficients());
     Tensor grad(2);
     grad = dV;
     return grad;
@@ -78,7 +78,7 @@ public:
   Vec3 value() const
   {
     Vector u;
-    P.multiply(coefficients(), u);
+    P_contra.N.multiply(coefficients(), u);
     return Vec3(u(1), u(2));
   }
 };
@@ -137,11 +137,11 @@ Vector convectionResidual(const PiolaFiniteElement& fe, const Vector& c,
                           WeakOperators::ConvectionForm form)
 {
   Vector u;
-  fe.P.multiply(c, u);
+  fe.P_contra.N.multiply(c, u);
   const Vec3 U(u(1), u(2));
 
   Matrix dV;
-  dV.multiplyMat(fe.dPdX, c);
+  dV.multiplyMat(fe.P_contra.dNdX, c);
   Tensor dUdX(2);
   dUdX = dV;
 

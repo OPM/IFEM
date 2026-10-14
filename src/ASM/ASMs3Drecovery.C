@@ -15,6 +15,9 @@
 #include "GoTools/trivariate/VolumeInterpolator.h"
 
 #include "ASMs3D.h"
+#include "ASMmxBase.h"
+#include "Function.h"
+#include "GoTools/geometry/SplineSurface.h"
 #include "ItgPoint.h"
 #include "Field.h"
 #include "CoordinateMapping.h"
@@ -22,6 +25,7 @@
 #include "GlbL2projector.h"
 #include "SparseMatrix.h"
 #include "SplineUtils.h"
+#include "Vec3Oper.h"
 #include "Profiler.h"
 #include <array>
 
@@ -455,4 +459,159 @@ Go::SplineVolume* ASMs3D::projectSolutionLocalApprox(const IntegrandBase& integr
 
   // Project onto the geometry basis
   return VariationDiminishingSplineApproximation(svol.get(),sValues,sValues.rows());
+}
+
+
+/*!
+  On a Piola mapped basis the prescribed value lives in the physical frame
+  whereas the constrained degree of freedom is a coefficient of the reference
+  basis, so the value has to be pulled back before it is fitted over the
+  boundary face. On a div-compatible basis a prescribed velocity vector is
+  pulled back by the adjugate of the jacobian, and a prescribed normal
+  velocity by the dilation of the face, since the contravariant Piola
+  transform preserves the normal flux. On a curl-compatible basis a
+  prescribed vector field is pulled back by the transposed jacobian, as the
+  covariant Piola transform preserves the circulation.
+*/
+
+Go::SplineSurface* ASMs3D::projectPiolaDirichlet (const DirichletFace& dface,
+                                                  const RealFunc* sf,
+                                                  const VecFunc* vf,
+                                                  double time,
+                                                  bool tangent) const
+{
+  const Go::SplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  if (!geo || !dface.surf)
+    return nullptr;
+
+  const int ndir = abs(dface.dir); // parameter direction of the normal
+  const bool covariant = ASMmxBase::Type == ASMmxBase::CURL_COMPATIBLE;
+  // The degrees of freedom of a compatible basis are the components of the
+  // reference field, one component per basis, so the basis being constrained
+  // says which component the prescribed value has to be pulled back to.
+  const int comp = dface.basis;
+  if (sf && (covariant || comp != ndir))
+  {
+    std::cerr <<" *** ASMs3D::projectPiolaDirichlet: Only the normal velocity"
+              <<" on a div-compatible basis can be prescribed as a scalar on a"
+              <<" face, not on basis "<< comp <<". Give the whole field."
+              << std::endl;
+    return nullptr;
+  }
+  // The reference normal points along the parameter direction on the upper
+  // boundary and against it on the lower one
+  const double nsign = dface.dir > 0 ? 1.0 : -1.0;
+
+  // The parameter directions of the face surface in the volume
+  const int s1 = ndir == 1 ? 1 : 0;
+  const int s2 = ndir == 3 ? 1 : 2;
+
+  double par[3] = { 0.0, 0.0, 0.0 };
+  par[ndir-1] = dface.dir < 0 ? geo->startparam(ndir-1)
+                              : geo->endparam(ndir-1);
+
+  // Fit it in the parametric least-squares sense over the face
+  const Go::BsplineBasis& bu = dface.surf->basis_u();
+  const Go::BsplineBasis& bv = dface.surf->basis_v();
+  const int nu = bu.numCoefs(), nv = bv.numCoefs();
+  const int pu = bu.order(), pv = bv.order();
+  const RealArray ku(bu.begin(),bu.end()), kv(bv.begin(),bv.end());
+
+  const int nGP = this->getNoGaussPt(std::max(pu,pv),true);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return nullptr;
+
+  const int ncoef = nu*nv;
+  SparseMatrix A(SparseMatrix::SUPERLU);
+  StdVector B(ncoef);
+  A.resize(ncoef,ncoef);
+  RealArray Nu(pu), Nv(pv);
+  std::vector<Go::Point> pts(4);
+
+  for (size_t js = pv-1; js+pv < kv.size(); js++)
+  {
+    if (kv[js+1] <= kv[js]) continue; // skip the repeated knots
+    const double dtv = 0.5*(kv[js+1]-kv[js]), tmv = 0.5*(kv[js+1]+kv[js]);
+    for (size_t is = pu-1; is+pu < ku.size(); is++)
+    {
+      if (ku[is+1] <= ku[is]) continue;
+      const double dtu = 0.5*(ku[is+1]-ku[is]), tmu = 0.5*(ku[is+1]+ku[is]);
+      for (int jg = 0; jg < nGP; jg++)
+        for (int ig = 0; ig < nGP; ig++)
+        {
+          double tu = tmu + dtu*xg[ig]; // not const, knotIntervalFuzzy may snap
+          double tv = tmv + dtv*xg[jg];
+          par[s1] = tu;
+          par[s2] = tv;
+          geo->point(pts,par[0],par[1],par[2],1);
+
+          const Vec3 X = SplineUtils::toVec3(pts[0],nsd);
+          const std::array<Vec3,3> dX{ SplineUtils::toVec3(pts[1],nsd),
+                                       SplineUtils::toVec3(pts[2],nsd),
+                                       SplineUtils::toVec3(pts[3],nsd) };
+          const Vec4 Xt(X,time,par);
+
+          double value = 0.0;
+          if (sf)
+          {
+            // The prescribed value is the normal velocity itself, and the
+            // Piola transform preserves the normal flux, u*n*dS = uhat*nhat*dShat
+            const double dS = Vec3(dX[s1],dX[s2]).length();
+            if (dS <= 0.0)
+            {
+              std::cerr <<" *** ASMs3D::projectPiolaDirichlet: Degenerate"
+                        <<" boundary at parameters "<< tu <<" "<< tv
+                        << std::endl;
+              return nullptr;
+            }
+            value = nsign * dS * (tangent ? sf->timeDerivative(Xt) : (*sf)(Xt));
+          }
+          else if (vf)
+          {
+            const Vec3 u = tangent ? vf->timeDerivative(Xt) : (*vf)(Xt);
+            if (covariant)
+              // The component along the parameter direction of this basis
+              value = dX[comp-1]*u;
+            else
+              // A row of the adjugate of the jacobian is the cross product of
+              // the other two columns
+              value = Vec3(dX[comp%3],dX[(comp+1)%3])*u;
+          }
+          else
+            return nullptr;
+
+          const int kiu = bu.knotIntervalFuzzy(tu);
+          const int kiv = bv.knotIntervalFuzzy(tv);
+          bu.computeBasisValues(tu,Nu.data(),0);
+          bv.computeBasisValues(tv,Nv.data(),0);
+
+          const double w = dtu*dtv*wg[ig]*wg[jg];
+          for (int b = 0; b < pv; b++)
+            for (int a = 0; a < pu; a++)
+            {
+              const int ia = kiu-pu+1+a + nu*(kiv-pv+1+b);
+              if (ia < 0 || ia >= ncoef) continue;
+              const double Na = Nu[a]*Nv[b];
+              B(1+ia) += Na*value*w;
+              for (int d = 0; d < pv; d++)
+                for (int c = 0; c < pu; c++)
+                {
+                  const int ib = kiu-pu+1+c + nu*(kiv-pv+1+d);
+                  if (ib >= 0 && ib < ncoef)
+                    A(1+ia,1+ib) += Na*Nu[c]*Nv[d]*w;
+                }
+            }
+        }
+    }
+  }
+
+  if (!A.solve(B))
+  {
+    std::cerr <<" *** ASMs3D::projectPiolaDirichlet: Failed to solve the"
+              <<" least-squares system."<< std::endl;
+    return nullptr;
+  }
+
+  return new Go::SplineSurface(nu,nv,pu,pv,ku.begin(),kv.begin(),B.begin(),1);
 }

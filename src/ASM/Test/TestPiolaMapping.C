@@ -294,14 +294,14 @@ TEST_CASE("TestPiolaMapping.Basis2D")
   size_t k = 1;
   for (size_t j = 0; j < 3; ++j)
     for (size_t i = 0; i < 4; ++i, ++k) {
-      REQUIRE_THAT(fe.P(1,k), WithinRel((3.0*v + 4.0) * c[i](u) * q[j](v) / detJ));
-      REQUIRE_THAT(fe.P(2,k), WithinRel(   (-v - 1.0) * c[i](u) * q[j](v) / detJ));
+      REQUIRE_THAT(fe.P_contra.N(1,k), WithinRel((3.0*v + 4.0) * c[i](u) * q[j](v) / detJ));
+      REQUIRE_THAT(fe.P_contra.N(2,k), WithinRel(   (-v - 1.0) * c[i](u) * q[j](v) / detJ));
     }
 
   for (size_t j = 0; j < 4; ++j)
     for (size_t i = 0; i < 3; ++i, ++k) {
-      REQUIRE_THAT(fe.P(1,k), WithinRel((3.0*v - 1.0) * q[i](u) * c[j](v) / detJ));
-      REQUIRE_THAT(fe.P(2,k),  WithinRel(  (-u + 5.0) * q[i](u) * c[j](v) / detJ));
+      REQUIRE_THAT(fe.P_contra.N(1,k), WithinRel((3.0*v - 1.0) * q[i](u) * c[j](v) / detJ));
+      REQUIRE_THAT(fe.P_contra.N(2,k),  WithinRel(  (-u + 5.0) * q[i](u) * c[j](v) / detJ));
     }
 }
 
@@ -375,7 +375,7 @@ TEST_CASE("TestPiolaMapping.Gradient2D")
     for (size_t i = 0; i < 4; ++i, ++k)
       for (size_t d1 = 1; d1 <= 2; ++d1)
         for (size_t d2 = 1; d2 <= 2; ++d2)
-              REQUIRE_THAT(fe.dPdX((d1 + 2 * (d2 - 1)),k),
+              REQUIRE_THAT(fe.P_contra.dNdX((d1 + 2 * (d2 - 1)),k),
                            WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,1) +
                            dJdX[d2-1](d1,1) / detJ) * c[i](u)*q[j](v) +
                            J(d1,1) * (cd[i](u) * q[j](v) * Ji(1,d2) +
@@ -385,7 +385,7 @@ TEST_CASE("TestPiolaMapping.Gradient2D")
     for (size_t i = 0; i < 3; ++i, ++k)
       for (size_t d1 = 1; d1 <= 2; ++d1)
         for (size_t d2 = 1; d2 <= 2; ++d2)
-              REQUIRE_THAT(fe.dPdX(d1 + 2 * (d2 - 1),k),
+              REQUIRE_THAT(fe.P_contra.dNdX(d1 + 2 * (d2 - 1),k),
                           WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,2) +
                           dJdX[d2-1](d1,2) / detJ) * q[i](u) * c[j](v) +
                           J(d1,2) * (qd[i](u) * c[j](v) * Ji(1,d2) +
@@ -540,25 +540,25 @@ TEST_CASE("TestPiolaMapping.Basis3D")
   for (size_t k = 0; k < 3; ++k)
     for (size_t j = 0; j < 3; ++j)
       for (size_t i = 0; i < 4; ++i, ++n) {
-        REQUIRE_THAT(fe.P(1,n), WithinRel(2.0 * u * c[i](u) * q[j](v) * q[k](w) / detJ));
-        REQUIRE_THAT(fe.P(2,n), WithinAbs(0.0 * c[i](u) * q[j](v) * q[k](w) / detJ, 1e-13));
-        REQUIRE_THAT(fe.P(3,n), WithinRel(2.0 * u * c[i](u) * q[j](v) * q[k](w) / detJ));
+        REQUIRE_THAT(fe.P_contra.N(1,n), WithinRel(2.0 * u * c[i](u) * q[j](v) * q[k](w) / detJ));
+        REQUIRE_THAT(fe.P_contra.N(2,n), WithinAbs(0.0 * c[i](u) * q[j](v) * q[k](w) / detJ, 1e-13));
+        REQUIRE_THAT(fe.P_contra.N(3,n), WithinRel(2.0 * u * c[i](u) * q[j](v) * q[k](w) / detJ));
       }
 
   for (size_t k = 0; k < 3; ++k)
     for (size_t j = 0; j < 4; ++j)
       for (size_t i = 0; i < 3; ++i, ++n) {
-        REQUIRE_THAT(fe.P(1,n), WithinRel(2.0 * v * w * q[i](u) * c[j](v) * q[k](w) / detJ));
-        REQUIRE_THAT(fe.P(2,n), WithinRel(        2.0 * q[i](u) * c[j](v) * q[k](w) / detJ));
-        REQUIRE_THAT(fe.P(3,n), WithinAbs(        0.0 * q[i](u) * c[j](v) * q[k](w) / detJ, 1e-13));
+        REQUIRE_THAT(fe.P_contra.N(1,n), WithinRel(2.0 * v * w * q[i](u) * c[j](v) * q[k](w) / detJ));
+        REQUIRE_THAT(fe.P_contra.N(2,n), WithinRel(        2.0 * q[i](u) * c[j](v) * q[k](w) / detJ));
+        REQUIRE_THAT(fe.P_contra.N(3,n), WithinAbs(        0.0 * q[i](u) * c[j](v) * q[k](w) / detJ, 1e-13));
       }
 
   for (size_t k = 0; k < 4; ++k)
     for (size_t j = 0; j < 3; ++j)
       for (size_t i = 0; i < 3; ++i, ++n) {
-        REQUIRE_THAT(fe.P(1,n), WithinRel(      v * v * q[i](u) * q[j](v) * c[k](w) / detJ));
-        REQUIRE_THAT(fe.P(2,n), WithinRel(3.0 * w * w * q[i](u) * q[j](v) * c[k](w) / detJ));
-        REQUIRE_THAT(fe.P(3,n), WithinRel(        3.0 * q[i](u) * q[j](v) * c[k](w) / detJ));
+        REQUIRE_THAT(fe.P_contra.N(1,n), WithinRel(      v * v * q[i](u) * q[j](v) * c[k](w) / detJ));
+        REQUIRE_THAT(fe.P_contra.N(2,n), WithinRel(3.0 * w * w * q[i](u) * q[j](v) * c[k](w) / detJ));
+        REQUIRE_THAT(fe.P_contra.N(3,n), WithinRel(        3.0 * q[i](u) * q[j](v) * c[k](w) / detJ));
       }
 }
 
@@ -638,19 +638,19 @@ TEST_CASE("TestPiolaMapping.Gradient3D")
       for (size_t i = 0; i < 4; ++i, ++n)
         for (size_t d1 = 1; d1 <= 3; ++d1)
           for (size_t d2 = 1; d2 <= 3; ++d2)
-            REQUIRE_THAT(fe.dPdX(d1 + 3 * (d2-1),n),
-                         WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,1) +
+            REQUIRE_THAT(fe.P_contra.dNdX(d1 + 3 * (d2-1),n),
+                         WithinAbs((-det[d2-1] / (detJ * detJ) * J(d1,1) +
                          dJdX[d2-1](d1,1) / detJ) * c[i](u) * q[j](v) * q[k](w) +
                          J(d1,1) * (cd[i](u) * q[j](v) * q[k](w) * Ji(1,d2) +
                                     c[i](u) * qd[j](v) * q[k](w) * Ji(2,d2) +
-                                    c[i](u) * q[j](v) * qd[k](w) * Ji(3,d2)) / detJ));
+                                    c[i](u) * q[j](v) * qd[k](w) * Ji(3,d2)) / detJ, 1e-13));
 
   for (size_t k = 0; k < 3; ++k)
     for (size_t j = 0; j < 4; ++j)
       for (size_t i = 0; i < 3; ++i, ++n)
         for (size_t d1 = 1; d1 <= 3; ++d1)
           for (size_t d2 = 1; d2 <= 3; ++d2)
-            REQUIRE_THAT(fe.dPdX(d1 + 3 * (d2-1),n),
+            REQUIRE_THAT(fe.P_contra.dNdX(d1 + 3 * (d2-1),n),
                          WithinAbs((-det[d2-1] / (detJ * detJ) * J(d1,2) +
                          dJdX[d2-1](d1,2) / detJ) * q[i](u) * c[j](v) * q[k](w) +
                          J(d1,2) * (qd[i](u) * c[j](v) * q[k](w) * Ji(1,d2) +
@@ -662,12 +662,12 @@ TEST_CASE("TestPiolaMapping.Gradient3D")
       for (size_t i = 0; i < 3; ++i, ++n)
         for (size_t d1 = 1; d1 <= 3; ++d1)
           for (size_t d2 = 1; d2 <= 3; ++d2)
-            REQUIRE_THAT(fe.dPdX(d1 + 3 * (d2-1),n),
-                         WithinRel((-det[d2-1] / (detJ * detJ) * J(d1,3) +
+            REQUIRE_THAT(fe.P_contra.dNdX(d1 + 3 * (d2-1),n),
+                         WithinAbs((-det[d2-1] / (detJ * detJ) * J(d1,3) +
                          dJdX[d2-1](d1,3) / detJ) * q[i](u) * q[j](v) * c[k](w) +
                          J(d1,3) * (qd[i](u) * q[j](v) * c[k](w) * Ji(1,d2) +
                                     q[i](u) * qd[j](v) * c[k](w) * Ji(2,d2) +
-                                    q[i](u) * q[j](v) * cd[k](w) * Ji(3,d2)) / detJ));
+                                    q[i](u) * q[j](v) * cd[k](w) * Ji(3,d2)) / detJ, 1e-13));
 }
 
 
@@ -852,4 +852,166 @@ TEST_CASE("TestPiolaMapping.GradDetJ3D")
   REQUIRE_THAT(ddet(1), WithinRel(ddetu(1) * Ji(1,1) + ddetu(2) * Ji(2,1) + ddetu(3) * Ji(3,1)));
   REQUIRE_THAT(ddet(2), WithinRel(ddetu(1) * Ji(1,2) + ddetu(2) * Ji(2,2) + ddetu(3) * Ji(3,2)));
   REQUIRE_THAT(ddet(3), WithinRel(ddetu(1) * Ji(1,3) + ddetu(2) * Ji(2,3) + ddetu(3) * Ji(3,3)));
+}
+
+
+namespace {
+
+//! \brief Evaluates the covariant Piola mapping at a point of a 2D patch.
+MxFiniteElement covariant2D (ASMs2D& p, ASMs2Dmx& b,
+                             double u, double v, Matrix& J, Matrix& Nhat)
+{
+  BasisValues bfs(3);
+  Go::BasisDerivsSf spline1, spline2;
+  b.getBasis(1)->computeBasis(u,v,spline1);
+  b.getBasis(2)->computeBasis(u,v,spline2);
+  MxFiniteElement fe({spline1.basisValues.size(), spline2.basisValues.size()});
+  SplineUtils::extractBasis(spline1, fe.basis(1), bfs[0].dNdu);
+  SplineUtils::extractBasis(spline2, fe.basis(2), bfs[1].dNdu);
+
+  Matrix X, Ji, dNdX;
+  p.extractBasis(u, v, bfs.back().N, bfs.back().dNdu, bfs.back().d2Ndu2);
+  p.getElementCoordinates(X, 1);
+  fe.detJxW = utl::Jacobian(Ji, dNdX, X, bfs.back().dNdu, true);
+  J.multiply(X,bfs.back().dNdu);
+  fe.piolaMapping(Ji, X, bfs, false, true);
+
+  Nhat.resize(2, fe.basis(1).size() + fe.basis(2).size());
+  for (size_t i = 1; i <= fe.basis(1).size(); ++i)
+    Nhat(1,i) = fe.basis(1)(i);
+  for (size_t i = 1; i <= fe.basis(2).size(); ++i)
+    Nhat(2,fe.basis(1).size()+i) = fe.basis(2)(i);
+
+  return fe;
+}
+
+
+//! \brief Evaluates the covariant Piola mapping at a point of a 3D patch.
+MxFiniteElement covariant3D (ASMs3D& p, ASMs3Dmx& b,
+                             double u, double v, double w,
+                             Matrix& J, Matrix& Nhat)
+{
+  BasisValues bfs(4);
+  std::array<Go::BasisDerivs,3> spline;
+  for (int d = 0; d < 3; ++d)
+    b.getBasis(d+1)->computeBasis(u,v,w,spline[d]);
+  MxFiniteElement fe({spline[0].basisValues.size(),
+                      spline[1].basisValues.size(),
+                      spline[2].basisValues.size()});
+  for (int d = 0; d < 3; ++d)
+    SplineUtils::extractBasis(spline[d], fe.basis(d+1), bfs[d].dNdu);
+
+  Matrix X, Ji, dNdX;
+  p.extractBasis(u, v, w, bfs.back().N, bfs.back().dNdu, bfs.back().d2Ndu2);
+  p.getElementCoordinates(X, 1);
+  fe.detJxW = utl::Jacobian(Ji, dNdX, X, bfs.back().dNdu, true);
+  J.multiply(X,bfs.back().dNdu);
+  fe.piolaMapping(Ji, X, bfs, false, true);
+
+  size_t np = 0;
+  for (int d = 1; d <= 3; ++d)
+    np += fe.basis(d).size();
+  Nhat.resize(3, np);
+  size_t k = 1;
+  for (int d = 1; d <= 3; ++d)
+    for (size_t i = 1; i <= fe.basis(d).size(); ++i, ++k)
+      Nhat(d,k) = fe.basis(d)(i);
+
+  return fe;
+}
+
+
+/*!
+  \brief Checks a covariant Piola mapping against its definition.
+  \details The values must satisfy J^T N = Nhat, and the derivatives
+  must match central differences of the values in each parametric direction.
+*/
+
+void checkCovariant (const std::function<MxFiniteElement(const RealArray&,
+                                                         Matrix&, Matrix&)>& eval,
+                     const RealArray& par)
+{
+  const size_t dim = par.size();
+  Matrix J, Nhat;
+  const MxFiniteElement fe = eval(par, J, Nhat);
+  REQUIRE(fe.P_co.N.rows() == dim);
+  REQUIRE(fe.P_co.dNdX.rows() == dim*dim);
+  REQUIRE(fe.P_co.dNdX.cols() == fe.P_co.N.cols());
+
+  Matrix JtN;
+  JtN.multiply(J, fe.P_co.N, true);
+  for (size_t k = 1; k <= Nhat.cols(); ++k)
+    for (size_t j = 1; j <= dim; ++j)
+      REQUIRE_THAT(JtN(j,k), WithinAbs(Nhat(j,k), 1e-12));
+
+  constexpr double h = 1e-6;
+  for (size_t p = 1; p <= dim; ++p) {
+    RealArray parP(par), parM(par);
+    parP[p-1] += h;
+    parM[p-1] -= h;
+    Matrix Jtmp, Ntmp;
+    const MxFiniteElement feP = eval(parP, Jtmp, Ntmp);
+    const MxFiniteElement feM = eval(parM, Jtmp, Ntmp);
+    for (size_t k = 1; k <= Nhat.cols(); ++k)
+      for (size_t j = 1; j <= dim; ++j) {
+        // dN_j/du_p = sum_d dN_j/dX_d * dX_d/du_p
+        double dNdu = 0.0;
+        for (size_t d = 1; d <= dim; ++d)
+          dNdu += fe.P_co.dNdX((d-1)*dim+j,k) * J(d,p);
+        const double fd = (feP.P_co.N(j,k) - feM.P_co.N(j,k)) / (2.0*h);
+        REQUIRE_THAT(dNdu, WithinAbs(fd, 1e-6));
+      }
+  }
+}
+
+}
+
+
+TEST_CASE("TestPiolaMapping.Covariant2D")
+{
+  ASMs2D p;
+  std::stringstream g2(spline2D);
+  REQUIRE(p.read(g2));
+  REQUIRE(p.generateFEMTopology());
+
+  ASMs2Dmx b(2, {1,1,1});
+  ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
+  std::stringstream basis(spline2D_basis);
+  REQUIRE(b.read(basis));
+  REQUIRE(b.generateFEMTopology());
+
+  const auto eval = [&p,&b](const RealArray& par, Matrix& J, Matrix& Nhat)
+  {
+    return covariant2D(p, b, par[0], par[1], J, Nhat);
+  };
+
+  const RealArray par = GENERATE(RealArray{0.1, 0.1},
+                                 RealArray{0.3, 0.8},
+                                 RealArray{0.7, 0.4});
+  checkCovariant(eval, par);
+}
+
+
+TEST_CASE("TestPiolaMapping.Covariant3D")
+{
+  ASMs3D p;
+  std::stringstream g3(spline3D);
+  REQUIRE(p.read(g3));
+  REQUIRE(p.generateFEMTopology());
+
+  ASMs3Dmx b({1,1,1});
+  ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
+  std::stringstream basis(spline3D_basis);
+  REQUIRE(b.read(basis));
+  REQUIRE(b.generateFEMTopology());
+
+  const auto eval = [&p,&b](const RealArray& par, Matrix& J, Matrix& Nhat)
+  {
+    return covariant3D(p, b, par[0], par[1], par[2], J, Nhat);
+  };
+
+  const RealArray par = GENERATE(RealArray{0.1, 0.1, 0.1},
+                                 RealArray{0.3, 0.8, 0.5},
+                                 RealArray{0.7, 0.4, 0.9});
+  checkCovariant(eval, par);
 }
