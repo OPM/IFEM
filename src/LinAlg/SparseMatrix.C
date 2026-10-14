@@ -1335,8 +1335,10 @@ bool SparseMatrix::setOrdering (const std::string& name)
       { "mmd_ata",         MMD_ATA },
       { "mmd_at_plus_a",   MMD_AT_PLUS_A },
       { "colamd",          COLAMD },
-      { "metis_at_plus_a", METIS_AT_PLUS_A },
-      { "metis_ata",       METIS_ATA }
+#if SUPERLU_MAJOR_VERSION > 5
+      { "metis_ata",       METIS_ATA },
+#endif
+      { "metis_at_plus_a", METIS_AT_PLUS_A }
     };
 #endif
   }
@@ -1385,14 +1387,14 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
   Vector X(B.size());
   size_t nrhs = B.size() / nrow;
   bool okAll = info[UMFPACK_STATUS] == UMFPACK_OK;
-  constexpr double GB = 1024.0*1024.0*1024.0;
-  if (!okAll)
+  if (!okAll) {
+    constexpr double GB = 1024.0*1024.0*1024.0;
+    const double unitGB = info[UMFPACK_SIZE_OF_UNIT] / GB;
     std::cerr <<" *** SparseMatrix::solveUMF: Numerical factorization failed,"
               <<" UMFPACK status "<< info[UMFPACK_STATUS] <<", peak memory "
-              << info[UMFPACK_PEAK_MEMORY]*info[UMFPACK_SIZE_OF_UNIT] / GB
-              <<" GB of the estimated "
-              << info[UMFPACK_PEAK_MEMORY_ESTIMATE]*info[UMFPACK_SIZE_OF_UNIT] / GB
-              <<" GB"<< std::endl;
+              << info[UMFPACK_PEAK_MEMORY]*unitGB <<" GB of the estimated "
+              << info[UMFPACK_PEAK_MEMORY_ESTIMATE]*unitGB <<" GB"<< std::endl;
+  }
   for (size_t i = 0; i < nrhs && okAll; ++i) {
     umfpack_di_solve(UMFPACK_A,
                      IA.data(), JA.data(), A.ptr(),
