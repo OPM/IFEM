@@ -93,6 +93,15 @@ public:
 
   //! \brief Returns the \a i'th matrix of the equation system.
   SystemMatrix* getMatrix(size_t i = 0) { return i < A.size() ? A[i]._A : 0; }
+  //! \brief Hands the \a i'th matrix of the equation system to the caller.
+  SystemMatrix* releaseMatrix(size_t i = 0)
+  {
+    if (i >= A.size()) return nullptr;
+
+    SystemMatrix* mat = A[i]._A;
+    A[i]._A = nullptr;
+    return mat;
+  }
   //! \brief Returns the \a i'th right-hand-side vector of the equation system.
   SystemVector* getVector(size_t i = 0) { return i < b.size() ? b[i] : 0; }
   //! \brief Returns the \a i'th scalar quantity.
