@@ -329,23 +329,66 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
   //============================================================================
   // Loop over all patches in the sim
 
+  std::vector<int> writing(sim->getNoPatches(),1);
   for (int idx = 1; idx <= sim->getNoPatches(); idx++)
-    if (int loc = sim->getLocalPatchIndex(idx); loc > 0 &&
-        (sim->getProcessAdm().getProcId() == 0 ||
-         !sim->getProcessAdm().dd.isPartitioned() ||
-         !(results & DataExporter::REDUNDANT)))
+    if (int loc = sim->getLocalPatchIndex(idx); loc > 0)
+      if (const ASMbase* pch = sim->getPatch(loc))
+        writing[idx-1] = pch->empty() || pch->inActive(time) ? 0 : 1;
+
+#ifdef HAVE_MPI
+  if (m_adm.isParallel() && !m_adm.dd.isPartitioned())
+    for (int p = 0; p < m_adm.getNoProcs(); p++)
     {
-      ASMbase* pch = sim->getPatch(loc);
-      if (!pch) continue;
+      std::vector<int> held;
+      for (int idx = 1; idx <= sim->getNoPatches(); idx++)
+        if (m_adm.dd.getPatchOwner(idx) == p)
+          held.push_back(idx);
 
-      if (pch->empty() || pch->inActive(time))
-        continue; // skip empty and inactive patches
+      if (held.empty())
+        continue; // this process holds nothing to speak for
 
-      if ((results & DataExporter::PRIMARY) && !sol->empty()) {
-        Vector psol;
-        size_t ndof1 = sim->extractPatchSolution(*sol, psol, pch,
-                                                 entry.second.ncmps,
-                                                 usedescription ? 1 : 0);
+      std::vector<int> decision;
+      decision.reserve(held.size());
+      for (int idx : held)
+        decision.push_back(writing[idx-1]);
+
+      m_adm.broadcast(decision,p);
+
+      for (size_t i = 0; i < held.size(); i++)
+        writing[held[i]-1] = decision[i];
+    }
+#endif
+
+  double dummy = 0.0;
+  bool owned = false;
+  auto&& writeField = [this,&owned,&dummy](hid_t gid, const std::string& name,
+                                           int idx, auto&& produce)
+  {
+    const std::pair<size_t,const double*> rec = owned ? produce()
+                      : std::pair<size_t,const double*>{0,&dummy};
+    this->writeArray(gid,name,idx,rec.first,rec.second,H5T_NATIVE_DOUBLE);
+  };
+
+  for (int idx = 1; idx <= sim->getNoPatches(); idx++)
+  {
+    const int loc = sim->getLocalPatchIndex(idx);
+    owned = loc > 0 && (sim->getProcessAdm().getProcId() == 0 ||
+                        !sim->getProcessAdm().dd.isPartitioned() ||
+                        !(results & DataExporter::REDUNDANT));
+
+    if (!writing[idx-1])
+      continue; // nothing is written for this patch, by anybody
+
+    ASMbase* pch = owned ? sim->getPatch(loc) : nullptr;
+    if (!pch)
+      owned = false;
+
+    if ((results & DataExporter::PRIMARY) && !sol->empty()) {
+      Vector psol;
+      size_t ndof1 = 0;
+      if (owned) {
+        ndof1 = sim->extractPatchSolution(*sol, psol, pch, entry.second.ncmps,
+                                          usedescription ? 1 : 0);
         if (dynamic_cast<ASMsupel*>(pch))
           // Hack for superelement patches: Expand to include the center node
           if (Matrix sField; pch->evalSolution(sField,psol,nullptr,0))
@@ -363,88 +406,103 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
           ndof1 /= 2;
           psol.resize(ndof1,utl::RETAIN);
         }
-        const double* data = psol.ptr();
-        if (usedescription)
-          // Field assumed to be on basis 1 for now
-          this->writeArray(group.front(), entry.second.description,
-                           idx, ndof1, data, H5T_NATIVE_DOUBLE);
-        else if (sim->mixedProblem())
-          for (size_t b = 1; b <= sim->getNoBasis(); b++) {
-            ndof1 = pch->getNoNodes(b)*pch->getNoFields(b);
-            if (!prob->suppressOutput(10+b,ASM::PRIMARY))
-              this->writeArray(group[b-1], prefix+prob->getField1Name(10+b),
-                               idx, ndof1, data, H5T_NATIVE_DOUBLE);
-            data += ndof1;
-          }
-        else
-          this->writeArray(group.front(), prefix+prob->getField1Name(11),
-                           idx, ndof1, data, H5T_NATIVE_DOUBLE);
       }
 
-      // We skip secondary solution output based on Greville projection
-      // if another projection already has been performed
-      if (proj) {
-        hid_t gid = sim->fieldProjections() ? group.back() : group.front();
-        SIMoptions::ProjectionMap::const_iterator it = sim->opt.project.begin();
-        for (size_t p = 0; p < proj->size(); ++p, ++it)
-          if (!proj->at(p).empty())
-          {
-            Matrix field;
+      const double* data = psol.ptr();
+      if (usedescription)
+        // Field assumed to be on basis 1 for now
+        writeField(group.front(), entry.second.description, idx,
+                   [&]{ return std::pair{ndof1,data}; });
+      else if (sim->mixedProblem())
+        for (size_t b = 1; b <= sim->getNoBasis(); b++) {
+          const size_t nb = owned ? pch->getNoNodes(b)*pch->getNoFields(b) : 0;
+          if (!prob->suppressOutput(10+b,ASM::PRIMARY))
+            writeField(group[b-1], prefix+prob->getField1Name(10+b), idx,
+                       [&]{ return std::pair{nb,data}; });
+          data += nb;
+        }
+      else
+        writeField(group.front(), prefix+prob->getField1Name(11), idx,
+                   [&]{ return std::pair{ndof1,data}; });
+    }
+
+    // We skip secondary solution output based on Greville projection
+    // if another projection already has been performed
+    if (proj) {
+      hid_t gid = sim->fieldProjections() ? group.back() : group.front();
+      SIMoptions::ProjectionMap::const_iterator it = sim->opt.project.begin();
+      for (size_t p = 0; p < proj->size(); ++p, ++it)
+        if (!proj->at(p).empty())
+        {
+          Matrix field;
+          if (owned)
             extractProjection(pch, proj->at(p), field, p+1 == proj->size());
-            for (size_t j = 0; j < field.rows(); j++)
-              if (!prob->suppressOutput(j,ASM::PROJECTED))
-                this->writeArray(gid, prob->getField2Name(j,it->second.c_str()),
-                                 idx, field.cols(), field.getRow(j+1).ptr(),
-                                 H5T_NATIVE_DOUBLE);
-          }
-      }
-      else if ((results & DataExporter::SECONDARY) && !sol->empty()) {
-        Matrix field;
-        hid_t gid = group.front();
-        ASM::ResultClass rClass = ASM::SECONDARY;
-        if (entry.second.description == "projected") {
-          rClass = ASM::PROJECTED;
-          // The projected solution has been registered as a separate field
+          for (size_t j = 0; j < prob->getNoFields(2); j++)
+            if (!prob->suppressOutput(j,ASM::PROJECTED))
+              writeField(gid, prob->getField2Name(j,it->second.c_str()), idx,
+                         [&]{ return j < field.rows()
+                              ? std::pair<size_t,const double*>
+                                  {field.cols(),field.getRow(j+1).ptr()}
+                              : std::pair<size_t,const double*>{0,&dummy}; });
+        }
+    }
+    else if ((results & DataExporter::SECONDARY) && !sol->empty()) {
+      Matrix field;
+      hid_t gid = group.front();
+      ASM::ResultClass rClass = ASM::SECONDARY;
+      if (entry.second.description == "projected") {
+        rClass = ASM::PROJECTED;
+        // The projected solution has been registered as a separate field
+        if (owned)
           extractProjection(pch, *sol, field);
-          if (sim->fieldProjections())
-            gid = group.back();
-        }
-        else {
-          // No projection has been performed yet, so use Greville to obtain
-          // control point values of the secondary solution fields
-          SIM::SolutionMode mode = prob->getMode();
-          const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
-          const_cast<IntegrandBase*>(prob)->initResultPoints(time);
-          sim->extractPatchSolution({*sol},loc-1);
-          sim->evalSecondarySolution(field,loc-1);
-          const_cast<SIMbase*>(sim)->setMode(mode);
-        }
-        for (size_t j = 0; j < field.rows(); j++)
-          if (!prob->suppressOutput(j,rClass))
-            this->writeArray(gid, prefix+prob->getField2Name(j),
-                             idx, field.cols(), field.getRow(j+1).ptr(),
-                             H5T_NATIVE_DOUBLE);
+        if (sim->fieldProjections())
+          gid = group.back();
       }
-
-      if (eNorm)
-        for (size_t k = 1; k <= eNorm->rows(); k++)
-          if (sim->extractElmRes(*eNorm,values,k,loc-1,name))
-            this->writeArray(egroup.front(), prefix+name,
-                             idx, values.size(), values.ptr(),
-                             H5T_NATIVE_DOUBLE);
-
-      if (results & DataExporter::ELEMENT_MASK) {
-        std::vector<char> mask(pch->getNoElms());
-        for (size_t i = 0; i < mask.size(); ++i)
-          mask[i] = pch->isElementActive(i,time) ? 1 : 0;
-        size_t count = std::count(mask.begin(),mask.end(),1);
-        if (count > old_count[idx-1])
-          this->writeArray(egroup.front(), "mask", idx, mask.size(),
-                           mask.data(), H5T_NATIVE_CHAR);
-        old_count[idx-1] = count;
+      else if (owned) {
+        // No projection has been performed yet, so use Greville to obtain
+        // control point values of the secondary solution fields
+        SIM::SolutionMode mode = prob->getMode();
+        const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
+        const_cast<IntegrandBase*>(prob)->initResultPoints(time);
+        sim->extractPatchSolution({*sol},loc-1);
+        sim->evalSecondarySolution(field,loc-1);
+        const_cast<SIMbase*>(sim)->setMode(mode);
       }
+      for (size_t j = 0; j < prob->getNoFields(2); j++)
+        if (!prob->suppressOutput(j,rClass))
+          writeField(gid, prefix+prob->getField2Name(j), idx,
+                     [&]{ return j < field.rows()
+                          ? std::pair<size_t,const double*>
+                              {field.cols(),field.getRow(j+1).ptr()}
+                          : std::pair<size_t,const double*>{0,&dummy}; });
+    }
 
-      if (results & DataExporter::EIGENMODES) {
+    if (eNorm)
+      for (size_t k = 1; k <= eNorm->rows(); k++)
+        if (sim->extractElmRes(*eNorm,values,k,owned ? loc-1 : -1,name))
+          writeField(egroup.front(), prefix+name, idx,
+                     [&]{ return std::pair{values.size(),values.ptr()}; });
+
+    // The element mask and the eigenmodes are written for the patches this
+    // process owns and have no empty record to pair with on the others.
+    // That is as it was; both predate the rest and neither is reached by
+    // the models which are split over processes.
+    if (owned && (results & DataExporter::ELEMENT_MASK)) {
+      std::vector<char> mask(pch->getNoElms());
+      for (size_t i = 0; i < mask.size(); ++i)
+        mask[i] = pch->isElementActive(i,time) ? 1 : 0;
+      size_t count = std::count(mask.begin(),mask.end(),1);
+      if (count > old_count[idx-1])
+        this->writeArray(egroup.front(), "mask", idx, mask.size(),
+                         mask.data(), H5T_NATIVE_CHAR);
+      old_count[idx-1] = count;
+    }
+
+    if (results & DataExporter::EIGENMODES) {
+      if (!owned)
+        std::cerr <<"  ** HDF5Writer: Oops, eigenmodes not yet supported for distributed patches"
+                  <<"\n     The HDF5-file will most likely be inconsistent."<< std::endl;
+      else {
         size_t iMode = 0;
         Vector psol;
         const std::vector<Mode>* modes = static_cast<const std::vector<Mode>*>(entry.second.data2.front());
@@ -468,61 +526,7 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
         }
       }
     }
-    else
-    {
-      // Write empty dummy records for patches
-      // not owned by current processor
-      double dummy=0.0;
-      if (results & DataExporter::PRIMARY) {
-        if (usedescription)
-          writeArray(group.front(), entry.second.description,
-                     idx, 0, &dummy, H5T_NATIVE_DOUBLE);
-        else if (sim->mixedProblem())
-          for (size_t b = 1; b <= sim->getNoBasis(); b++) {
-            if (!prob->suppressOutput(10+b,ASM::PRIMARY))
-              writeArray(group[b-1], prefix+prob->getField1Name(10+b),
-                         idx, 0, &dummy, H5T_NATIVE_DOUBLE);
-          }
-        else
-          writeArray(group.front(), prefix+prob->getField1Name(11),
-                     idx, 0, &dummy, H5T_NATIVE_DOUBLE);
-      }
-
-      if (results & DataExporter::SECONDARY) {
-        hid_t gid = group.front();
-        ASM::ResultClass rClass = ASM::SECONDARY;
-        if (entry.second.description == "projected") {
-          rClass = ASM::PROJECTED;
-          if (sim->fieldProjections())
-            gid = group.back();
-        }
-        for (size_t j = 0; j < prob->getNoFields(2); j++)
-          if (!prob->suppressOutput(j,rClass))
-            writeArray(gid, prefix+prob->getField2Name(j),
-                       idx, 0, &dummy, H5T_NATIVE_DOUBLE);
-      }
-
-      if (proj) {
-        hid_t gid = sim->fieldProjections() ? group.back() : group.front();
-        SIMoptions::ProjectionMap::const_iterator it = sim->opt.project.begin();
-        for (size_t p = 0; p < proj->size(); ++p, ++it)
-          if (!proj->at(p).empty())
-            for (size_t j = 0; j < prob->getNoFields(2); j++)
-              if (!prob->suppressOutput(j,ASM::PROJECTED))
-                writeArray(gid, prob->getField2Name(j,it->second.c_str()),
-                           idx, 0, &dummy, H5T_NATIVE_DOUBLE);
-      }
-
-      if (eNorm)
-        for (size_t k = 1; k <= eNorm->rows(); k++)
-          if (sim->extractElmRes(*eNorm,values,k,-1,name))
-            this->writeArray(egroup.front(), prefix+name,
-                             idx, 0, &dummy, H5T_NATIVE_DOUBLE);
-
-      if (results & DataExporter::EIGENMODES) // TODO (akva?)
-        std::cerr <<"  ** HDF5Writer: Oops, eigenmodes not yet supported for distributed patches"
-                  <<"\n     The HDF5-file will most likely be inconsistent."<< std::endl;
-    }
+  }
 
   for (hid_t g : group)
     if (g != -1)
