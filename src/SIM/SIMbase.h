@@ -770,6 +770,9 @@ public:
   //! \brief Prints out nodal reaction forces to the log stream.
   virtual int printNRforces(const IntVec& = {}) const { return 0; }
 
+  //! \brief Returns whether a Piola transformation is used or not.
+  bool usesPiolaTransform() const;
+
 protected:
   //! \brief Returns the multi-dimension simulator sequence flag.
   char getMDflag() const { return mdFlag; }
@@ -818,9 +821,6 @@ protected:
   double* theExtEnerg() { return &extEnergy; }
   //! \brief Returns a const pointer to the external energy path integral value.
   const double* getExtEnerg() const { return &extEnergy; }
-
-  //! \brief Returns whether a Piola transformation is used or not.
-  bool usesPiolaTransform() const;
 
 private:
   //! \brief Returns an extraordinary MADOF array.

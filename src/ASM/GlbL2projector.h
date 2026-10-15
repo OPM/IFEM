@@ -88,6 +88,33 @@ private:
 
 
 /*!
+  \brief Evaluation class for a Piola mapped primary solution.
+*/
+
+class L2PiolaIntegrand : public L2Integrand
+{
+public:
+  //! \brief The constructor initializes the solution reference.
+  //! \param[in] patch ASM holding geometry to evaluate on
+  //! \param[in] sol Primary solution vector of the patch
+  //! \param[in] ncmp Number of components of the mapped field
+  L2PiolaIntegrand(const ASMbase& patch, const Vector& sol, size_t ncmp);
+
+  //! \brief Evaluates the mapped solution in a set of points.
+  //! \param[out] sField Matrix with results
+  //! \param[in] gpar Points to evaluate in
+  bool evaluate(Matrix& sField, const RealArray* gpar) const override;
+
+  //! \brief Returns the number of components of the mapped field.
+  size_t dim() const override { return m_ncmp; }
+
+private:
+  const Vector& m_sol;  //!< Reference to the primary solution
+  size_t        m_ncmp; //!< Number of components of the mapped field
+};
+
+
+/*!
   \brief Evaluation class for functions.
 */
 

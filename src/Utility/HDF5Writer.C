@@ -14,8 +14,10 @@
 #include "HDF5Writer.h"
 #include "GlbForceVec.h"
 #include "SIMbase.h"
+#include "ASMmxBase.h"
 #include "ASMsupel.h"
 #include "IntegrandBase.h"
+#include "GlbL2projector.h"
 #include "Vec3.h"
 #include <sstream>
 
@@ -267,14 +269,39 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
   if (!(results & DataExporter::NORMS))
     eNorm = nullptr;
 
+  const bool piola = sim->usesPiolaTransform();
+
+  const size_t nmapped = piola ? sim->getNoSpaceDim() : 0;
+
+  // A secondary solution which has not been projected already is taken by
+  // interpolating at the Greville points of the first basis. For most mixed
+  // formulations this is not the case, nor  for LR-splines.
+  // Those fit onto the projection basis instead.
+  const bool needProj = ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE ||
+                        ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+                        ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
+                        sim->opt.discretization >= ASM::LRSpline;
+
+  const bool fitSecondary = (results & DataExporter::SECONDARY) &&
+                            sim->fieldProjections() &&
+                            sim->opt.project.empty() &&
+                            sim->mixedProblem() &&
+                            (piola || needProj);
+
+  const bool wantProj = (proj && sim->fieldProjections()) ||
+                        piola || fitSecondary;
+
   if (prefix.empty() && !usedescription &&
       (level == 0 || geometryUpdated || (results & DataExporter::GRID)))
   {
+    // A Piola mapped basis is not written at all.
     std::string bName = sim->getName() + "-1";
     for (size_t b = 1; b <= sim->getNoBasis(); b++, ++bName.back())
-      this->writeBasis(sim,bName,b,level,results & DataExporter::REDUNDANT,results & DataExporter::L2G_NODE);
-    if (proj && sim->fieldProjections())
-      this->writeBasis(sim, sim->getName() + "-proj", -1, level);
+      if (b > nmapped)
+        this->writeBasis(sim,bName,b,level,results & DataExporter::REDUNDANT,results & DataExporter::L2G_NODE);
+    if (wantProj)
+      this->writeBasis(sim, sim->getName() + "-proj",
+                       ASM::PROJECTION_BASIS, level);
   }
 
   bool exportSol = results & (DataExporter::PRIMARY | DataExporter::SECONDARY);
@@ -282,16 +309,33 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
   std::vector<hid_t> egroup, group;
   egroup.reserve(sim->getNoBasis());
   group.reserve(sim->getNoBasis()+1);
+  const bool elmData = eNorm || (results & DataExporter::ELEMENT_MASK);
+  if (nmapped > 0 && elmData) {
+    this->addGroup(str + "-proj");
+    egroup.push_back(this->getGroup(str + "-proj/knotspan"));
+  }
+
   for (size_t b = 1; b <= sim->getNoBasis(); ++b) {
+    // The bases which are not written hold nothing, but the ones after
+    // them are indexed by their own number, so a place is kept for each
+    if (b <= nmapped) {
+      if (exportSol && !sol->empty())
+        group.push_back(-1);
+      continue;
+    }
     std::string basis = str + "-" + std::to_string(b);
     this->addGroup(basis);
-    if (eNorm || (results & DataExporter::ELEMENT_MASK))
+    if (elmData)
       egroup.push_back(this->getGroup(basis + "/knotspan"));
     if (exportSol && !sol->empty())
       group.push_back(this->getGroup(basis + "/fields"));
   }
-  if (proj && sim->fieldProjections())
+  if (wantProj) {
+    // The parent has to be there for the nested one to be created, and the
+    // basis of it is written on the first level alone
+    this->addGroup(str + "-proj");
     group.push_back(this->getGroup(str + "-proj/fields"));
+  }
 
   // Lambda function for extracting projected solution for a patch.
   size_t projOfs = 0;
@@ -416,7 +460,7 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
       else if (sim->mixedProblem())
         for (size_t b = 1; b <= sim->getNoBasis(); b++) {
           const size_t nb = owned ? pch->getNoNodes(b)*pch->getNoFields(b) : 0;
-          if (!prob->suppressOutput(10+b,ASM::PRIMARY))
+          if (b > nmapped && !prob->suppressOutput(10+b,ASM::PRIMARY))
             writeField(group[b-1], prefix+prob->getField1Name(10+b), idx,
                        [&]{ return std::pair{nb,data}; });
           data += nb;
@@ -424,6 +468,23 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
       else
         writeField(group.front(), prefix+prob->getField1Name(11), idx,
                    [&]{ return std::pair{ndof1,data}; });
+
+      if (piola && !usedescription && sim->mixedProblem())
+      {
+        Matrix mapped;
+        if (owned && !pch->globalL2projection(mapped,
+                                      L2PiolaIntegrand(*pch,psol,nmapped)))
+          std::cerr <<" *** HDF5Writer: Failed to project the Piola mapped"
+                    <<" solution of patch "<< idx << std::endl;
+
+        for (size_t b = 1; b <= nmapped; b++)
+          if (!prob->suppressOutput(10+b,ASM::PRIMARY))
+            writeField(group.back(), prefix+prob->getField1Name(10+b), idx,
+                       [&]{ return b <= mapped.rows()
+                            ? std::pair<size_t,const double*>
+                                {mapped.cols(),mapped.getRow(b).ptr()}
+                            : std::pair<size_t,const double*>{0,&dummy}; });
+      }
     }
 
     // We skip secondary solution output based on Greville projection
@@ -458,15 +519,25 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
         if (sim->fieldProjections())
           gid = group.back();
       }
-      else if (owned) {
-        // No projection has been performed yet, so use Greville to obtain
-        // control point values of the secondary solution fields
-        SIM::SolutionMode mode = prob->getMode();
-        const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
-        const_cast<IntegrandBase*>(prob)->initResultPoints(time);
-        sim->extractPatchSolution({*sol},loc-1);
-        sim->evalSecondarySolution(field,loc-1);
-        const_cast<SIMbase*>(sim)->setMode(mode);
+      else {
+        if (fitSecondary)
+          gid = group.back();
+        if (owned) {
+          SIM::SolutionMode mode = prob->getMode();
+          const_cast<SIMbase*>(sim)->setMode(SIM::RECOVERY);
+          const_cast<IntegrandBase*>(prob)->initResultPoints(time);
+          sim->extractPatchSolution({*sol},loc-1);
+          if (!fitSecondary)
+            sim->evalSecondarySolution(field,loc-1);
+          else if (!pch->globalL2projection(field,L2ProbIntegrand(*pch,*prob)))
+          {
+            std::cerr <<" *** HDF5Writer: Failed to fit the secondary"
+                      <<" solution of patch "<< idx <<", falling back on"
+                      <<" the Greville interpolation."<< std::endl;
+            sim->evalSecondarySolution(field,loc-1);
+          }
+          const_cast<SIMbase*>(sim)->setMode(mode);
+        }
       }
       for (size_t j = 0; j < prob->getNoFields(2); j++)
         if (!prob->suppressOutput(j,rClass))
@@ -483,10 +554,6 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
           writeField(egroup.front(), prefix+name, idx,
                      [&]{ return std::pair{values.size(),values.ptr()}; });
 
-    // The element mask and the eigenmodes are written for the patches this
-    // process owns and have no empty record to pair with on the others.
-    // That is as it was; both predate the rest and neither is reached by
-    // the models which are split over processes.
     if (owned && (results & DataExporter::ELEMENT_MASK)) {
       std::vector<char> mask(pch->getNoElms());
       for (size_t i = 0; i < mask.size(); ++i)

@@ -130,6 +130,19 @@ size_t L2ProbIntegrand::dim () const
 }
 
 
+L2PiolaIntegrand::L2PiolaIntegrand (const ASMbase& patch,
+                                    const Vector& sol, size_t ncmp)
+  : L2Integrand(patch), m_sol(sol), m_ncmp(ncmp)
+{
+}
+
+
+bool L2PiolaIntegrand::evaluate (Matrix& sField, const RealArray* gpar) const
+{
+  return m_patch.evalSolutionPiola(sField, m_sol, gpar, true, false);
+}
+
+
 L2FuncIntegrand::L2FuncIntegrand (const ASMbase& patch,
                                   const FunctionBase& func, double time)
   : L2Integrand(patch), m_func(func)
