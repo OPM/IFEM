@@ -590,6 +590,7 @@ IFEM_add_test_app(
       src/Utility/Test/TestExprAutoDiff.C
       src/Utility/Test/TestFunctions.C
       src/Utility/Test/TestGaussQuadrature.C
+      src/Utility/Test/TestHDF5Writer.C
       src/Utility/Test/TestImageReader.C
       src/Utility/Test/TestLegendre.C
       src/Utility/Test/TestLinearFunc.C
