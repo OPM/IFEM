@@ -15,6 +15,7 @@
 #define _SIM_ARGS_BASE_H_
 
 #include "XMLInputBase.h"
+#include <functional>
 
 
 /*!
@@ -29,6 +30,15 @@ public:
 
   //! \brief Parses a command-line argument.
   virtual bool parseArg(const char* argv);
+
+  //! \brief Pre-parses all specified command-line arguments.
+  //! \param[in] argc Number of specified arguments including the program itself
+  //! \param[in] argv List of specified command-line arguments
+  //! \param[in] external_parser Optional function for external option parsing
+  //! \return The input file name specified as command-line argument
+  char* preParse(int argc, char** argv,
+                 std::function<bool(int&)> external_parser =
+                 [](int&){ return false; });
 
 protected:
   //! \brief Parses a data section from an XML element.

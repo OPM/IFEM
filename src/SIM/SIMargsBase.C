@@ -12,12 +12,17 @@
 //==============================================================================
 
 #include "SIMargsBase.h"
+#include "SIMoptions.h"
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
 #include <cstring>
 #include <cstdlib>
 #include <cctype>
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#define strcasestr strstr
+#endif
 
 
 bool SIMargsBase::parseArg (const char* argv)
@@ -53,4 +58,38 @@ bool SIMargsBase::parse (const tinyxml2::XMLElement* elem)
     utl::getAttribute(elem,"dim",dim);
 
   return IFEM::getOptions().parseDiscretizationTag(elem);
+}
+
+
+/*!
+  \details A null pointer is returned if no command-line arguments are specified
+  or they all match a defined command-line option. The first argument which does
+  not match a defined command-line option is assumed to be the input file name.
+  \note If a parsing failure is detected, this method will abort the program
+  by invoking exit(1).
+*/
+
+char* SIMargsBase::preParse (int argc, char** argv,
+                             std::function<bool(int&)> external_parser)
+{
+  SIMoptions ignored;
+  char* input_file = nullptr;
+  for (int i = 1; i < argc; i++)
+    if (argv[i] == input_file || this->parseArg(argv[i]))
+      ; // ignore the input file on the second pass
+    else if (ignored.parseOldOptions(argc,argv,i))
+      ; // ignore the obsolete option
+    else if (external_parser(i))
+      ; // this option was parsed by the external parser
+    else if (input_file)
+      std::cerr <<"  ** Unknown option ignored: "<< argv[i] << std::endl;
+    else if (strcasestr(input_file = argv[i],".xinp"))
+    {
+      if (this->readXML(input_file,false))
+        i = 0; // start over and let command-line options override input file
+      else
+        exit(1); // pre-parse failure, terminate immediately
+    }
+
+  return input_file;
 }
