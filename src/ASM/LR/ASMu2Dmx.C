@@ -939,7 +939,8 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
-                                  const RealArray* gpar, bool) const
+                                  const RealArray* gpar, bool,
+                                  bool includeUnmapped) const
 {
   size_t nPoints = gpar[0].size();
   if (nPoints != gpar[1].size())
@@ -952,20 +953,22 @@ bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     return false;
   }
 
-  size_t len = std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0u);
-  bool withPressure = len == locSol.size();
-  size_t nFields = 2;
-  if (withPressure)
-    nFields = std::accumulate(nfx.begin(), nfx.end(), 0);
-  else
-    len = nb[0] + nb[1], nFields = 2;
+  const size_t lenAll = std::inner_product(nb.begin(), nb.end(),
+                                           nfx.begin(), 0u);
+  const size_t lenVel = nb[0] + nb[1];
+  const size_t len = includeUnmapped ? lenAll : lenVel;
+  const size_t nFields = includeUnmapped
+                       ? std::accumulate(nfx.begin(), nfx.end(), 0) : 2;
 
-  if (len != locSol.size()) {
-    std::cerr << "*** ASMu2Dmx::evalSolution: Unexpected solution size ("
-              << locSol.size() << "), expected " << len << std::endl;
+  if (locSol.size() != len && !(!includeUnmapped && locSol.size() == lenAll)) {
+    std::cerr << "*** ASMu2Dmx::evalSolutionPiola: Unexpected solution size ("
+              << locSol.size() << "), expected " << len;
+    if (!includeUnmapped && lenAll != len)
+      std::cerr << " or " << lenAll;
+    std::cerr << std::endl;
     return false;
   }
-  const size_t nBasis = withPressure ? nfx.size() : 2;
+  const size_t nBasis = includeUnmapped ? nfx.size() : 2;
 
   const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
 
@@ -1017,7 +1020,7 @@ bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     coefs.front().push_back(coefs[1].begin(), coefs[1].end());
     Vector Ytmp;
     fe.P.multiply(coefs.front(), Ytmp);
-    if (withPressure)
+    if (includeUnmapped)
       for (size_t b = 2; b < nfx.size(); ++b)
         for (size_t n = 0; n < nfx[b]; ++n)
           Ytmp.push_back(coefs[b].dot(fe.basis(b+1), n, nfx[b]));

@@ -1548,7 +1548,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 
   // Evaluate the primary solution at all sampling points
   if (piola)
-    return this->evalSolutionPiola(sField,locSol,gpar.data(),false);
+    return this->evalSolutionPiola(sField,locSol,gpar.data(),false,true);
   else
     return this->evalSolution(sField,locSol,gpar.data(),false,0,n_f);
 }
