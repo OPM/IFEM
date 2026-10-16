@@ -24,6 +24,7 @@ set(APPUTILS_PUBLIC_HEADERS
   SIMSolverAdap.h
   SIMSolver.h
   SIMSolverTS.h
+  SIMStat.h
   StabilizationUtils.h
   TimeIntUtils.h
 )
@@ -69,6 +70,7 @@ ifem_add_test_app(
     Test/TestMultiPatchModelGenerator.C
     Test/TestSIMCoupled.C
     Test/TestSIMNodalConstraint.C
+    Test/TestSIMStat.C
     Test/TestStabilizationUtils.C
     Test/TestTimeIntUtils.C
   WORKDIR
