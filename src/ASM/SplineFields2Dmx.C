@@ -82,7 +82,7 @@ bool SplineFields2Dmx::valueFE (const ItgPoint& x, Vector& vals) const
   if (surf->usePiola()) {
     Matrix tmp;
     const RealArray gpar[2] = {RealArray{x.u}, RealArray{x.v}};
-    if (!surf->evalSolutionPiola(tmp, this->values, gpar, false))
+    if (!surf->evalSolutionPiola(tmp, this->values, gpar, false, false))
       return false;
     vals = tmp;
     return true;

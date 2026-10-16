@@ -1886,9 +1886,9 @@ bool ASMbase::evalSolution (Matrix&, const Vector&,
 
 
 bool ASMbase::evalSolutionPiola (Matrix&, const Vector&,
-                                 const RealArray*, bool) const
+                                 const RealArray*, bool, bool) const
 {
-  return Aerror("evalSolutionPiola(Matrix&,const Vector&,const RealArray*,bool)");
+  return Aerror("evalSolutionPiola(Matrix&,const Vector&,const RealArray*,bool,bool)");
 }
 
 
