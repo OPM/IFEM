@@ -35,7 +35,7 @@ TEST_CASE("TestSIMargsBase.preParse")
   int foo = 0;
   bool bar = false;
 
-  auto external_args = [argc,argv,&foo,&bar](int& i)
+  auto external_args = [argv,&foo,&bar](int& i)
   {
     if (!strcmp(argv[i],"-foo") && i+1 < argc)
       foo = atoi(argv[++i]);
