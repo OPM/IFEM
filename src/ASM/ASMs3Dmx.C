@@ -402,7 +402,7 @@ bool ASMs3Dmx::connectPatch (int face, ASM3D& neighbor, int nface, int norient,
 
   size_t nb1 = 0, nb2 = 0;
   for (size_t i = 1; i <= nb.size(); i++) {
-    if (basis == 0 || i == (size_t)basis)
+    if (basis == 0 ? this->isContinuousBasis(i) : i == static_cast<size_t>(basis))
       if (!this->connectBasis(face,*neighMx,nface,norient,i,nb1,nb2,
                               coordCheck,thick))
         return false;

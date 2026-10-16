@@ -88,6 +88,11 @@ public:
   //! \brief Creates the computational FEM model from the spline patches.
   virtual bool createFEMmodel(char resetNumb) = 0;
 
+  //! \brief Ties the bases that are discontinuous at the patch interfaces.
+  //! \details This is done where more than two patches meet, see
+  //! SIM2D::connectCrossPoints for what it is for.
+  virtual bool connectCrossPoints() { return true; }
+
   //! \brief Initializes the property containers of the model.
   //! \details Use this method to clear the model before re-reading
   //! the input file in the refinement step of an adaptive simulation.

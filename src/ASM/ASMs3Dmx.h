@@ -71,6 +71,19 @@ public:
 
   //! \brief Returns the number of bases.
   virtual size_t getNoBasis() const { return m_basis.size(); }
+
+  //! \brief Returns \e true if a basis is continuous across a patch interface.
+  //! \param[in] basis 1-based basis index
+  virtual bool isContinuousBasis(size_t basis) const
+  { return ASMmxBase::mxContinuousBasis(basis,nsd); }
+
+  //! \brief Flags whether the integrand maps this patch with the Piola transform.
+  virtual void setPiolaMapped(bool mapped) { piola = mapped; }
+
+  //! \brief Returns \e true if the DOFs of a basis follow the parametrization.
+  //! \param[in] basis 1-based basis index
+  virtual bool dofsFollowParametrization(size_t basis) const
+  { return piola && ASMmxBase::Type == DIV_COMPATIBLE && basis <= nsd; }
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis) const;
   //! \brief Returns the number of solution fields.

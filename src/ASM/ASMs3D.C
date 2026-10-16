@@ -768,6 +768,27 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
     return false;
   }
 
+  // A degree of freedom which follows the parametrization has the opposite
+  // sign where the two sides traverse the interface in opposite directions,
+  // and stands for a different component where the orientation swaps the two
+  // parameter directions. Neither is said by merging the two into one degree
+  // of freedom, which is all that is done below, so a model which would need
+  // it is refused rather than assembled with a continuity it does not have.
+  // The two-dimensional path ties such a pair with a constraint of its own;
+  // the same is wanted here, and is not written yet.
+  if (norient != 0 && this->dofsFollowParametrization(basis))
+  {
+    std::cerr <<" *** ASMs3D::connectBasis: The degrees of freedom of basis "
+              << basis <<" follow the\n     parametrization, and this"
+              <<" interface has orientation "<< norient <<", so tying them"
+              <<"\n     takes a sign, and a change of component where the"
+              <<" orientation swaps the\n     parameter directions. Neither"
+              <<" is implemented in three dimensions. Orient\n     the"
+              <<" patches so that the interface has matching parameter"
+              <<" directions."<< std::endl;
+    return false;
+  }
+
   if (norient > 3)
     std::swap(n1,n2);
 
