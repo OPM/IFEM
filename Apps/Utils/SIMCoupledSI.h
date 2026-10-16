@@ -88,7 +88,8 @@ public:
       if ((conv = this->checkConvergence(tp,status1,status2)) <= SIM::DIVERGED)
         return false;
 
-      if (omega0 != 0.0) {
+      // The converged cycle is the solution, which is not relaxed
+      if (omega0 != 0.0 && conv != SIM::CONVERGED) {
         if (tp.iter > 0) {
           // Calculation of Aitken acceleration factor
           if (aitken) {
