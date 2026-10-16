@@ -205,9 +205,9 @@ bool ASMu2Dmx::generateFEMTopology ()
   }
 
   if (m_basis.empty()) {
-    if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE &&
+    if (ASMmxBase::compatibleSpace() &&
         (tensorspline->order_u() < 3 || tensorspline->order_v() < 3)) {
-      std::cerr << "*** RT basis cannot use a linear geometry." << std::endl;
+      std::cerr << "*** Compatible spaces cannot use a linear geometry." << std::endl;
       return false;
     }
 
@@ -216,7 +216,7 @@ bool ASMu2Dmx::generateFEMTopology ()
       m_basis.push_back(createLR(*svec[b]));
 
     std::unique_ptr<Go::SplineSurface> otherBasis;
-    if (ASMmxBase::Type != ASMmxBase::DIV_COMPATIBLE)
+    if (!ASMmxBase::compatibleSpace())
       otherBasis.reset(ASMmxBase::adjustBasis(*tensorspline,{SplineUtils::AdjustOp::Raise,
                                                              SplineUtils::AdjustOp::Raise}));
 
@@ -227,7 +227,7 @@ bool ASMu2Dmx::generateFEMTopology ()
         projB = createLR(*otherBasis);
       else if (ASMmxBase::Type == ASMmxBase::SUBGRID)
         projB = m_basis.front();
-      else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+      else if (ASMmxBase::compatibleSpace())
         projB = createLR(*tensorspline);
       else // FULL_CONT_RAISE_BASISx
         projB = m_basis[2-ASMmxBase::itgBasis];
@@ -236,7 +236,7 @@ bool ASMu2Dmx::generateFEMTopology ()
     if (ASMmxBase::Type == ASMmxBase::SUBGRID) {
       projB2 = refB = createLR(*otherBasis);
       geomB = m_basis[1];
-    } else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+    } else if (ASMmxBase::compatibleSpace())
       geomB = refB = projB;
     else {
       refB = projB;
@@ -246,6 +246,7 @@ bool ASMu2Dmx::generateFEMTopology ()
     if (ASMmxBase::includeExtra)
       switch (ASMmxBase::Type) {
         case ASMmxBase::DIV_COMPATIBLE:
+        case ASMmxBase::CURL_COMPATIBLE:
         case ASMmxBase::REDUCED_CONT_RAISE_BASIS1:
         case ASMmxBase::REDUCED_CONT_RAISE_BASIS2:
           m_basis.push_back(std::static_pointer_cast<LR::LRSplineSurface>(projB)); break;
@@ -339,7 +340,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != lrspline.get();
-  const bool piolaMapping = piola = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
+  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const bool piolaMapping = piola = piolaType != 0;
 
   if (myCache.empty()) {
     myCache.emplace_back(std::make_unique<BasisFunctionCache>(*this, 1));
@@ -456,7 +458,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
           if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
             ok = false;
           else if (piolaMapping)
-            fe.piolaMapping(Jac,Xnod,bfs);
+            fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
+                            piolaType & Integrand::PIOLA_COVARIANT);
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
           if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
@@ -509,7 +512,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 
   const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const bool separateGeometry = geo != lrspline.get();
-  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
+  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const bool piolaMapping = piolaType != 0;
 
   // Get Gaussian quadrature points and weights
   int nGP = integrand.getBouIntegrationPoints(nGauss);
@@ -647,7 +651,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       else if (piolaMapping) {
         const double dS_ip = fe.detJxW;
         fe.detJxW = detJ;
-        fe.piolaMapping(Jac,Xnod,bfs);
+        fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
+                        piolaType & Integrand::PIOLA_COVARIANT);
         fe.detJxW = dS_ip;
       }
 
@@ -1016,10 +1021,19 @@ bool ASMu2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     this->getElementCoordinates(Xnod,els[itgBasis-1]);
     Matrix J;
     J.multiply(Xnod, bf.dNdu);
-    fe.piolaBasis(J.det(), J);
+    // A curl-compatible space is mapped covariantly, others contravariantly
+    const Matrix* P = &fe.P_contra.N;
+    if (ASMmxBase::Type == ASMmxBase::CURL_COMPATIBLE) {
+      Matrix Ji(J);
+      Ji.inverse();
+      fe.covariantPiolaBasis(Ji);
+      P = &fe.P_co.N;
+    }
+    else
+      fe.piolaBasis(J.det(), J);
     coefs.front().push_back(coefs[1].begin(), coefs[1].end());
     Vector Ytmp;
-    fe.P.multiply(coefs.front(), Ytmp);
+    P->multiply(coefs.front(), Ytmp);
     if (includeUnmapped)
       for (size_t b = 2; b < nfx.size(); ++b)
         for (size_t n = 0; n < nfx[b]; ++n)
@@ -1040,7 +1054,8 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const bool separateGeometry = geo != lrspline.get();
-  const bool piolaMapping = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
+  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const bool piolaMapping = piolaType != 0;
 
   sField.resize(0,0);
 
@@ -1102,7 +1117,8 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       continue; // skip singular points
 
     if (piolaMapping)
-      fe.piolaMapping(Jac,Xnod,bfs);
+      fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
+                      piolaType & Integrand::PIOLA_COVARIANT);
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
@@ -1230,7 +1246,7 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
                                      bool ignoreGlobalLM)
 {
   int p1 = 0;
-  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+  if (ASMmxBase::compatibleSpace())
     threadBasis = this->getBasis(3);
   else
     for (size_t i = 1; i <= m_basis.size(); ++i)
@@ -1247,7 +1263,7 @@ void ASMu2Dmx::generateThreadGroups (const Integrand& integrand, bool silence,
       secConstraint.push_back(this->getBasis(3));
   } if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
     secConstraint = {this->getBasis(1)};
-  if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE) {
+  if (ASMmxBase::compatibleSpace()) {
     secConstraint = {this->getBasis(1), this->getBasis(2)};
     if (ASMmxBase::includeExtra)
       secConstraint.push_back(this->getBasis(4));

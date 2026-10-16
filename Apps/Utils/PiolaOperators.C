@@ -25,12 +25,12 @@ void AdvectionConvInt (Matrix& C,
                        const Vec3& U, double scale)
 {
   const size_t nsd = fe.dNdX.cols();
-  Matrix G(nsd, fe.dPdX.cols());
+  Matrix G(nsd, fe.P_contra.dNdX.cols());
   for (size_t l = 1; l <= nsd; ++l)
   {
     for (size_t k = 1; k <= nsd; ++k)
-      G.fillRow(k, fe.dPdX.getRow((l-1)*nsd+k).ptr());
-    C.multiply(fe.P, G, true, false, l > 1, U[l-1] * scale * fe.detJxW);
+      G.fillRow(k, fe.P_contra.dNdX.getRow((l-1)*nsd+k).ptr());
+    C.multiply(fe.P_contra.N, G, true, false, l > 1, U[l-1] * scale * fe.detJxW);
   }
 }
 
@@ -41,11 +41,11 @@ void GradientDotVector (Matrix& W,
                         const Vec3& U)
 {
   const size_t nsd = fe.dNdX.cols();
-  W.resize(nsd, fe.dPdX.cols(), true);
+  W.resize(nsd, fe.P_contra.dNdX.cols(), true);
   for (size_t l = 1; l <= nsd; ++l)
     for (size_t k = 1; k <= nsd; ++k)
-      for (size_t i = 1; i <= fe.dPdX.cols(); ++i)
-        W(l,i) += U[k-1] * fe.dPdX((l-1)*nsd+k, i);
+      for (size_t i = 1; i <= fe.P_contra.dNdX.cols(); ++i)
+        W(l,i) += U[k-1] * fe.P_contra.dNdX((l-1)*nsd+k, i);
 }
 
 
@@ -96,13 +96,13 @@ void PiolaOperators::Weak::Convection (Matrices& EM,
   Matrix dudx(dUdX.dim(), dUdX.dim());
   dudx = dUdX;
   Matrix dudxP;
-  dudxP.multiply(dudx, fe.P);
+  dudxP.multiply(dudx, fe.P_contra.N);
   Matrix N;
-  N.multiply(fe.P, dudxP, true, false, false, scale*fe.detJxW);
+  N.multiply(fe.P_contra.N, dudxP, true, false, false, scale*fe.detJxW);
 
   Matrix W, M;
   GradientDotVector(W, fe, U);
-  M.multiply(W, fe.P, true, false, false, scale*fe.detJxW);
+  M.multiply(W, fe.P_contra.N, true, false, false, scale*fe.detJxW);
 
   const auto [cw, tw] = FormWeights(form);
   Matrix C(A.rows(), A.cols());
@@ -120,10 +120,10 @@ void PiolaOperators::Weak::Gradient (Matrices& EM,
                                      double scale)
 {
   const size_t nsd = fe.dNdX.cols();
-  Vector divVel(fe.dPdX.cols());
-  for (size_t i = 1; i <= fe.dPdX.cols(); ++i)
+  Vector divVel(fe.P_contra.dNdX.cols());
+  for (size_t i = 1; i <= fe.P_contra.dNdX.cols(); ++i)
     for (size_t d = 1; d <= nsd; ++d)
-      divVel(i) += fe.dPdX(1+(d-1)*(nsd+1),i);
+      divVel(i) += fe.P_contra.dNdX(1+(d-1)*(nsd+1),i);
   Matrix D;
   D.outer_product(divVel, fe.basis(nsd+1));
   for (size_t j = 1; j <= fe.basis(nsd+1).size(); ++j) {
@@ -147,7 +147,7 @@ void PiolaOperators::Weak::ItgConstraint (std::vector<Matrix>& EM,
     Matrix& EMb = EM[idx[b-1]];
     for (size_t i = 1; i <= fe.basis(b).size(); ++i)
       for (size_t k = 1; k <= nsd; ++k)
-        EMb(i,k) += fe.P(k,ofs+i) * fe.detJxW;
+        EMb(i,k) += fe.P_contra.N(k,ofs+i) * fe.detJxW;
     ofs += fe.basis(b).size();
   }
 }
@@ -159,16 +159,16 @@ void PiolaOperators::Weak::Laplacian (Matrices& EM,
                                       double scale, bool stress)
 {
   Matrix A;
-  A.multiply(fe.dPdX, fe.dPdX, true, false, false, scale*fe.detJxW);
+  A.multiply(fe.P_contra.dNdX, fe.P_contra.dNdX, true, false, false, scale*fe.detJxW);
   if (stress) {
     const size_t nsd = fe.dNdX.cols();
-    Matrix dPdXT(fe.dPdX.rows(), fe.dPdX.cols());
+    Matrix dPdXT(fe.P_contra.dNdX.rows(), fe.P_contra.dNdX.cols());
     for (size_t d = 1; d <= nsd; ++d)
       for (size_t j = 1; j <= nsd; ++j) {
-        const Vector row = fe.dPdX.getRow((j-1)*nsd + d);
+        const Vector row = fe.P_contra.dNdX.getRow((j-1)*nsd + d);
         dPdXT.fillRow((d-1)*nsd + j, row.ptr());
       }
-    A.multiply(fe.dPdX, dPdXT, true, false, true, scale*fe.detJxW);
+    A.multiply(fe.P_contra.dNdX, dPdXT, true, false, true, scale*fe.detJxW);
   }
   Copy(EM, fe, idx, A);
 }
@@ -181,8 +181,8 @@ bool PiolaOperators::Weak::MassCoeff (Matrices& EM,
                                       double scale)
 {
   Matrix CP, M;
-  CP.multiply(C, fe.P);
-  M.multiply(fe.P, CP, true, false, false, scale*fe.detJxW);
+  CP.multiply(C, fe.P_contra.N);
+  M.multiply(fe.P_contra.N, CP, true, false, false, scale*fe.detJxW);
   Copy(EM, fe, idx, M);
 
   return true;
@@ -195,7 +195,7 @@ void PiolaOperators::Weak::Mass (Matrices& EM,
                                  double scale)
 {
   Matrix M;
-  M.multiply(fe.P, fe.P, true, false, false, scale*fe.detJxW);
+  M.multiply(fe.P_contra.N, fe.P_contra.N, true, false, false, scale*fe.detJxW);
   Copy(EM, fe, idx, M);
 }
 
@@ -207,7 +207,7 @@ void PiolaOperators::Weak::Source (Vectors& EV, const FiniteElement& fe,
   const size_t nsd = fe.dNdX.cols();
   Vector fV(f.ptr(), nsd);
   Vector Mv;
-  fe.P.multiply(fV, Mv, scale * fe.detJxW, 0.0, true);
+  fe.P_contra.N.multiply(fV, Mv, scale * fe.detJxW, 0.0, true);
   Copy(EV, fe, idx, Mv);
 }
 
@@ -221,13 +221,13 @@ void PiolaOperators::Residual::Convection (Vectors& EV, const FiniteElement& fe,
   const size_t nsd = fe.grad(1).cols();
   const auto [cw, tw] = FormWeights(form);
 
-  Vector r(fe.dPdX.cols());
+  Vector r(fe.P_contra.dNdX.cols());
 
   if (cw != 0.0) {
     Matrix C(nsd,1);
     C.fillColumn(1, (dUdX*UC).ptr());
     Matrix T;
-    T.multiply(fe.P, C, true, false, false, -cw*scale*fe.detJxW);
+    T.multiply(fe.P_contra.N, C, true, false, false, -cw*scale*fe.detJxW);
     r.add(T, 1.0);
   }
 
@@ -238,7 +238,7 @@ void PiolaOperators::Residual::Convection (Vectors& EV, const FiniteElement& fe,
         UUC(k,l) = U[k-1] * UC[l-1];
 
     Vector diff;
-    fe.dPdX.multiply(UUC, diff, true);
+    fe.P_contra.dNdX.multiply(UUC, diff, true);
     r.add(diff, -tw*scale*fe.detJxW);
   }
 
@@ -251,10 +251,10 @@ void PiolaOperators::Residual::Gradient (Vectors& EV,
                                          const std::array<int,3>& idx, double scale)
 {
   const size_t nsd = fe.dNdX.cols();
-  Vector divVel(fe.dPdX.cols());
-  for (size_t i = 1; i <= fe.dPdX.cols(); ++i)
+  Vector divVel(fe.P_contra.dNdX.cols());
+  for (size_t i = 1; i <= fe.P_contra.dNdX.cols(); ++i)
     for (size_t d = 1; d <= nsd; ++d)
-      divVel(i) += fe.dPdX(1+(d-1)*(nsd+1),i) * scale * fe.detJxW;
+      divVel(i) += fe.P_contra.dNdX(1+(d-1)*(nsd+1),i) * scale * fe.detJxW;
 
   Copy(EV, fe, idx, divVel);
 }
@@ -267,12 +267,12 @@ void PiolaOperators::Residual::Laplacian (Vectors& EV,
                                           double scale, bool stress)
 {
   Vector diff;
-  fe.dPdX.multiply(dUdX, diff, true);
+  fe.P_contra.dNdX.multiply(dUdX, diff, true);
   if (stress) {
     Tensor dUdXT(dUdX);
     dUdXT.transpose();
     Vector diffT;
-    fe.dPdX.multiply(dUdXT, diffT, true);
+    fe.P_contra.dNdX.multiply(dUdXT, diffT, true);
     diff += diffT;
   }
   diff *= -scale*fe.detJxW;

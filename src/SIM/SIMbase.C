@@ -905,7 +905,7 @@ size_t SIMbase::getNoSolutions (bool allocated) const
 
 bool SIMbase::usesPiolaTransform () const
 {
-  return myProblem && myProblem->getIntegrandType() & Integrand::PIOLA_MAPPING;
+  return myProblem && myProblem->getIntegrandType() & Integrand::ANY_PIOLA;
 }
 
 
