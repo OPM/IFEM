@@ -22,6 +22,7 @@
 #include "Utilities.h"
 #include "IFEM.h"
 #include <tinyxml2.h>
+#include <algorithm>
 
 
 /*!
@@ -100,6 +101,13 @@ public:
               std::cerr <<"\n  ** Relaxation weight "<< omega <<" too small,"
                         <<" resetting to default "<< omega0 << std::endl;
               omega = omega0;
+            }
+            // Where successive residuals nearly cancel, the Aitken weight
+            // extrapolates far beyond the cycle, which can wreck the solution
+            else {
+              constexpr double omegaMin = 0.05; // Smallest Aitken weight
+              constexpr double omegaMax = 2.0;  // Largest Aitken weight
+              omega = std::clamp(omega,omegaMin,omegaMax);
             }
           }
 
