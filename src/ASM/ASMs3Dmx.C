@@ -1132,7 +1132,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   else
     return false;
 
-  std::vector<size_t> nc(nfx.size(), 0);
+  std::vector<size_t> nc(std::max(nb.size(), nfx.size()), 0);
   if (nf)
     nc.front() = nf;
   else

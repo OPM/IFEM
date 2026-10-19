@@ -1060,7 +1060,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   else
     return false;
 
-  std::vector<size_t> nc(nfx.size(), 0);
+  std::vector<size_t> nc(std::max(nb.size(), nfx.size()), 0);
   if (nf)
     nc.front() = nf;
   else
@@ -1117,7 +1117,8 @@ bool ASMs2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     return false;
   }
 
-  const size_t lenAll = std::inner_product(nb.begin(), nb.end(),
+  const size_t nbf = std::min(nb.size(), nfx.size());
+  const size_t lenAll = std::inner_product(nb.begin(), nb.begin() + nbf,
                                            nfx.begin(), 0u);
   const size_t lenVel = nb[0] + nb[1];
   const size_t len = includeUnmapped ? lenAll : lenVel;
