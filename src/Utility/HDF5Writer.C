@@ -403,6 +403,9 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
     }
 #endif
 
+  // The rows of the secondary fields are copied here, as the record is
+  // written after the lambda producing it has returned
+  Vector row;
   double dummy = 0.0;
   bool owned = false;
   auto&& writeField = [this,&owned,&dummy](hid_t gid, const std::string& name,
@@ -480,10 +483,10 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
         for (size_t b = 1; b <= nmapped; b++)
           if (!prob->suppressOutput(10+b,ASM::PRIMARY))
             writeField(group.back(), prefix+prob->getField1Name(10+b), idx,
-                       [&]{ return b <= mapped.rows()
-                            ? std::pair<size_t,const double*>
-                                {mapped.cols(),mapped.getRow(b).ptr()}
-                            : std::pair<size_t,const double*>{0,&dummy}; });
+                       [&]{ if (b > mapped.rows())
+                              return std::pair<size_t,const double*>{0,&dummy};
+                            row = mapped.getRow(b);
+                            return std::pair<size_t,const double*>{row.size(),row.ptr()}; });
       }
     }
 
@@ -501,10 +504,10 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
           for (size_t j = 0; j < prob->getNoFields(2); j++)
             if (!prob->suppressOutput(j,ASM::PROJECTED))
               writeField(gid, prob->getField2Name(j,it->second.c_str()), idx,
-                         [&]{ return j < field.rows()
-                              ? std::pair<size_t,const double*>
-                                  {field.cols(),field.getRow(j+1).ptr()}
-                              : std::pair<size_t,const double*>{0,&dummy}; });
+                         [&]{ if (j >= field.rows())
+                                return std::pair<size_t,const double*>{0,&dummy};
+                              row = field.getRow(j+1);
+                              return std::pair<size_t,const double*>{row.size(),row.ptr()}; });
         }
     }
     else if ((results & DataExporter::SECONDARY) && !sol->empty()) {
@@ -542,10 +545,10 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
       for (size_t j = 0; j < prob->getNoFields(2); j++)
         if (!prob->suppressOutput(j,rClass))
           writeField(gid, prefix+prob->getField2Name(j), idx,
-                     [&]{ return j < field.rows()
-                          ? std::pair<size_t,const double*>
-                              {field.cols(),field.getRow(j+1).ptr()}
-                          : std::pair<size_t,const double*>{0,&dummy}; });
+                     [&]{ if (j >= field.rows())
+                            return std::pair<size_t,const double*>{0,&dummy};
+                          row = field.getRow(j+1);
+                          return std::pair<size_t,const double*>{row.size(),row.ptr()}; });
     }
 
     if (eNorm)
