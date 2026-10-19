@@ -562,8 +562,11 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
       // Compute basis function derivatives
       double detJ = 0.0;
       double dSx = utl::Jacobian(Jac,X,dNdX,Xnod,dNdu,t1,t2,&detJ);
-      double detJxW = dS*dSx*wg[j];
-      if (detJxW == 0.0) continue; // skip singular points
+      if (dSx == 0.0) continue; // skip singular points
+
+      // A Piola mapped value is fitted over the reference edge, to preserve
+      // its flux, as in ASMs2D
+      const double detJxW = dS*wg[j]*(piola ? 1.0 : dSx);
 
       // Cartesian coordinates of current integration point
       X.assign(Xnod * N);
