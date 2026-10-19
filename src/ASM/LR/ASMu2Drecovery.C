@@ -496,7 +496,10 @@ bool ASMu2D::edgeL2projection (const DirichletEdge& edge,
   }
 
   // Get Gaussian quadrature points and weights
-  const int nGP = this->getNoGaussPt(lrspline->order(t2-1),true);
+  // Of the largest tangential order of the integration basis and of the
+  // constrained basis, which on a mixed patch may be higher
+  const int nGP = this->getNoGaussPt(std::max(lrspline->order(t2-1),
+                                              edge.lr->order(t2-1)),true);
   const double* xg = GaussQuadrature::getCoord(nGP);
   const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;

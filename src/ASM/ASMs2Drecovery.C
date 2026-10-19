@@ -678,11 +678,22 @@ Go::SplineCurve* ASMs2D::projectPiolaDirichlet (const DirichletEdge& dedge,
   const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return nullptr;
 
+  // The weights of a rational boundary, whose basis the fitted coefficients
+  // are the degrees of freedom of
+  RealArray weights;
+  if (dedge.curve->rational())
+  {
+    const int dim = dedge.curve->dimension();
+    weights.reserve(ncoef);
+    for (auto it = dedge.curve->rcoefs_begin(); it != dedge.curve->rcoefs_end(); it += dim+1)
+      weights.push_back(*(it+dim));
+  }
+
   // Banded with the order as bandwidth, so keep it sparse
   SparseMatrix A(SparseMatrix::SUPERLU);
   StdVector B(ncoef);
   A.resize(ncoef,ncoef);
-  RealArray Nval(2*order);
+  RealArray Nval(2*order), R(order);
 
   for (size_t is = order-1; is+order < knots.size(); is++)
   {
@@ -734,18 +745,32 @@ Go::SplineCurve* ASMs2D::projectPiolaDirichlet (const DirichletEdge& dedge,
       const int ki = basis.knotIntervalFuzzy(t);
       basis.computeBasisValues(t,Nval.data(),1);
 
+      // The basis values of the boundary, rational if it is
+      double W = 0.0;
+      for (int a = 0; a < order; a++)
+      {
+        const int ia = ki-order+1+a;
+        R[a] = Nval[2*a];
+        if (!weights.empty() && ia >= 0 && ia < ncoef)
+          R[a] *= weights[ia];
+        W += R[a];
+      }
+      if (!weights.empty() && W > 0.0)
+        for (double& Ra : R)
+          Ra /= W;
+
       const double w = dt*wg[ig];
       for (int a = 0; a < order; a++)
       {
         const int ia = ki-order+1+a;
         if (ia < 0 || ia >= ncoef) continue;
 
-        B(1+ia) += Nval[2*a]*value*w;
+        B(1+ia) += R[a]*value*w;
         for (int b = 0; b < order; b++)
         {
           const int ib = ki-order+1+b;
           if (ib >= 0 && ib < ncoef)
-            A(1+ia,1+ib) += Nval[2*a]*Nval[2*b]*w;
+            A(1+ia,1+ib) += R[a]*R[b]*w;
         }
       }
     }
