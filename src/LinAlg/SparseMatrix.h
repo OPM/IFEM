@@ -25,6 +25,7 @@ typedef std::map<IJPair,Real>    ValueMap;  //!< Index to matrix value mapping
 typedef ValueMap::const_iterator ValueIter; //!< Iterator over matrix elements
 
 struct SuperLUdata;
+struct UMFdata;
 
 
 /*!
@@ -292,11 +293,9 @@ private:
   ValueMap       elem; //!< Stores nonzero matrix elements with index pairs
   SparseSolver solver; //!< Which equation solver to use
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver
+  UMFdata*        umf; //!< Matrix data for the UMFPACK equation solver
   int      numThreads; //!< Number of threads to use for the SuperLU_MT solver
-  void*   umfSymbolic; //!< Symbolically factored matrix for UMFPACK
   int        ordering; //!< Fill-reducing ordering of the solver, -1 for default
-  void*   umfNumeric;  //!< Numerically factored matrix for UMFPACK
-  Real    umfRcond = Real(0); //!< Condition estimate of that factorization
 
 protected:
   bool factored; //!< Set to \e true when the matrix is factorized
