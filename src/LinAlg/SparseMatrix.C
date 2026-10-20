@@ -136,6 +136,18 @@ struct SuperLUdata
 };
 
 
+/*!
+  \brief Data structures for the UMFPack equation solver.
+*/
+
+struct UMFdata
+{
+  void* symbolic = nullptr; //!< Symbolically factored matrix for UMFPACK
+  void* numeric = nullptr;  //!< Numerically factored matrix for UMFPACK
+  Real  Rcond = Real(0);    //!< Condition estimate of that factorization
+};
+
+
 bool SparseMatrix::printSLUstat = false;
 
 
@@ -147,9 +159,8 @@ SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
   solver = eqSolver;
   numThreads = nt;
   slu = nullptr;
-  umfSymbolic = nullptr;
+  umf = nullptr;
   ordering = -1;
-  umfNumeric = nullptr;
 }
 
 
@@ -162,9 +173,8 @@ SparseMatrix::SparseMatrix (size_t m, size_t n, SparseSolver eqSolver)
   solver = eqSolver;
   numThreads = 0;
   slu = nullptr;
-  umfSymbolic = nullptr;
+  umf = nullptr;
   ordering = -1;
-  umfNumeric = nullptr;
 }
 
 
@@ -178,9 +188,8 @@ SparseMatrix::SparseMatrix (const SparseMatrix& B)
   solver = B.solver;
   numThreads = B.numThreads;
   slu = nullptr; // The SuperLU data (if any) is not copied
-  umfSymbolic = nullptr; // The UMFPACK data (if any) is not copied
+  umf = nullptr; // The UMFPack data (if any) is not copied
   ordering = B.ordering;
-  umfNumeric = nullptr;
 }
 
 
@@ -188,10 +197,13 @@ SparseMatrix::~SparseMatrix ()
 {
   delete slu;
 #ifdef HAS_UMFPACK
-  if (umfNumeric)
-    umfpack_di_free_numeric(&umfNumeric);
-  if (umfSymbolic)
-    umfpack_di_free_symbolic(&umfSymbolic);
+  if (umf) {
+    if (umf->numeric)
+      umfpack_di_free_numeric(&umf->numeric);
+    if (umf->symbolic)
+      umfpack_di_free_symbolic(&umf->symbolic);
+  }
+  delete umf;
 #endif
 }
 
@@ -213,11 +225,6 @@ bool SparseMatrix::lockPattern (bool doLock)
 void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
 {
   factored = false;
-#ifdef HAS_UMFPACK
-  if (umfNumeric)
-    umfpack_di_free_numeric(&umfNumeric);
-  umfNumeric = nullptr;
-#endif
   if (c == 0) c = r;
   if (r == nrow && c == ncol && !forceEditable)
   {
@@ -241,9 +248,12 @@ void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
   delete slu;
   slu = nullptr;
 #ifdef HAS_UMFPACK
-  if (umfSymbolic)
-    umfpack_di_free_symbolic(&umfSymbolic);
-  umfSymbolic = nullptr;
+  if (umf && umf->numeric)
+    umfpack_di_free_numeric(&umf->numeric);
+  if (umf && umf->symbolic)
+    umfpack_di_free_symbolic(&umf->symbolic);
+  delete umf;
+  umf = nullptr;
 #endif
 }
 
@@ -1373,14 +1383,17 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
     this->optimiseCols();
 
 #ifdef HAS_UMFPACK
+  if (!umf)
+    umf = new UMFdata;
+
   double info[UMFPACK_INFO];
-  if (!umfSymbolic) {
+  if (!umf->symbolic) {
     double control[UMFPACK_CONTROL];
     umfpack_di_defaults(control);
     if (ordering >= 0)
       control[UMFPACK_ORDERING] = ordering;
     umfpack_di_symbolic(nrow, ncol, IA.data(), JA.data(),
-                        A.ptr(), &umfSymbolic, control, info);
+                        A.ptr(), &umf->symbolic, control, info);
     if (info[UMFPACK_STATUS] != UMFPACK_OK) {
       std::cerr <<" *** SparseMatrix::solveUMF: Symbolic factorization failed,"
                 <<" UMFPACK status "<< info[UMFPACK_STATUS] << std::endl;
@@ -1389,11 +1402,11 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
   }
 
   if (!factored) {
-    if (umfNumeric)
-      umfpack_di_free_numeric(&umfNumeric);
-    umfNumeric = nullptr;
-    umfpack_di_numeric(IA.data(), JA.data(), A.ptr(), umfSymbolic,
-                       &umfNumeric, nullptr, info);
+    if (umf->numeric)
+      umfpack_di_free_numeric(&umf->numeric);
+    umf->numeric = nullptr;
+    umfpack_di_numeric(IA.data(), JA.data(), A.ptr(), umf->symbolic,
+                       &umf->numeric, nullptr, info);
     if (info[UMFPACK_STATUS] != UMFPACK_OK) {
       constexpr double GB = 1024.0*1024.0*1024.0;
       const double unitGB = info[UMFPACK_SIZE_OF_UNIT] / GB;
@@ -1403,12 +1416,12 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
                 << info[UMFPACK_PEAK_MEMORY_ESTIMATE]*unitGB <<" GB"<< std::endl;
       return false;
     }
-    umfRcond = info[UMFPACK_RCOND];
+    umf->Rcond = info[UMFPACK_RCOND];
     factored = true;
   }
 
   if (rcond)
-    *rcond = umfRcond;
+    *rcond = umf->Rcond;
 
   Vector X(B.size());
   size_t nrhs = B.size() / nrow;
@@ -1416,7 +1429,7 @@ bool SparseMatrix::solveUMF (Vector& B, Real* rcond)
   for (size_t i = 0; i < nrhs && okAll; ++i) {
     umfpack_di_solve(UMFPACK_A,
                      IA.data(), JA.data(), A.ptr(),
-                     &X[i*nrow], &B[i*nrow], umfNumeric, nullptr, info);
+                     &X[i*nrow], &B[i*nrow], umf->numeric, nullptr, info);
     okAll = info[UMFPACK_STATUS] == UMFPACK_OK;
     if (!okAll)
       std::cerr <<" *** SparseMatrix::solveUMF: Solution failed,"
