@@ -168,10 +168,10 @@ public:
     INTERFACE_TERMS    = 1<< 9, //!< Integrand has element interface terms
     NORMAL_DERIVS      = 1<<10, //!< Integrand uses p-order normal derivatives
     UPDATED_NODES      = 1<<11, //!< Integrand wants updated nodal coordinates
-    PIOLA_MAPPING      = 1<<12, //!< Integrand wants contravariant Piola mapping
-    POINT_DEFORMATION  = 1<<13, //!< Integrand wants point-wise deformation
-    PIOLA_COVARIANT    = 1<<14, //!< Integrand wants covariant Piola mapping
-    ANY_PIOLA          = PIOLA_MAPPING | PIOLA_COVARIANT //!< Any Piola mapping
+    POINT_DEFORMATION  = 1<<12, //!< Integrand wants point-wise deformation
+    CONTRAVARIANT      = 1<<13, //!< Integrand wants contravariant Piola mapping
+    COVARIANT          = 1<<14, //!< Integrand wants covariant Piola mapping
+    PIOLA_MAPPING      = CONTRAVARIANT | COVARIANT //!< Any Piola mapping
   };
 
   //! \brief Returns current solution mode.

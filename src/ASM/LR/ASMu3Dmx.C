@@ -327,7 +327,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   const bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != lrspline.get();
-  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const int piolaType = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
   piola = piolaType != 0;
 
   if (myCache.empty()) {
@@ -482,8 +482,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
               ok = false;
             else if (piola)
-              fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
-                              piolaType & Integrand::PIOLA_COVARIANT);
+              fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+                              piolaType & Integrand::COVARIANT);
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
@@ -532,7 +532,7 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
 
   const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const bool separateGeometry = geo != lrspline.get();
-  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const int piolaType = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
   const bool piolaMapping = piolaType != 0;
 
   // Get Gaussian quadrature points and weights
@@ -693,8 +693,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           // The mapping is scaled by |J|, not by the face dilation
           const double dS_ip = fe.detJxW;
           fe.detJxW = detJ;
-          fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
-                          piolaType & Integrand::PIOLA_COVARIANT);
+          fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+                          piolaType & Integrand::COVARIANT);
           fe.detJxW = dS_ip;
         }
 
@@ -897,7 +897,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   const LR::LRSplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const bool separateGeometry = geo != lrspline.get();
-  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const int piolaType = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
   const bool piolaMapping = separateGeometry && piolaType != 0;
 
   // Evaluate the secondary solution field at each point
@@ -943,8 +943,8 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       continue; // skip singular points
 
     if (piolaMapping)
-      fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
-                      piolaType & Integrand::PIOLA_COVARIANT);
+      fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+                      piolaType & Integrand::COVARIANT);
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
