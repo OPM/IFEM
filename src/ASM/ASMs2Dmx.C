@@ -471,7 +471,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf.get();
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const int piolaType = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
   piola = piolaType != 0;
 
   if (myCache.empty()) {
@@ -594,8 +594,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
               ok = false;
             else if (piola)
-              fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
-                              piolaType & Integrand::PIOLA_COVARIANT);
+              fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+                              piolaType & Integrand::COVARIANT);
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (use2ndDer && !fe.Hessian(Hess,Jac,Xnod,itgBasis,bfs))
@@ -649,7 +649,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
   bool separateGeometry = this->getBasis(ASM::GEOMETRY_BASIS) != surf.get();
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
-  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const int piolaType = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
   bool usePiola  = piolaType != 0;
 
   // Get Gaussian quadrature points and weights
@@ -795,8 +795,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
         else if (usePiola) {
           const double dS_ip = fe.detJxW;
           fe.detJxW = detJ;
-          fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::PIOLA_MAPPING,
-                          piolaType & Integrand::PIOLA_COVARIANT);
+          fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+                          piolaType & Integrand::COVARIANT);
           fe.detJxW = dS_ip;
         }
 
@@ -1216,7 +1216,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
   const bool separateGeometry = geo != surf.get();
-  const int piolaType = integrand.getIntegrandType() & Integrand::ANY_PIOLA;
+  const int piolaType = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
   const bool usePiola = piolaType != 0;
 
   // Evaluate the basis functions and their derivatives at all points
@@ -1317,8 +1317,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       continue; // skip singular points
 
     if (usePiola)
-      fe.piolaMapping(Jac,Xtmp,bfs,piolaType & Integrand::PIOLA_MAPPING,
-                      piolaType & Integrand::PIOLA_COVARIANT);
+      fe.piolaMapping(Jac,Xtmp,bfs,piolaType & Integrand::CONTRAVARIANT,
+                      piolaType & Integrand::COVARIANT);
 
     // Cartesian coordinates of current integration point
     utl::Point X4(Xtmp * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)),
