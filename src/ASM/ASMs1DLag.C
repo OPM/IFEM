@@ -128,6 +128,19 @@ Vec3 ASMs1DLag::getCoord (size_t inod) const
 }
 
 
+double ASMs1DLag::getElementCorners (int iel, Vec3Vec& XC, RealArray* uC) const
+{
+  XC.clear();
+  if (uC) uC->clear();
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size() || MNPC[iel-1].empty())
+    return -1.0;
+
+  const IntVec& mnpc = MNPC[iel-1];
+  XC = { coord[mnpc.front()], coord[mnpc.back()] };
+  return ASM1D::getElementSize(XC);
+}
+
+
 Vec3 ASMs1DLag::getElementCenter (int iel) const
 {
   if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())

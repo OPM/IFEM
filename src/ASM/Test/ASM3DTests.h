@@ -382,7 +382,9 @@ public:
 
     SECTION("Elem " + std::to_string(param.iel))
     {
-      const auto& [size, XC, prm] = pch.getElementCorners(param.iel);
+      std::vector<Vec3> XC;
+      RealArray prm;
+      static_cast<const ASMbase&>(pch).getElementCorners(param.iel,XC,&prm);
       REQUIRE(XC.size() == 8);
       REQUIRE(prm.size() == 24);
       const std::array<double,24> ref_prm = makePtArray(param.u, param.v, param.w);

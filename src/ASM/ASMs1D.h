@@ -115,6 +115,14 @@ public:
 
   //! \brief Returns the coordinate of the element center.
   virtual Vec3 getElementCenter(int iel) const;
+  //! \brief Computes the element end coordinates.
+  //! \param[in] iel 1-based element index
+  //! \param[out] XC Coordinates of the element ends, followed by a point
+  //! defining the local element axes if the patch has them
+  //! \param[out] uC Spline parameters of the element ends (optional)
+  //! \return Element length
+  virtual double getElementCorners(int iel, std::vector<Vec3>& XC,
+                                   RealArray* uC = nullptr) const;
 
   //! \brief Finds the global (or patch-local) node number on a patch end.
   //! \param[in] lIndex Local index of the end point
