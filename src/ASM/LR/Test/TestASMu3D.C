@@ -15,6 +15,7 @@
 #include "GaussQuadrature.h"
 #include "Test/ASM3DTests.h"
 #include "Vec3Oper.h"
+#include "Test/IntegrationPointCounter.h"
 
 #include "Catch2Support.h"
 
@@ -263,4 +264,10 @@ TEST_CASE("TestASMu3D.TransferGaussPtVarsN")
 TEST_CASE("TestASMu3D.Write")
 {
   ASM3DTests<ASMuCube>::Write(true);
+}
+
+
+TEST_CASE("TestASMu3D.QuadratureChange")
+{
+  checkQuadratureChange<ASMuCube>(3);
 }

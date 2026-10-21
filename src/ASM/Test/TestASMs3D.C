@@ -13,6 +13,7 @@
 #include "ASM3DTests.h"
 #include "ASMCube.h"
 #include "ASMTrap3.h"
+#include "IntegrationPointCounter.h"
 
 #include <array>
 #include <functional>
@@ -347,4 +348,10 @@ TEST_CASE("TestASMs3D.GetElementCorners")
 TEST_CASE("TestASMs3D.Write")
 {
   ASM3DTests<ASMCube>::Write(false);
+}
+
+
+TEST_CASE("TestASMs3D.QuadratureChange")
+{
+  checkQuadratureChange<ASMCube>(3);
 }
