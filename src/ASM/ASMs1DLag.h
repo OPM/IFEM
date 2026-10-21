@@ -68,6 +68,13 @@ public:
 
   //! \brief Returns the geometric center of an element.
   virtual Vec3 getElementCenter(int iel) const;
+  //! \brief Computes the element end coordinates.
+  //! \param[in] iel 1-based element index
+  //! \param[out] XC Coordinates of the end nodes of the element
+  //! \param[out] uC Not used, the nodes have no spline parameters
+  //! \return Element length
+  virtual double getElementCorners(int iel, std::vector<Vec3>& XC,
+                                   RealArray* uC = nullptr) const;
 
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
