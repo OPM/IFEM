@@ -57,6 +57,12 @@ private dependencies or a subset of the configurations:
                credentialsId: 'github-app',
                statusContexts: true)
 
+Builds of a branch, such as post-merge builds of master, have no trigger
+comment. `branchTriggers` gives the comment to use for them instead; IFEM
+builds master with all downstreams:
+
+    ifemModule(branchTriggers: [master: 'jenkins build this with downstreams please'])
+
 ## Jenkins setup
 
 Required plugins: GitHub Branch Source, GitHub PR Comment Build,

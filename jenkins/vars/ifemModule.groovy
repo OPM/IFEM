@@ -18,6 +18,8 @@
 //                    clone private upstream and downstream repositories
 //   statusContexts - report a commit status per configuration
 //                    (default true, requires pipeline-githubnotify-step)
+//   branchTriggers - map of branch name to the trigger comment to use for
+//                    builds of that branch, e.g. post-merge builds of master
 def call(Map args = [:]) {
   Map opts = [script: args.script ?: 'jenkins/build.sh',
               configurations: args.configurations ?: '/home/jenkins/build-configurations.sh',
@@ -28,6 +30,10 @@ def call(Map args = [:]) {
   String comment = ifemTriggerComment()
   if (comment)
     echo "Triggered by comment: ${comment}"
+  else if (!env.CHANGE_ID && args.branchTriggers?.get(env.BRANCH_NAME)) {
+    comment = args.branchTriggers[env.BRANCH_NAME]
+    echo "Using trigger for branch ${env.BRANCH_NAME}: ${comment}"
+  }
 
   // The configurations may depend on the trigger comment
   List names = args.configs
