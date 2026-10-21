@@ -15,6 +15,16 @@
 
 #include "Catch2Support.h"
 
+#include "ASMs2DmxLag.h"
+#include "FiniteElement.h"
+#include "GlobalIntegral.h"
+#include "IntegrandBase.h"
+#include "TimeDomain.h"
+
+#include <cmath>
+#include <map>
+#include <sstream>
+
 
 namespace {
 
@@ -138,6 +148,37 @@ const char* squareRT_2 =
   "1 0.5\n"
   "0 1\n"
   "1 1\n\n";
+
+
+/*!
+  \brief Records the element corners and sizes.
+*/
+
+class CornerIntegrand : public IntegrandBase
+{
+public:
+  //! \brief The constructor sets the number of space dimensions.
+  explicit CornerIntegrand(unsigned short int n) : IntegrandBase(n) {}
+
+  //! \brief Returns the integrand type.
+  int getIntegrandType() const override { return ELEMENT_CORNERS; }
+
+  using IntegrandBase::evalIntMx;
+  //! \brief Records the element corners and size.
+  bool evalIntMx(LocalIntegral&, const MxFiniteElement& fe,
+                 const Vec3&) const override
+  {
+#pragma omp critical
+    {
+      corners[fe.iel] = fe.XC;
+      sizes[fe.iel] = fe.h;
+    }
+    return true;
+  }
+
+  mutable std::map<int,std::vector<Vec3>> corners; //!< Corners of each element
+  mutable std::map<int,double> sizes; //!< Size of each element
+};
 
 }
 
@@ -417,4 +458,46 @@ TEST_CASE("TestASMs2Dmx.ContinuousOverBoundary")
   for (int edge = 1; edge <= 4; edge++)
     for (size_t b = 1; b <= 2; b++)
       REQUIRE(pch2.isContinuousOverBoundary(edge,b));
+}
+
+
+TEST_CASE("TestASMs2DmxLag.ElementCorners")
+{
+  // A unit square with an interior knot, repeated when raising the order,
+  // such that the Lagrange elements are not the knot spans
+  const char* square = "200 1 0 0\n2 0\n"
+                       "4 3\n0 0 0 0.5 1 1 1\n"
+                       "4 3\n0 0 0 0.5 1 1 1\n"
+                       "0 0\n0.25 0\n0.75 0\n1 0\n"
+                       "0 0.25\n0.25 0.25\n0.75 0.25\n1 0.25\n"
+                       "0 0.75\n0.25 0.75\n0.75 0.75\n1 0.75\n"
+                       "0 1\n0.25 1\n0.75 1\n1 1\n";
+
+  ASMs2DmxLag pch(2,{2,1});
+  std::istringstream is(square);
+  REQUIRE(pch.read(is));
+  REQUIRE(pch.raiseOrder(1,1));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+
+  CornerIntegrand itg(2);
+  GlobalIntegral dummy;
+  pch.generateThreadGroups(itg,true,false);
+  REQUIRE(pch.integrate(itg,dummy,TimeDomain()));
+
+  // Each element is a quarter of the square
+  REQUIRE(itg.corners.size() == 4);
+  for (int iel = 1; iel <= 4; iel++)
+  {
+    INFO("element " << iel);
+    const double x0 = 0.5*((iel-1)%2), y0 = 0.5*((iel-1)/2);
+    const std::vector<Vec3>& XC = itg.corners[iel];
+    REQUIRE(XC.size() == 4);
+    for (size_t c = 0; c < 4; c++)
+    {
+      CHECK_THAT(XC[c].x, WithinAbs(x0 + 0.5*(c%2), 1e-14));
+      CHECK_THAT(XC[c].y, WithinAbs(y0 + 0.5*(c/2), 1e-14));
+    }
+    CHECK_THAT(itg.sizes[iel], WithinAbs(0.5*sqrt(2.0), 1e-14));
+  }
 }

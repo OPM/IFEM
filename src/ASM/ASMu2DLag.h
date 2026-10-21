@@ -106,6 +106,13 @@ public:
   virtual void getBoundaryNodes(int lIndex, IntVec& nodes,
                                 int, int, int, bool local) const;
 
+  //! \brief Computes the element corner coordinates.
+  //! \details The element corners are not available, since the element nodes
+  //! need not be in the tensor-product order of the structured patches.
+  virtual double getElementCorners(int iel, std::vector<Vec3>& XC,
+                                   RealArray* uC = nullptr) const
+  { return this->ASMbase::getElementCorners(iel,XC,uC); }
+
   using ASMs2DLag::integrate;
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods

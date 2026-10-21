@@ -239,3 +239,42 @@ TEST_CASE("TestASMs1D.LagrangeElementCenter")
   CHECK_THAT(pch.getElementCenter(1).x, WithinAbs(0.2, 1e-14));
   CHECK_THAT(pch.getElementCenter(2).x, WithinAbs(0.7, 1e-14));
 }
+
+
+TEST_CASE("TestASMs1D.ElementCorners")
+{
+  // The element ends of a quadratic line with four elements, as spline and
+  // as Lagrange elements, through the generic patch interface
+  ASMbase::resetNumbering();
+  ASMLine spline(3,1);
+  ASMs1DLag lagrange;
+  std::stringstream geo("100 1 0 0\n2 0\n2 2\n0 0 1 1\n0 0\n1 0\n");
+  REQUIRE(lagrange.read(geo));
+  REQUIRE(lagrange.raiseOrder(1));
+  REQUIRE(lagrange.uniformRefine(3));
+  REQUIRE(lagrange.generateFEMTopology());
+
+  for (const ASMbase* pch : {static_cast<const ASMbase*>(&spline),
+                             static_cast<const ASMbase*>(&lagrange)})
+  {
+    REQUIRE(pch->getNoElms() == 4);
+    for (int iel = 1; iel <= 4; iel++)
+    {
+      INFO((pch == &spline ? "spline" : "Lagrange") << " element " << iel);
+      std::vector<Vec3> XC;
+      RealArray uC;
+      CHECK_THAT(pch->getElementCorners(iel,XC,&uC), WithinAbs(0.25, 1e-14));
+      REQUIRE(XC.size() == 2);
+      CHECK_THAT(XC.front().x, WithinAbs(0.25*(iel-1), 1e-14));
+      CHECK_THAT(XC.back().x, WithinAbs(0.25*iel, 1e-14));
+      if (pch == &spline)
+      {
+        REQUIRE(uC.size() == 2);
+        CHECK_THAT(uC.front(), WithinAbs(0.25*(iel-1), 1e-14));
+        CHECK_THAT(uC.back(), WithinAbs(0.25*iel, 1e-14));
+      }
+      else
+        CHECK(uC.empty());
+    }
+  }
+}

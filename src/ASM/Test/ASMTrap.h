@@ -17,7 +17,6 @@
 #include "Vec3.h"
 
 #include <sstream>
-#include <tuple>
 #include <vector>
 
 
@@ -45,23 +44,6 @@ public:
     this->read(str);
   }
 
-  std::tuple<double, std::vector<Vec3>, RealArray>
-  getElementCorners(int iel) const
-  {
-     RealArray prm;
-     std::vector<Vec3> XC;
-
-     int p1, p2, n1, n2, dummy;
-     this->getOrder(p1,p2,dummy);
-     this->getSize(n1,n2,dummy);
-     const int nel1 = n1 - p1 + 1;
-
-     --iel;
-     const int i1 = p1 + iel % nel1;
-     const int i2 = p2 + iel / nel1;
-
-     return {this->Base::getElementCorners(i1-1, i2-1, XC, &prm), XC, prm};
-  }
 };
 
 #endif
