@@ -3148,15 +3148,19 @@ bool ASMu2D::BasisFunctionCache::internalInit ()
 }
 
 
+void ASMu2D::BasisFunctionCache::noGaussPts (std::array<int,2>& ng) const
+{
+  for (int i = 0; i < 2; ++i)
+    ng[i] = patch.getNoGaussPt(patch.lrspline->order(i));
+}
+
+
 bool ASMu2D::BasisFunctionCache::setupQuadrature ()
 {
-  const int p1 = patch.lrspline->order(0);
-  const int p2 = patch.lrspline->order(1);
-
   // Get Gaussian quadrature points and weights
+  this->noGaussPts(mainQ->ng);
   for (int d = 0; d < 2; d++)
   {
-    mainQ->ng[d] = patch.getNoGaussPt(d == 0 ? p1 : p2);
     mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
     mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
     if (!mainQ->xg[d] || !mainQ->wg[d]) return false;

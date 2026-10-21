@@ -13,6 +13,7 @@
 #include "ASMSquare.h"
 #include "ASMTrap.h"
 #include "ASM2DTests.h"
+#include "IntegrationPointCounter.h"
 
 namespace {
 
@@ -130,4 +131,10 @@ TEST_CASE("TestASMs2D.GetElementCorners")
 TEST_CASE("TestASMs2D.Write")
 {
   ASM2DTests<ASMSquare>::Write(false);
+}
+
+
+TEST_CASE("TestASMs2D.QuadratureChange")
+{
+  checkQuadratureChange<ASMSquare>(2);
 }
