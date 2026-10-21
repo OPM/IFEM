@@ -11,6 +11,8 @@
 //==============================================================================
 
 #include "ASM3DTests.h"
+#include "Functions.h"
+#include "MPC.h"
 #include "ASMCube.h"
 #include "ASMTrap3.h"
 
@@ -347,4 +349,32 @@ TEST_CASE("TestASMs3D.GetElementCorners")
 TEST_CASE("TestASMs3D.Write")
 {
   ASM3DTests<ASMCube>::Write(false);
+}
+
+
+TEST_CASE("TestASMs3D.ConstrainFaceLocal")
+{
+  // A linear function of x, prescribed in local axes on a face, is reproduced
+  // by the projection in each node, and not only in the first one
+  MPCLess::compareSlaveDofOnly = true;
+  ASMbase::resetNumbering();
+  ASMCube pch;
+  REQUIRE(pch.uniformRefine(0,2));
+  REQUIRE(pch.uniformRefine(1,2));
+  REQUIRE(pch.uniformRefine(2,2));
+  REQUIRE(pch.generateFEMTopology());
+  const size_t nnod = pch.getNoNodes();
+  REQUIRE(pch.constrainFaceLocal(-3,false,1,2,true) == 16);
+
+  LinearXFunc f(1.0);
+  REQUIRE(pch.updateDirichlet({{2,&f}},std::map<int,VecFunc*>(),0.0,nullptr,false));
+  size_t prescribed = 0;
+  for (size_t n = nnod+1; n <= pch.getNoNodes(); n++)
+    if (const MPC* mpc = pch.findMPC(pch.getNodeID(n),1); mpc && mpc->getNoMaster() == 0)
+    {
+      INFO("node " << n << " at " << pch.getCoord(n));
+      CHECK_THAT(mpc->getSlave().coeff, WithinAbs(pch.getCoord(n).x, 1e-12));
+      ++prescribed;
+    }
+  CHECK(prescribed == 16);
 }
