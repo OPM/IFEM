@@ -15,6 +15,7 @@
 #include "MPC.h"
 #include "ASMCube.h"
 #include "ASMTrap3.h"
+#include "IntegrationPointCounter.h"
 
 #include <array>
 #include <functional>
@@ -420,4 +421,10 @@ TEST_CASE("TestASMs3D.PairedDirection")
   REQUIRE(ASMbase::pairedDirection(2,2,1,1) == -1);
   REQUIRE(ASMbase::pairedDirection(2,2,1,2) ==  2);
   REQUIRE(ASMbase::pairedDirection(2,2,1,3) == -3);
+}
+
+
+TEST_CASE("TestASMs3D.QuadratureChange")
+{
+  checkQuadratureChange<ASMCube>(3);
 }

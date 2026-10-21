@@ -35,13 +35,18 @@ BasisFunctionCache<Dim>::BasisFunctionCache (const BasisFunctionCache<Dim>& rhs)
 template<size_t Dim>
 bool BasisFunctionCache<Dim>::init (int nd)
 {
-  if (!values.empty() && nd <= nderiv)
+  // Make sure the cache is for the correct configuration
+  std::array<int,Dim> ngn;
+  this->noGaussPts(ngn);
+  if (!values.empty() && nd <= nderiv &&
+      ngValues == mainQ->ng && mainQ->ng == ngn)
     return true;
 
   nderiv = nd;
   this->clear();
   if (!this->internalInit())
     return false;
+  ngValues = mainQ->ng;
 
   if (ASM::cachePolicy == ASM::NO_CACHE) {
     this->resizeThreadBuffers();
