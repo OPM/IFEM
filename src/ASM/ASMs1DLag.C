@@ -144,6 +144,16 @@ Vec3 ASMs1DLag::getElementCenter (int iel) const
 }
 
 
+void ASMs1DLag::getElementBorders (int iel, double* ub) const
+{
+  // The element ends are the first and last nodes of the element
+  RealArray u;
+  this->getGridParameters(u,p1-1);
+  ub[0] = u[(iel-1)*(p1-1)];
+  ub[1] = u[iel*(p1-1)];
+}
+
+
 bool ASMs1DLag::getElementCoordinates (Matrix& X, int iel, bool) const
 {
   if (iel < 1 || static_cast<size_t>(iel) > MNPC.size())
