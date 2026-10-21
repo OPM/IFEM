@@ -107,6 +107,10 @@ protected:
   //! \brief Class-specified initialization.
   virtual bool internalInit() = 0;
 
+  //! \brief Returns the number of integration points in each direction,
+  //! according to the current quadrature rule of the patch.
+  virtual void noGaussPts(std::array<int,Dim>& ng)  const = 0;
+
   //! \brief Calculates basis function info in a single integration point.
   //! \param el Element of integration point (0-indexed)
   //! \param gp Integratin point on element (0-indexed)
@@ -132,6 +136,7 @@ protected:
   std::vector<BasisFunctionVals> valuesRed; //!< Cache for reduced quadrature
   const Integrand* integrand = nullptr; //!< Integrand to use
   int nderiv = 0; //!< Number of derivatives
+  std::array<int,Dim> ngValues{}; //!< Main quadrature of the cached values
 
   std::shared_ptr<Quadrature> mainQ; //!< Main quadrature information
   std::shared_ptr<Quadrature> reducedQ; //!< Reduced quadrature information
