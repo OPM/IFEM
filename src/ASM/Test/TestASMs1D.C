@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "ASMs1D.h"
+#include "ASMs1DLag.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include <sstream>
@@ -220,4 +221,21 @@ TEST_CASE("TestASMs1D.ElmNodes")
     for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
       REQUIRE(mnpc_proj[i][j] == ref_proj[i][j]);
   }
+}
+
+
+TEST_CASE("TestASMs1D.LagrangeElementCenter")
+{
+  // A cubic straight line with a double knot, giving two elements
+  // over the non-zero knot spans
+  ASMbase::resetNumbering();
+  ASMs1DLag pch(2,1);
+  std::stringstream geo("100 1 0 0\n2 0\n2 2\n0 0 1 1\n0 0\n1 0\n");
+  REQUIRE(pch.read(geo));
+  REQUIRE(pch.raiseOrder(2));
+  REQUIRE(pch.refine({0.4,0.4}));
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pch.getNoElms() == 2);
+  CHECK_THAT(pch.getElementCenter(1).x, WithinAbs(0.2, 1e-14));
+  CHECK_THAT(pch.getElementCenter(2).x, WithinAbs(0.7, 1e-14));
 }
