@@ -2088,11 +2088,14 @@ double ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC,
   RealArray u(2), v(2), w(2);
   this->getElementBorders(i1,i2,i3,u.data(),v.data(),w.data());
 
-  // Evaluate the spline volume at the corners to find physical coordinates
-  int dim = svol->dimension();
+  // Evaluate the geometry at the corners to find physical coordinates,
+  // which for mixed patches may be another basis than the integration basis
+  const Go::SplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  if (!geo) geo = svol.get();
+  int dim = geo->dimension();
   RealArray XYZ(dim*8);
 #pragma omp critical
-  svol->gridEvaluator(u,v,w,XYZ);
+  geo->gridEvaluator(u,v,w,XYZ);
 
   XC.clear();
   XC.reserve(8);
