@@ -14,8 +14,9 @@
 //   configs        - list of configuration names to build
 //                    (default: all configurations in BTYPES)
 //   label          - agent label to run the configurations on
-//   credentialsId  - username/password or GitHub App credentials used to
-//                    clone private upstream and downstream repositories
+//   credentialsId  - username/password credentials used to clone private
+//                    upstream and downstream repositories
+//                    (default: the credentials of the job's GitHub source)
 //   statusContexts - report a commit status per configuration
 //                    (default true, requires pipeline-githubnotify-step)
 //   branchTriggers - map of branch name to the trigger comment to use for
@@ -23,7 +24,7 @@
 def call(Map args = [:]) {
   Map opts = [script: args.script ?: 'jenkins/build.sh',
               configurations: args.configurations ?: '/home/jenkins/build-configurations.sh',
-              credentialsId: args.credentialsId,
+              credentialsId: args.credentialsId ?: scmCredentialsId(),
               statusContexts: args.containsKey('statusContexts') ? args.statusContexts : true]
   String label = args.label
 
@@ -87,7 +88,7 @@ do
   then
     export BTYPES=\$BTYPE
     export CMAKE_TOOLCHAIN_FILES=\${toolchains[\$i]}
-    ${opts.credentialsId ? 'export GH_CREDENTIALS=x-access-token:$GH_TOKEN' : ''}
+    ${opts.credentialsId ? 'export GH_CREDENTIALS=$GH_USER:$GH_TOKEN' : ''}
     exec ${opts.script}
   fi
 done
@@ -124,5 +125,15 @@ exit 1
         githubNotify context: context, status: 'SUCCESS',
                      description: "${results.totalCount} tests passed"
     }
+  }
+}
+
+
+// The credentials the multibranch job checks out its own repository with
+String scmCredentialsId() {
+  try {
+    return scm.userRemoteConfigs[0].credentialsId
+  } catch (err) {
+    return null
   }
 }

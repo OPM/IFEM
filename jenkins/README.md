@@ -54,8 +54,12 @@ private dependencies or a subset of the configurations:
                configurations: '/home/jenkins/build-configurations.sh',
                configs: ['serial', 'clang'],
                label: 'linux',
-               credentialsId: 'github-app',
+               credentialsId: 'github-token',
                statusContexts: true)
+
+Private upstreams and downstreams are cloned with GH\_CREDENTIALS set from
+a username/password credential, by default the one used by the job's GitHub
+branch source.
 
 Builds of a branch, such as post-merge builds of master, have no trigger
 comment. `branchTriggers` gives the comment to use for them instead; IFEM
