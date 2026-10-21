@@ -1241,7 +1241,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
   size_t nxNode = 0;
   RealArray::const_iterator it = locs ? locs->coefs_begin() : gdata.begin();
   for (j = k = 0; j < vpar.size(); j++, iSnod += incJ)
-    for (i = 0; i < upar.size(); i++, iSnod += incI, it += 3)
+    for (i = 0; i < upar.size(); i++, k++, iSnod += incI, it += 3)
     {
       // Skip the edge points if this should be regarded an open boundary
       if (open && (i == 0 || i+1 == upar.size())) continue;
