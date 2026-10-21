@@ -16,6 +16,14 @@
 
 #include "Catch2Support.h"
 
+#include "ASMs3Dmx.h"
+#include "Field.h"
+#include "Fields.h"
+#include "ItgPoint.h"
+
+#include <memory>
+#include <sstream>
+
 
 namespace {
 
@@ -633,4 +641,51 @@ TEST_CASE("TestASMs3Dmx.ContinuousOverBoundary")
   for (int face = 1; face <= 6; face++)
     for (size_t b = 1; b <= 2; b++)
       REQUIRE(pch2.isContinuousOverBoundary(face,b));
+}
+
+
+TEST_CASE("TestASMs3Dmx.FieldsGeometry")
+{
+  // A distorted triquadratic volume, which the lowered bases of the
+  // div-compatible space do not represent
+  std::ostringstream volume;
+  volume <<"700 1 0 0\n3 0\n4 3\n0 0 0 0.4 1 1 1\n"
+         <<"3 3\n0 0 0 1 1 1\n3 3\n0 0 0 1 1 1\n";
+  for (double w : {0.0, 0.5, 1.0})
+    for (double v : {0.0, 0.5, 1.0})
+      for (double u : {0.0, 0.2, 0.7, 1.0})
+        volume << u + 0.05*v*w + 0.1*v*v <<' '<< v + 0.03*u - 0.1*w*w <<' '
+               << w + 0.02*u*v + 0.1*u*u <<'\n';
+
+  ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
+  ASMs3Dmx pch({1,1,1,1});
+  std::istringstream is(volume.str());
+  REQUIRE(pch.read(is));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+
+  const ASMbase& p = pch;
+  Vector sol(p.getNoNodes(1)+p.getNoNodes(2)+p.getNoNodes(3));
+  for (size_t i = 0; i < sol.size(); i++)
+    sol[i] = std::sin(1.0 + 0.7*i) + 0.1*i;
+
+  // The gradient of each component is that of the field of its basis
+  std::unique_ptr<Fields> f(Fields::create(&pch,sol,123,3));
+  REQUIRE(f);
+  for (double t : {0.1, 0.45, 0.8})
+  {
+    INFO("point " << t);
+    const ItgPoint x(t,1.0-t,0.5*t);
+    Matrix grad;
+    REQUIRE(f->gradFE(x,grad));
+    for (int b = 1; b <= 3; b++)
+    {
+      std::unique_ptr<Field> fb(Field::create(&pch,sol,b,1));
+      REQUIRE(fb);
+      Vector gradb;
+      REQUIRE(fb->gradFE(x,gradb));
+      for (size_t k = 1; k <= 3; k++)
+        CHECK_THAT(grad(b,k), WithinAbs(gradb(k), 1e-12));
+    }
+  }
 }

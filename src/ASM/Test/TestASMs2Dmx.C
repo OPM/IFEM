@@ -15,6 +15,12 @@
 
 #include "Catch2Support.h"
 
+#include "Field.h"
+#include "Fields.h"
+#include "ItgPoint.h"
+
+#include <memory>
+
 
 namespace {
 
@@ -417,4 +423,53 @@ TEST_CASE("TestASMs2Dmx.ContinuousOverBoundary")
   for (int edge = 1; edge <= 4; edge++)
     for (size_t b = 1; b <= 2; b++)
       REQUIRE(pch2.isContinuousOverBoundary(edge,b));
+}
+
+
+TEST_CASE("TestASMs2Dmx.FieldsGeometry")
+{
+  // A curved biquadratic surface, which the lowered bases of the
+  // div-compatible space do not represent
+  const char* surface = "200 1 0 0\n2 0\n"
+                        "4 3\n0 0 0 0.3 1 1 1\n"
+                        "4 3\n0 0 0 0.6 1 1 1\n"
+                        "0 0\n0.4 0.1\n1.1 -0.1\n1.5 0\n"
+                        "0 0.5\n0.5 0.6\n1 0.4\n1.6 0.5\n"
+                        "0.1 1.2\n0.4 1.1\n1.1 1.3\n1.5 1.2\n"
+                        "0 2\n0.6 2.1\n1.2 1.9\n1.6 2\n";
+
+  ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
+  ASMs2Dmx pch(2,{1,1,1});
+  std::istringstream is(surface);
+  REQUIRE(pch.read(is));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+
+  const ASMbase& p = pch;
+  Vector sol(p.getNoNodes(1)+p.getNoNodes(2));
+  for (size_t i = 0; i < sol.size(); i++)
+    sol[i] = std::sin(1.0 + 0.7*i) + 0.1*i;
+
+  // The gradient of each component is that of the field of its basis
+  std::unique_ptr<Fields> f(Fields::create(&pch,sol,12,2));
+  std::unique_ptr<Field> f1(Field::create(&pch,sol,1,1));
+  std::unique_ptr<Field> f2(Field::create(&pch,sol,2,1));
+  REQUIRE(f);
+  REQUIRE(f1);
+  REQUIRE(f2);
+  for (double t : {0.1, 0.45, 0.8})
+  {
+    INFO("point " << t);
+    const ItgPoint x(t,1.0-t);
+    Matrix grad;
+    Vector grad1, grad2;
+    REQUIRE(f->gradFE(x,grad));
+    REQUIRE(f1->gradFE(x,grad1));
+    REQUIRE(f2->gradFE(x,grad2));
+    for (size_t k = 1; k <= 2; k++)
+    {
+      CHECK_THAT(grad(1,k), WithinAbs(grad1(k), 1e-12));
+      CHECK_THAT(grad(2,k), WithinAbs(grad2(k), 1e-12));
+    }
+  }
 }
