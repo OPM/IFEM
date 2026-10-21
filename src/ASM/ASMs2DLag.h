@@ -121,6 +121,18 @@ public:
 
   //! \brief Returns the geometric center of an element.
   virtual Vec3 getElementCenter(int iel) const;
+  //! \brief Computes the element corner coordinates.
+  //! \param[in] iel 1-based element index
+  //! \param[out] XC Coordinates of the element corners, the first direction
+  //! running fastest
+  //! \param[out] uC Not used, the nodes have no spline parameters
+  //! \return Characteristic element size, negative if the element does not
+  //! have the tensor-product node layout
+  //! \details The corners are the corner nodes of the element, which has
+  //! no zero-width knot spans, unlike the spline geometry. In a mixed patch,
+  //! these are the nodes of the first basis.
+  virtual double getElementCorners(int iel, std::vector<Vec3>& XC,
+                                   RealArray* uC = nullptr) const;
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
