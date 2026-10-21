@@ -154,6 +154,13 @@ private:
   static void createMNPC(size_t nel, int p1, IntMat& MNPC);
 
 protected:
+  //! \brief Computes the element end parameters.
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[out] ub Parameter values of the element ends
+  //!
+  //! \details There is one element in each non-zero knot span.
+  virtual void getElementBorders(int iel, double* ub) const;
+
   size_t nx; //!< Number of nodes
   int    p1; //!< Polynomial order of the basis
 };
