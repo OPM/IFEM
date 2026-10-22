@@ -12,7 +12,11 @@
 
 #include "ASMuCube.h"
 #include "ASMuTrap3.h"
+#include "ASMs3D.h"
 #include "GaussQuadrature.h"
+#include "GlobalIntegral.h"
+#include "LaplacianIntegrand.h"
+#include "TimeDomain.h"
 #include "Test/ASM3DTests.h"
 #include "Vec3Oper.h"
 
@@ -22,6 +26,65 @@
 
 #include <functional>
 #include <numeric>
+#include <sstream>
+
+
+TEST_CASE("TestASMu3D.SecondDerivatives")
+{
+  // A curved volume, as a tensor-product and as an LR B-spline patch,
+  // which then have the same second derivatives
+  const char* g2 = "700 1 0 0\n3 0\n"
+                   "3 2\n0 0 0.4 1 1\n"
+                   "3 3\n0 0 0 1 1 1\n"
+                   "2 2\n0 0 1 1\n"
+                   "0 0 0\n0.5 0.1 0\n1 0 0\n"
+                   "0 0.5 0.1\n0.4 0.6 0\n1 0.5 0\n"
+                   "0 1 0\n0.5 1 0\n1 1.1 0\n"
+                   "0 0 1\n0.5 0 1\n1 0 1.1\n"
+                   "0 0.5 1\n0.5 0.5 1\n1 0.5 1\n"
+                   "0.1 1 1\n0.5 1 1\n1 1 1\n";
+  ASMs3D spch(1);
+  ASMu3D upch(1);
+  for (ASMbase* pch : {static_cast<ASMbase*>(&spch), static_cast<ASMbase*>(&upch)})
+  {
+    std::istringstream is(g2);
+    REQUIRE(pch->read(is));
+    ASMbase::resetNumbering();
+    REQUIRE(pch->generateFEMTopology());
+  }
+
+  // The integral of the square of the Laplacian of a field
+  LaplacianIntegrand sitg(spch), uitg(upch);
+  GlobalIntegral dummy;
+  static_cast<ASMbase&>(spch).generateThreadGroups(sitg,true,false);
+  static_cast<ASMbase&>(upch).generateThreadGroups(uitg,true,false);
+  REQUIRE(spch.integrate(sitg,dummy,TimeDomain()));
+  REQUIRE(upch.integrate(uitg,dummy,TimeDomain()));
+  CHECK_THAT(uitg.result, WithinRel(sitg.result, 1e-12));
+
+  // The second derivatives of the field at some points
+  RealArray gpar[3] = {{0.1, 0.35, 0.6, 0.9}, {0.2, 0.5, 0.75, 0.95},
+                       {0.3, 0.15, 0.85, 0.5}};
+  Vector ssol(spch.getNoNodes()), usol(upch.getNoNodes());
+  for (size_t i = 1; i <= ssol.size(); i++)
+  {
+    const Vec3 X = spch.getCoord(i);
+    ssol(i) = std::sin(X.x) + X.x*X.y*X.y + X.y*X.z;
+  }
+  for (size_t i = 1; i <= usol.size(); i++)
+  {
+    const Vec3 X = upch.getCoord(i);
+    usol(i) = std::sin(X.x) + X.x*X.y*X.y + X.y*X.z;
+  }
+  Matrix sder, uder;
+  REQUIRE(spch.evalSolution(sder,ssol,gpar,false,2));
+  REQUIRE(upch.evalSolution(uder,usol,gpar,false,2));
+  REQUIRE(uder.rows() == sder.rows());
+  REQUIRE(uder.cols() == sder.cols());
+  for (size_t i = 1; i <= sder.rows(); i++)
+    for (size_t j = 1; j <= sder.cols(); j++)
+      CHECK_THAT(uder(i,j), WithinAbs(sder(i,j), 1e-10));
+}
 
 
 TEST_CASE("TestASMu3D.BoundaryElements")

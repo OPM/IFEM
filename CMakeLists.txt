@@ -678,6 +678,7 @@ if(TARGET IFEM-test)
           src/ASM/LR/Test/ASMuSquare.h
           src/ASM/LR/Test/ASMuTrap.h
           src/ASM/LR/Test/ASMuTrap3.h
+          src/ASM/LR/Test/LaplacianIntegrand.h
       )
     endif()
   endif()
