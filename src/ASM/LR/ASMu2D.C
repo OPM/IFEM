@@ -1006,7 +1006,13 @@ Vec3 ASMu2D::getCoord (size_t inod) const
               << ", but only have " << lrspline->nBasisFunctions() << std::endl;
     return Vec3();
   }
-  return Vec3(&(*basis->cp()),nsd);
+
+  // The coefficients of a NURBS basis are the homogeneous coordinates
+  Vec3 X(&(*basis->cp()),nsd);
+  if (is_rational)
+    X /= basis->cp(nsd);
+
+  return X;
 }
 
 
