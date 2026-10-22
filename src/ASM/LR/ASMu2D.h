@@ -742,7 +742,7 @@ public:
                                 const LR::LRSplineSurface& spline);
 
   //! \brief Query whether basis is rational or not.
-  bool rational() const { return is_rational; }
+  bool rational() const override { return is_rational; }
 
   //! \brief Returns a matrix with control point coordinates.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of points
