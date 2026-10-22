@@ -24,6 +24,8 @@ CMAKE\_TOOLCHAIN\_FILES - A space separated list of toolchain files specifying
 
 BTYPES - A space separated list of build configuration names.
 
+BUILDTHREADS - Number of build jobs, half of them run tests (default: all cores).
+
 A typically local run building the current content of IFEM and all
 downstreams;
 
@@ -76,10 +78,33 @@ builds master with all downstreams:
 
     ifemModule(branchTriggers: [master: 'jenkins build this with downstreams please'])
 
+## Static analysis
+
+`jenkins/static-analysis.Jenkinsfile` runs `ifemStaticAnalysis()`, which
+builds the module in the static analysis configurations, one stage after
+another to keep the load down, then runs cppcheck, clang-tidy and infer on the `infer` build and gcovr on
+the `coverage_gcov` build. A `memcheck` configuration, with a toolchain
+running the tests through valgrind, is built with all downstreams. The results are shown by the Warnings Next
+Generation and Coverage plugins. It checks master for changes every night.
+
+The configurations come from `/home/jenkins/build-configurations-sca.sh` on
+the builder, which sets `BTYPES` and `CMAKE_TOOLCHAIN_FILES` like
+`build-configurations.sh`, and must include `infer` and `coverage_gcov`.
+`memcheck` is optional, and modules can skip it with
+`ifemStaticAnalysis(memcheck: false)`.
+The cppcheck suppressions are read from
+`/var/lib/jenkins/cppcheck-suppressions/<module>`.
+
+Create a Pipeline job (not multibranch) with "Pipeline script from SCM",
+the module's repository, branch `master` and Script Path
+`jenkins/static-analysis.Jenkinsfile`, and run it once by hand so Jenkins
+picks up the nightly trigger.
+
 ## Jenkins setup
 
 Required plugins: Pipeline, GitHub Branch Source, GitHub PR Comment Build,
-Pipeline: GitHub Notify Step, JUnit and Warnings Next Generation.
+Pipeline: GitHub Notify Step, JUnit, Warnings Next Generation, and
+Coverage for the static analysis.
 
 1. Manage Jenkins → System → Global Trusted Pipeline Libraries: add a library
    named `ifem`, default version `master`, retrieved from the IFEM repository
