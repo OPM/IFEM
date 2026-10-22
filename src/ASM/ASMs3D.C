@@ -3657,11 +3657,21 @@ void ASMs3D::changeNumThreads ()
 
 void ASMs3D::generateThreadGroups (char lIndex, bool silence, bool)
 {
+  // Faces of a patch whose volume is not threaded, e.g., due to rigid
+  // couplings, may also share DOFs between elements in different strips
+  if (threadGroupsVol.stripDir == ThreadGroups::NONE)
+    threadGroupsFace[lIndex].stripDir = ThreadGroups::NONE;
+
   std::map<char,ThreadGroups>::iterator tit = threadGroupsFace.find(lIndex);
   if (tit != threadGroupsFace.end())
   {
     if (tit->second.stripDir == ThreadGroups::NONE)
-      tit->second.oneGroup(nel);
+    {
+      // Single group with the elements on the boundary face 'lIndex' only
+      IntVec elms;
+      this->findBoundaryElms(elms,lIndex);
+      tit->second.oneGroup(nel,elms);
+    }
   }
   else
     this->generateThreadGroups(svol->order(0)-1, svol->order(1)-1,
