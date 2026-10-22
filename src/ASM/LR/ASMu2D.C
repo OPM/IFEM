@@ -2327,6 +2327,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.u = gpar[0][i];
     fe.v = gpar[1][i];
     int iel = lrspline->getElementContaining(fe.u,fe.v);
+    fe.iel = MLGE[iel];
 
     // Evaluate the basis functions at current parametric point
     if (use3rdDer)
