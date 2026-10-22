@@ -2124,7 +2124,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   int iel = -1;
 
   // Evaluate the primary solution field at each point
-  sField.resize(nComp,nPoints);
+  sField.resize(nComp*int(pow(nsd,deriv)),nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     // Fetch element containing evaluation point.

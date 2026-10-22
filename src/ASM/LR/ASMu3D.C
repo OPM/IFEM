@@ -1577,7 +1577,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
   int iel = -1;
 
   // Evaluate the primary solution field at each point
-  sField.resize(nComp,nPoints);
+  sField.resize(nComp*int(pow(3.0,deriv)),nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     const double u = gpar[0][i];
