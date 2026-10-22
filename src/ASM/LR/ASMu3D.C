@@ -1780,6 +1780,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Evaluate the basis functions at current parametric point
     FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
+    fe.iel = MLGE[iel];
     fe.u   = gpar[0][i];
     fe.v   = gpar[1][i];
     fe.w   = gpar[2][i];
