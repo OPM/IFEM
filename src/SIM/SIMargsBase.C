@@ -75,12 +75,12 @@ char* SIMargsBase::preParse (int argc, char** argv,
   SIMoptions ignored;
   char* input_file = nullptr;
   for (int i = 1; i < argc; i++)
-    if (argv[i] == input_file || this->parseArg(argv[i]))
+    if (argv[i] == input_file)
       ; // ignore the input file on the second pass
+    else if (external_parser(i) || this->parseArg(argv[i]))
+      ; // this option was parsed
     else if (ignored.parseOldOptions(argc,argv,i))
       ; // ignore the obsolete option
-    else if (external_parser(i))
-      ; // this option was parsed by the external parser
     else if (input_file)
       std::cerr <<"  ** Unknown option ignored: "<< argv[i] << std::endl;
     else if (strcasestr(input_file = argv[i],".xinp"))
