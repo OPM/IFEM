@@ -13,14 +13,17 @@
 #include "ASMuCube.h"
 #include "ASMuTrap3.h"
 #include "ASMs3D.h"
+#include "Functions.h"
 #include "GaussQuadrature.h"
 #include "GlobalIntegral.h"
 #include "LaplacianIntegrand.h"
+#include "MPC.h"
 #include "TimeDomain.h"
-#include "Test/ASM3DTests.h"
 #include "Vec3Oper.h"
 
 #include "Catch2Support.h"
+
+#include "Test/ASM3DTests.h"
 
 #include <LRSpline/LRSplineVolume.h>
 
@@ -124,6 +127,35 @@ TEST_CASE("TestASMu3D.ConnectUneven")
 TEST_CASE("TestASMu3D.ConstrainFace")
 {
   ASM3DTests<ASMuCube>::ConstrainFace();
+}
+
+
+TEST_CASE("TestASMu3D.ConstrainFaceScalar")
+{
+  // A scalar condition on several DOFs gives them all the fitted value
+  MPCLess::compareSlaveDofOnly = true;
+  ASMbase::resetNumbering();
+  ASMuCube pch(3);
+  REQUIRE(pch.uniformRefine(1,1));
+  REQUIRE(pch.uniformRefine(2,1));
+  REQUIRE(pch.generateFEMTopology());
+  pch.constrainFace(-1,false,123,2);
+
+  LinearYFunc f(2.0,1.0);
+  const std::map<int,RealFunc*> func{{2,&f}};
+  REQUIRE(pch.updateDirichlet(func,std::map<int,VecFunc*>(),0.0,nullptr,false));
+
+  IntVec nodes;
+  static_cast<const ASMbase&>(pch).getBoundaryNodes(1,nodes,1,1,-1,false);
+  REQUIRE(nodes.size() == 9);
+  for (int node : nodes)
+    for (int dof = 1; dof <= 3; dof++)
+    {
+      INFO("node " << node << " dof " << dof);
+      const MPC* mpc = pch.findMPC(node,dof);
+      REQUIRE(mpc);
+      CHECK_THAT(mpc->getSlave().coeff, WithinAbs(f(pch.getCoord(node)), 1e-12));
+    }
 }
 
 
