@@ -127,6 +127,12 @@ TEST_CASE("TestASMs2D.GetElementCorners")
 }
 
 
+TEST_CASE("TestASMs2D.EvalSecondary")
+{
+  ASM2DTests<ASMSquare>::EvalSecondary();
+}
+
+
 TEST_CASE("TestASMs2D.Write")
 {
   ASM2DTests<ASMSquare>::Write(false);
