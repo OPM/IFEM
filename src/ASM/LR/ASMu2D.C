@@ -1330,7 +1330,7 @@ bool ASMu2D::integrate (Integrand& integrand,
           // Compute Hessian of coordinate mapping and 2nd order derivatives
           if (use2ndDer)
           {
-            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,bfs.d2Ndu2,bfs.dNdu))
+            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,bfs.d2Ndu2,fe.dNdX))
               ok = false;
             else if (nsd > 2)
               utl::Hessian(Hess,fe.H);
@@ -1537,7 +1537,7 @@ bool ASMu2D::integrate (Integrand& integrand,
         // Compute Hessian of coordinate mapping and 2nd order derivatives
         if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
         {
-          if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+          if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
             ok = false;
           else if (nsd > 2)
             utl::Hessian(Hess,fe.H);
@@ -2159,7 +2159,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
       SplineUtils::extractBasis(spline2,ptSol,dNdu,d2Ndu2);
       if (fe.Jacobian(Jac,Xnod,dNdu))
       {
-        utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu);
+        utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX);
         ptDer2.multiply(eSol,d2NdX2);
         sField.fillColumn(1+i, ptDer2);
       }
@@ -2351,7 +2351,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
     {
-      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
         continue;
       else if (nsd > 2)
         utl::Hessian(Hess,fe.H);
