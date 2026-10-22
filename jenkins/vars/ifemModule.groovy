@@ -23,12 +23,21 @@
 //                    builds of that branch, e.g. post-merge builds of master
 //   keepWorkspace  - keep the workspaces after the build, e.g. for debugging
 //                    (default false)
+//   afterBuild     - map of configuration name to a closure run in its
+//                    workspace after a successful build, e.g. for analysis
+//   sequential     - build the configurations one after another instead of
+//                    in parallel, e.g. to limit the load (default false)
+//   configEnv      - map of configuration name to a list of 'NAME=value'
+//                    environment variables for its build, which may also
+//                    override ghprbCommentBody, e.g. to build downstreams
 def call(Map args = [:]) {
   Map opts = [script: args.script ?: 'jenkins/build.sh',
               configurations: args.configurations ?: '/home/jenkins/build-configurations.sh',
               credentialsId: args.credentialsId ?: scmCredentialsId(),
               statusContexts: args.containsKey('statusContexts') ? args.statusContexts : true,
-              keepWorkspace: args.keepWorkspace ?: false]
+              keepWorkspace: args.keepWorkspace ?: false,
+              afterBuild: args.afterBuild ?: [:],
+              configEnv: args.configEnv ?: [:]]
   String label = args.label
 
   String comment = ifemTriggerComment()
@@ -64,7 +73,24 @@ def call(Map args = [:]) {
     }
   }
 
-  parallel branches
+  if (!args.sequential) {
+    parallel branches
+    return
+  }
+
+  // Build all configurations even if one fails, but stop when aborted
+  def failure = null
+  for (int i = 0; i < names.size(); ++i) {
+    try {
+      branches[names[i]]()
+    } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException err) {
+      throw err
+    } catch (err) {
+      failure = failure ?: err
+    }
+  }
+  if (failure)
+    throw failure
 }
 
 
@@ -104,9 +130,9 @@ echo "Configuration \$BTYPE not found in ${opts.configurations}"
 exit 1
 """
 
-    withEnv(["sha1=${sha1}",
-             "ghprbCommentBody=${comment}",
-             "BTYPE=${name}"]) {
+    withEnv(mergeEnv(["sha1=${sha1}",
+                      "ghprbCommentBody=${comment}",
+                      "BTYPE=${name}"], opts.configEnv[name] ?: [])) {
       if (opts.credentialsId) {
         withCredentials([usernamePassword(credentialsId: opts.credentialsId,
                                           usernameVariable: 'GH_USER',
@@ -117,6 +143,9 @@ exit 1
         sh build
       }
     }
+
+    if (opts.afterBuild[name])
+      opts.afterBuild[name]()
   } catch (err) {
     failed = true
     if (opts.statusContexts)
@@ -140,6 +169,14 @@ exit 1
     if (!opts.keepWorkspace)
       deleteDir()
   }
+}
+
+
+// Adds the variables of extra to env, replacing those with the same name
+@NonCPS
+List mergeEnv(List env, List extra) {
+  List names = extra.collect { it.toString().tokenize('=')[0] }
+  return env.findAll { !names.contains(it.toString().tokenize('=')[0]) } + extra
 }
 
 

@@ -92,8 +92,8 @@ function printHeader {
 function build_module {
   cmake $3 -DCMAKE_BUILD_TYPE=Release $1
   test $? -eq 0 || exit 1
-  # Threaded build
-  nproc=`nproc`
+  # Threaded build, BUILDTHREADS limits it when configurations build in parallel
+  nproc=${BUILDTHREADS:-`nproc`}
   if test $2 -eq 1
   then
     cmake --build . --target testapps -- -j$nproc
