@@ -14,6 +14,7 @@
 #include "ASMuTrap.h"
 #include "ASMs2D.h"
 #include "GaussQuadrature.h"
+#include "Test/FieldValueIntegrand.h"
 #include "Test/ASM2DTests.h"
 
 #include "Catch2Support.h"
@@ -100,6 +101,12 @@ TEST_CASE("TestASMu2D.EvalPointNurbs")
   REQUIRE_THAT(param1[1], WithinRel(param2[1]));
   REQUIRE_THAT(x1[0], WithinRel(x2[0]));
   REQUIRE_THAT(x1[1], WithinRel(x2[1]));
+}
+
+
+TEST_CASE("TestASMu2D.EvalSecondary")
+{
+  ASM2DTests<ASMuSquare>::EvalSecondary();
 }
 
 
