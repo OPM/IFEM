@@ -1115,7 +1115,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-              if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,bfs.d2Ndu2,bfs.dNdu))
+              if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,bfs.d2Ndu2,fe.dNdX))
                 ok = false;
 
             // Compute G-matrix
@@ -1577,7 +1577,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
   int iel = -1;
 
   // Evaluate the primary solution field at each point
-  sField.resize(nComp,nPoints);
+  sField.resize(nComp*int(pow(3.0,deriv)),nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     const double u = gpar[0][i];
@@ -1624,7 +1624,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
       lrspline->computeBasis(u,v,w,spline2,iel);
       SplineUtils::extractBasis(spline2,ptSol,dNdu,d2Ndu2);
       utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-      utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu);
+      utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdX);
       ptDer2.multiply(eSol,d2NdX2);
       sField.fillColumn(1+i,ptDer2);
       break;
@@ -1819,7 +1819,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
-      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
         continue;
 
 #if SP_DEBUG > 4
