@@ -183,6 +183,29 @@ TEST_CASE("TestASMs1D.BoundaryElements")
 }
 
 
+TEST_CASE("TestASMs1D.ConstrainEndLocal")
+{
+  ASMbase::resetNumbering();
+  ASMs1D pch(2,2);
+  std::stringstream geo("100 1 0 0\n2 0\n3 3\n0 0 0 1 1 1\n0 0\n1 1\n2 0\n");
+  REQUIRE(pch.read(geo));
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pch.constrainEndLocal(1,2,0) == 1);
+
+  // The added node 4 takes over the global number of the end node 3,
+  // which gets a new global number
+  REQUIRE(pch.getNoNodes() == 4);
+  CHECK(pch.getNodeID(4) == 3);
+  CHECK(pch.getNodeID(3) == 4);
+  CHECK(pch.getNodeID(3,true) == 3);
+  CHECK(pch.getNodeIndex(3) == 4);
+  CHECK(pch.getNodeIndex(3,true) == 3);
+  CHECK(pch.getNodeIndex(4) == 3);
+  CHECK(pch.getCoord(4) == Vec3(2.0,0.0,0.0));
+  CHECK(pch.getCoord(3) == Vec3(2.0,0.0,0.0));
+}
+
+
 TEST_CASE("TestASMs1D.ElmNodes")
 {
   ASMbase::resetNumbering();
