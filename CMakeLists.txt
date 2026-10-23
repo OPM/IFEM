@@ -638,6 +638,7 @@ if(TARGET IFEM-test)
         src/ASM/Test/ASMSquare.h
         src/ASM/Test/ASMTrap.h
         src/ASM/Test/ASMTrap3.h
+        src/ASM/Test/IntegrationPointCounter.h
         src/ASM/Test/FieldTests.h
         src/LinAlg/Test/MatrixTests.h
     )

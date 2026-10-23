@@ -87,6 +87,9 @@ protected:
     //! \brief Implementation specific initialization.
     bool internalInit() override;
 
+    //! \brief Returns the number of integration points in each direction.
+    std::array<int,3> noGaussPts() const override;
+
     //! \brief Calculates basis function info in a single integration point.
     //! \param[in] el Element of integration point (0-indexed)
     //! \param[in] gp Integration point on element (0-indexed)

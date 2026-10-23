@@ -15,6 +15,7 @@
 #include "ASMs2D.h"
 #include "GaussQuadrature.h"
 #include "Test/ASM2DTests.h"
+#include "Test/IntegrationPointCounter.h"
 
 #include "Catch2Support.h"
 
@@ -301,4 +302,10 @@ TEST_CASE("TestASMu2D.TransferGaussPtVarsN")
 TEST_CASE("TestASMu2D.Write")
 {
   ASM2DTests<ASMuSquare>::Write(true);
+}
+
+
+TEST_CASE("TestASMu2D.QuadratureChange")
+{
+  checkQuadratureChange<ASMuSquare>(2);
 }

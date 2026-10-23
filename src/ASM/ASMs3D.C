@@ -4071,15 +4071,22 @@ bool ASMs3D::BasisFunctionCache::internalInit ()
 }
 
 
+std::array<int,3> ASMs3D::BasisFunctionCache::noGaussPts () const
+{
+  int p[3];
+  patch.getOrder(p[0],p[1],p[2]);
+
+  return { patch.getNoGaussPt(p[0]), patch.getNoGaussPt(p[1]),
+           patch.getNoGaussPt(p[2]) };
+}
+
+
 bool ASMs3D::BasisFunctionCache::setupQuadrature ()
 {
-   int p[3];
-   patch.getOrder(p[0],p[1],p[2]);
-
   // Get Gaussian quadrature points and weights
+  mainQ->ng = this->noGaussPts();
   for (int d = 0; d < 3; d++)
   {
-    mainQ->ng[d] = patch.getNoGaussPt(p[d]);
     mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
     mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
     if (!mainQ->xg[d] || !mainQ->wg[d]) return false;
