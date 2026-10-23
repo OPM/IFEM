@@ -1240,7 +1240,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 
   size_t nxNode = 0;
   RealArray::const_iterator it = locs ? locs->coefs_begin() : gdata.begin();
-  for (j = k = 0; j < vpar.size(); j++, iSnod += incJ)
+  for (j = 0; j < vpar.size(); j++, iSnod += incJ)
     for (i = 0; i < upar.size(); i++, iSnod += incI, it += 3)
     {
       // Skip the edge points if this should be regarded an open boundary
@@ -1288,7 +1288,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
       {
         this->prescribe(1+iMnod,dof,-code);
         if (code > 0)
-          dirich.back().nodes.emplace_back(1+k,1+iMnod);
+          dirich.back().nodes.emplace_back(1+i+j*upar.size(),1+iMnod);
       }
 
       // Local-to-global transformation matrix at this point, created by
