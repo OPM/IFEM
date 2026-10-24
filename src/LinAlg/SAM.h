@@ -239,10 +239,13 @@ public:
   //! as expandVector().
   bool getSolVec(RealArray& solVec, const RealArray& dofVec) const;
 
-  //! \brief Applies the non-homogenous Dirichlet BCs to the given vector.
+  //! \brief Applies the Dirichlet BCs and constraints to the given vector.
   //! \param dofVec Degrees of freedom vector, length = NDOF
   //!
-  //! \details This method is typically used with explicit time integration.
+  //! \details The fixed DOFs are zero, and the constrained DOFs satisfy their
+  //! constraint equations, with the values of their master DOFs in the vector.
+  //! This method is typically used with explicit time integration, and for
+  //! initial conditions.
   bool applyDirichlet(Vector& dofVec) const;
 
   //! \brief Computes the dot-product of two vectors of length NDOF.

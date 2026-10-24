@@ -219,3 +219,54 @@ TEST_CASE("TestSAM.NodeAndLocalDof")
     REQUIRE(nEq == sam->getNoEquations());
   }
 }
+
+
+TEST_CASE("TestSAM.ApplyDirichletPeriodic")
+{
+  // Periodic in x, with the edge y = 0 fixed. With mixed bases the
+  // periodicity is imposed by constraint equations.
+  const char* geometry = "<geometry>"
+    "<refine patch='1' u='3' v='3'/>"
+    "<periodic patch='1' dir='1'/>"
+    "<topologysets><set name='bottom' type='edge'>"
+    "<item patch='1'>3</item></set></topologysets>"
+    "</geometry>";
+  const char* bcs = "<boundaryconditions>"
+    "<dirichlet set='bottom' comp='1'/></boundaryconditions>";
+
+  SIM2D sim({1,1});
+  REQUIRE(sim.loadXML(geometry));
+  REQUIRE(sim.loadXML(bcs));
+  REQUIRE(sim.preprocess());
+  const SAM* sam = sim.getSAM();
+  REQUIRE(sam->getNoConstraints() > 0);
+
+  // Distinct values in all nodes
+  const int nnod = sim.getNoNodes();
+  REQUIRE(sam->getNoDOFs() == nnod);
+  Vector v(nnod);
+  for (int i = 0; i < nnod; i++)
+    v[i] = 1.0 + i;
+  REQUIRE(sam->applyDirichlet(v));
+
+  // The fixed nodes of the first basis are zero, and the nodes at x = 1
+  // equal those at x = 0 of the same basis, also in the corner of the fixed
+  // edge, the master of which is fixed
+  const int nb1 = sim.getPatch(1)->getNoNodes(1);
+  auto&& basis = [nb1](int i) { return i <= nb1 ? 1 : 2; };
+  int nslave = 0;
+  for (int i = 1; i <= nnod; i++) {
+    const Vec4 X = sim.getNodeCoord(i);
+    if (X.y == 0.0 && basis(i) == 1)
+      REQUIRE(v(i) == 0.0);
+    if (X.x == 1.0)
+      for (int j = 1; j <= nnod; j++)
+        if (const Vec4 Y = sim.getNodeCoord(j);
+            basis(j) == basis(i) && Y.x == 0.0 && Y.y == X.y) {
+          REQUIRE(v(i) == v(j));
+          ++nslave;
+        }
+  }
+  // All nodes at x = 1 are constrained, except the fixed corner
+  REQUIRE(nslave == sam->getNoConstraints() + 1);
+}
