@@ -103,6 +103,38 @@ TEST_CASE("TestASMu2D.EvalPointNurbs")
 }
 
 
+TEST_CASE("TestASMu2D.RefineNurbsSolution")
+{
+  // A solution on a NURBS patch is the same function after a refinement
+  ASMu2D pch(2,1);
+  std::ifstream g2file("src/ASM/LR/Test/refdata/hole2D.g2");
+  REQUIRE(pch.read(g2file));
+  REQUIRE(pch.uniformRefine(0,1));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pch.rational());
+
+  Vector sol(pch.getNoNodes());
+  for (size_t i = 1; i <= sol.size(); i++)
+    sol(i) = std::sin(0.3 + 1.1*i);
+  RealArray gpar[2] = {{0.05, 0.3, 0.55, 0.9}, {0.36, 0.61, 0.86, 0.21}};
+  Matrix before, after;
+  REQUIRE(pch.evalSolution(before,sol,gpar,false));
+
+  LR::RefineData prm;
+  prm.options = { 10, 1, 2 };
+  prm.elements = { 0, 3, 5 };
+  Vectors sols(1,sol);
+  REQUIRE(pch.refine(prm,sols));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(sols.front().size() == pch.getNoNodes());
+  REQUIRE(pch.evalSolution(after,sols.front(),gpar,false));
+  for (size_t j = 1; j <= before.cols(); j++)
+    CHECK_THAT(after(1,j), WithinAbs(before(1,j), 1e-12));
+}
+
+
 TEST_CASE("TestASMu2D.GetElementCorners")
 {
   ASM2DTests<ASMuTrap<ASMu2D>>::GetElementCorners();
