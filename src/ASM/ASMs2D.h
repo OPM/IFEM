@@ -210,6 +210,12 @@ public:
   //! \brief Adds interface elements with coupling to all element DOFs.
   //! \param[in] iChk Object checking if an element interface has contributions
   bool addInterfaceElms(const ASM::InterfaceChecker& iChk);
+  //! \brief Returns the neighbor of an element across one of its edges.
+  //! \param[in] iel 0-based element index
+  //! \param[in] edge Local edge index of the element, in range [1,4]
+  //! \return 0-based index of the neighboring element, or -1 if none
+  //! \details The zero-area elements of repeated knots are skipped.
+  int getElmNeighbour(int iel, int edge) const;
 
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.

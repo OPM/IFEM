@@ -331,14 +331,18 @@ public:
   static void InterfaceJumps()
   {
     // The jumps of the normal derivatives of the geometry vanish, for each
-    // interface element on its own
-    const int raise = GENERATE(0,1);
-    INFO("order raised by " << raise);
+    // interface element on its own, also with repeated knots when the order
+    // is raised after the refinement
+    const int raise = GENERATE(0,1,2); // none, before or after refinement
+    INFO("order raised " << (raise == 0 ? "not" : (raise == 1 ? "before" : "after")));
     ASMbase::resetNumbering();
     Patch pch;
-    REQUIRE(pch.raiseOrder(raise,raise));
+    if (raise == 1)
+      REQUIRE(pch.raiseOrder(1,1));
     REQUIRE(pch.uniformRefine(0,2));
     REQUIRE(pch.uniformRefine(1,2));
+    if (raise == 2)
+      REQUIRE(pch.raiseOrder(1,1));
     REQUIRE(pch.generateFEMTopology());
     REQUIRE(pch.addInterfaceElms(UpperEdges(pch)));
 

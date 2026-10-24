@@ -326,8 +326,8 @@ bool ASMs2D::addInterfaceElms (const ASM::InterfaceChecker& iChk)
         if (iedge%2 == 0 && status%2 == 1)
         {
           // Find index of the neighboring element
-          int jel = iel + (iedge == 2 ? 1 : n1-p1+1);
-          if (MLGE[jel] < 1) continue; // Skip zero-area element
+          int jel = this->getElmNeighbour(iel,iedge);
+          if (jel < 0) continue; // No neighbor across this edge
 
           // Set up connectivity for the interface element
           IntVec mnpc(MNPC[iel]);
@@ -338,6 +338,30 @@ bool ASMs2D::addInterfaceElms (const ASM::InterfaceChecker& iChk)
     }
 
   return true;
+}
+
+
+int ASMs2D::getElmNeighbour (int iel, int edge) const
+{
+  const int nel1 = surf->numCoefs_u() - surf->order_u() + 1;
+  const int nel2 = surf->numCoefs_v() - surf->order_v() + 1;
+  int i1 = iel % nel1;
+  int i2 = iel / nel1;
+  do
+  {
+    switch (edge) {
+    case 1: --i1; break;
+    case 2: ++i1; break;
+    case 3: --i2; break;
+    case 4: ++i2; break;
+    default: return -1;
+    }
+    if (i1 < 0 || i1 >= nel1 || i2 < 0 || i2 >= nel2)
+      return -1;
+  }
+  while (MLGE[i1+nel1*i2] < 1); // Skip zero-area elements
+
+  return i1 + nel1*i2;
 }
 
 
@@ -2279,21 +2303,29 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  int iel = 0, jel = hasInterfaceElms ? nel : 0;
-  int nels = MLGE.size();
-  for (int i2 = p2; i2 <= n2 && jel < nels; i2++)
-    for (int i1 = p1; i1 <= n1 && jel < nels; i1++, iel++)
+  int iel = 0, nextElm = nel;
+  for (int i2 = p2; i2 <= n2; i2++)
+    for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
-      if ((fe.age = this->getAge(iel,time.t)) < 0.0)
-        continue; // zero-area or inactive element
-
-      if (!hasInterfaceElms) jel = iel;
-
-      fe.idx = firstEl + jel;
-      fe.iel = abs(MLGE[jel]);
+      if (MLGE[iel] < 1) continue; // zero-area element
 
       short int status = iChk.hasContribution(iel,i1,i2);
       if (!status) continue; // no interface contributions for this element
+
+      // The interface elements of the (north and east only) element edges
+      // with contributions and a neighbor, in the order of addInterfaceElms()
+      int ifcElm[4] = { -1, -1, -1, -1 };
+      if (hasInterfaceElms)
+        for (int iedge = 2; iedge <= 4; iedge += 2)
+          if ((status & (1 << (iedge-1))) && this->getElmNeighbour(iel,iedge) >= 0)
+            ifcElm[iedge-1] = nextElm++;
+
+      if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+        continue; // inactive element
+
+      int jel = iel;
+      fe.idx = firstEl + jel;
+      fe.iel = MLGE[jel];
 
       // Compute parameter values of the element edges
       this->getElementBorders(i1-1,i2-1,u,v);
@@ -2327,6 +2359,10 @@ bool ASMs2D::integrate (Integrand& integrand,
       for (int iedge = 1; iedge <= 4 && status > 0 && ok; iedge++, status /= 2)
         if (status%2 == 1)
         {
+          // Only the edges with interface elements, if any, are integrated
+          if (hasInterfaceElms && (jel = ifcElm[iedge-1]) < 0)
+            continue;
+
           // Find the parametric direction of the edge normal {-2,-1, 1, 2}
           const int edgeDir = (iedge+1)/((iedge%2) ? -2 : 2);
           const int t1 = abs(edgeDir);   // Tangent direction normal to the edge
@@ -2345,7 +2381,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           }
 
           // Find index of the neighboring element
-          int kel = iel + (t1 == 1 ? 1 : n1-p1+1);
+          int kel = this->getElmNeighbour(iel,iedge);
 
 
           // --- Integration loop over all Gauss points along the edge ---------
@@ -2424,7 +2460,6 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             A->destruct();
             A = nullptr;
-            ++jel;
           }
         }
 
