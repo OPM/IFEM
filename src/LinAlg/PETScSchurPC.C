@@ -59,6 +59,8 @@ PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
     type = KSPGMRES;
   KSPSetType(outer_ksp, type.c_str());
   KSPSetTolerances(outer_ksp, rtol, atol, dtol, maxits);
+  if (int restart = params.getIntValue("schur_gmres_restart_iterations"); restart > 0)
+    KSPGMRESSetRestart(outer_ksp, restart);
 
   MatCreate(*adm.getCommunicator(), &outer_mat);
   PetscInt r;
