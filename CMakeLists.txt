@@ -639,6 +639,7 @@ if(TARGET IFEM-test)
         src/ASM/Test/ASMTrap.h
         src/ASM/Test/ASMTrap3.h
         src/ASM/Test/FieldTests.h
+        src/ASM/Test/FieldValueIntegrand.h
         src/LinAlg/Test/MatrixTests.h
     )
   endif()

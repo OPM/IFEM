@@ -1704,15 +1704,13 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         return this->evalSolution(sField,integrand,gpar.data());
       else if (v)
       {
-        // Evaluate the projected field at the result sampling points
+        // Evaluate the projected field at the result sampling points,
+        // which are given element by element
         Go::Point p;
-        sField.resize(v->dimension(),gpar[0].size()*gpar[1].size()*gpar[2].size());
-
-        int iel = 0; // evaluation points are always structured in element order
+        sField.resize(v->dimension(),gpar[0].size());
         for (size_t i = 0; i < gpar[0].size(); i++)
         {
-          if ((i+1)%npe[0] == 0) iel++;
-          v->point(p,gpar[0][i],gpar[1][i],gpar[2][i],iel);
+          v->point(p,gpar[0][i],gpar[1][i],gpar[2][i]);
           sField.fillColumn(i+1,p.begin());
         }
         delete v;
@@ -1780,6 +1778,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Evaluate the basis functions at current parametric point
     FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
+    fe.iel = MLGE[iel];
     fe.u   = gpar[0][i];
     fe.v   = gpar[1][i];
     fe.w   = gpar[2][i];
