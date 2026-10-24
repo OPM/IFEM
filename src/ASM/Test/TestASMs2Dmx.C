@@ -15,6 +15,15 @@
 
 #include "Catch2Support.h"
 
+#include "FiniteElement.h"
+#include "GlobalIntegral.h"
+#include "IntegrandBase.h"
+#include "TimeDomain.h"
+#include "GoTools/geometry/SplineSurface.h"
+
+#include <map>
+#include <sstream>
+
 
 namespace {
 
@@ -330,4 +339,82 @@ TEST_CASE("TestASMs2Dmx.WriteTH")
     REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
     REQUIRE(str.str() == squareTH_2);
   }
+}
+
+
+namespace {
+
+/*!
+  \brief Records the element corners.
+*/
+
+class ElementCornersIntegrand : public IntegrandBase
+{
+public:
+  //! \brief The constructor sets the number of space dimensions.
+  explicit ElementCornersIntegrand(unsigned short int n) : IntegrandBase(n) {}
+
+  //! \brief Returns the integrand type.
+  int getIntegrandType() const override { return ELEMENT_CORNERS; }
+
+  using IntegrandBase::evalIntMx;
+  //! \brief Records the element corners.
+  bool evalIntMx(LocalIntegral&, const MxFiniteElement& fe,
+                 const Vec3&) const override
+  {
+#pragma omp critical
+    corners[fe.iel] = fe.XC;
+    return true;
+  }
+
+  mutable std::map<int,std::vector<Vec3>> corners; //!< Corners of each element
+};
+
+}
+
+
+TEST_CASE("TestASMs2Dmx.SubgridCorners")
+{
+  // A curved biquadratic surface, which the refined basis does not represent
+  const char* surface = "200 1 0 0\n2 0\n"
+                        "4 3\n0 0 0 0.3 1 1 1\n"
+                        "4 3\n0 0 0 0.6 1 1 1\n"
+                        "0 0\n0.4 0.1\n1.1 -0.1\n1.5 0\n"
+                        "0 0.5\n0.5 0.6\n1 0.4\n1.6 0.5\n"
+                        "0.1 1.2\n0.4 1.1\n1.1 1.3\n1.5 1.2\n"
+                        "0 2\n0.6 2.1\n1.2 1.9\n1.6 2\n";
+
+  ASMmxBase::Type = ASMmxBase::SUBGRID;
+  ASMs2Dmx pch(2,{2,1});
+  std::istringstream is(surface);
+  REQUIRE(pch.read(is));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+
+  ElementCornersIntegrand itg(2);
+  GlobalIntegral dummy;
+  pch.generateThreadGroups(itg,true,false);
+  REQUIRE(pch.integrate(itg,dummy,TimeDomain()));
+
+  // The corners are on the geometry, at the borders of the refined elements
+  const Go::SplineSurface* geo = pch.getBasis(ASM::GEOMETRY_BASIS);
+  RealArray ku, kv;
+  pch.getBasis(1)->basis_u().knotsSimple(ku);
+  pch.getBasis(1)->basis_v().knotsSimple(kv);
+  REQUIRE(itg.corners.size() == (ku.size()-1)*(kv.size()-1));
+  int iel = 0;
+  for (size_t j = 0; j+1 < kv.size(); j++)
+    for (size_t i = 0; i+1 < ku.size(); i++)
+    {
+      INFO("element " << iel+1);
+      const std::vector<Vec3>& XC = itg.corners[++iel];
+      REQUIRE(XC.size() == 4);
+      for (size_t c = 0; c < 4; c++)
+      {
+        Go::Point X;
+        geo->point(X,ku[i+c%2],kv[j+c/2]);
+        CHECK_THAT(XC[c].x, WithinAbs(X[0], 1e-14));
+        CHECK_THAT(XC[c].y, WithinAbs(X[1], 1e-14));
+      }
+    }
 }

@@ -16,6 +16,16 @@
 
 #include "Catch2Support.h"
 
+#include "ASMs3Dmx.h"
+#include "FiniteElement.h"
+#include "GlobalIntegral.h"
+#include "IntegrandBase.h"
+#include "TimeDomain.h"
+
+#include <array>
+#include <map>
+#include <sstream>
+
 
 namespace {
 
@@ -558,4 +568,85 @@ TEST_CASE("TestASMs3Dmx.WriteTH")
     REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
     REQUIRE(str.str() == cubeTH_2);
   }
+}
+
+
+namespace {
+
+/*!
+  \brief Records the element corners.
+*/
+
+class ElementCornersIntegrand : public IntegrandBase
+{
+public:
+  //! \brief The constructor sets the number of space dimensions.
+  explicit ElementCornersIntegrand(unsigned short int n) : IntegrandBase(n) {}
+
+  //! \brief Returns the integrand type.
+  int getIntegrandType() const override { return ELEMENT_CORNERS; }
+
+  using IntegrandBase::evalIntMx;
+  //! \brief Records the element corners.
+  bool evalIntMx(LocalIntegral&, const MxFiniteElement& fe,
+                 const Vec3&) const override
+  {
+#pragma omp critical
+    corners[fe.iel] = fe.XC;
+    return true;
+  }
+
+  mutable std::map<int,std::vector<Vec3>> corners; //!< Corners of each element
+};
+
+}
+
+
+TEST_CASE("TestASMs3Dmx.SubgridCorners")
+{
+  // A distorted triquadratic volume, which the refined basis does not
+  // represent
+  std::ostringstream volume;
+  volume <<"700 1 0 0\n3 0\n4 3\n0 0 0 0.4 1 1 1\n"
+         <<"3 3\n0 0 0 1 1 1\n3 3\n0 0 0 1 1 1\n";
+  for (double w : {0.0, 0.5, 1.0})
+    for (double v : {0.0, 0.5, 1.0})
+      for (double u : {0.0, 0.2, 0.7, 1.0})
+        volume << u + 0.05*v*w + 0.1*v*v <<' '<< v + 0.03*u - 0.1*w*w <<' '
+               << w + 0.02*u*v + 0.1*u*u <<'\n';
+
+  ASMmxBase::Type = ASMmxBase::SUBGRID;
+  ASMs3Dmx pch({3,1});
+  std::istringstream is(volume.str());
+  REQUIRE(pch.read(is));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+
+  ElementCornersIntegrand itg(3);
+  GlobalIntegral dummy;
+  pch.generateThreadGroups(itg,true,false);
+  REQUIRE(pch.integrate(itg,dummy,TimeDomain()));
+
+  // The corners are on the geometry, at the borders of the refined elements
+  const Go::SplineVolume* geo = pch.getBasis(ASM::GEOMETRY_BASIS);
+  std::array<RealArray,3> knots;
+  for (int d = 0; d < 3; d++)
+    pch.getBasis(1)->basis(d).knotsSimple(knots[d]);
+  int iel = 0;
+  for (size_t k = 0; k+1 < knots[2].size(); k++)
+    for (size_t j = 0; j+1 < knots[1].size(); j++)
+      for (size_t i = 0; i+1 < knots[0].size(); i++)
+      {
+        INFO("element " << iel+1);
+        const std::vector<Vec3>& XC = itg.corners[++iel];
+        REQUIRE(XC.size() == 8);
+        for (size_t c = 0; c < 8; c++)
+        {
+          Go::Point X;
+          geo->point(X,knots[0][i+c%2],knots[1][j+(c/2)%2],knots[2][k+c/4]);
+          for (int d = 0; d < 3; d++)
+            CHECK_THAT(XC[c][d], WithinAbs(X[d], 1e-14));
+        }
+      }
+  CHECK(itg.corners.size() == static_cast<size_t>(iel));
 }
