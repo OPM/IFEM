@@ -2313,9 +2313,15 @@ bool ASMs2D::integrate (Integrand& integrand,
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
 
-      // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(MNPC[jel].size(),fe.iel);
-      bool ok = hasInterfaceElms ? true : integrand.initElement(MNPC[jel],*A);
+      // Initialize element quantities, the interface elements are
+      // initialized and assembled for each edge separately
+      LocalIntegral* A = nullptr;
+      bool ok = true;
+      if (!hasInterfaceElms)
+      {
+        A = integrand.getLocalIntegral(MNPC[jel].size(),fe.iel);
+        ok = integrand.initElement(MNPC[jel],*A);
+      }
 
       // Loop over the element edges with contributions
       for (int iedge = 1; iedge <= 4 && status > 0 && ok; iedge++, status /= 2)
@@ -2331,7 +2337,12 @@ bool ASMs2D::integrate (Integrand& integrand,
           if (dS < 0.0) // topology error (probably logic error)
             ok = false;
           else if (hasInterfaceElms) // Initialize the interface element
-            ok = integrand.initElement(MNPC[jel++],*A);
+          {
+            fe.idx = firstEl + jel;
+            fe.iel = abs(MLGE[jel]);
+            A = integrand.getLocalIntegral(MNPC[jel].size(),fe.iel);
+            ok = integrand.initElement(MNPC[jel],*A);
+          }
 
           // Find index of the neighboring element
           int kel = iel + (t1 == 1 ? 1 : n1-p1+1);
@@ -2382,10 +2393,13 @@ bool ASMs2D::integrate (Integrand& integrand,
 
               if (hasInterfaceElms)
               {
-                // Compute derivative for the neighboring element
+                // Compute derivative for the neighboring element, and the
+                // jump over the edge for the nodes of the interface element
                 Vector dN;
                 this->extractBasis(fe.u,fe.v,t1,fe.p, dN, edgeDir > 0);
-                utl::merge(fe.N,dN,MNPC[iel],MNPC[kel]);
+                fe.N.resize(MNPC[jel].size(),utl::RETAIN);
+                for (size_t k = 0; k < MNPC[kel].size(); k++)
+                  fe.N[utl::findIndex(MNPC[jel],MNPC[kel][k])] -= dN[k];
               }
             }
 
@@ -2401,13 +2415,27 @@ bool ASMs2D::integrate (Integrand& integrand,
             // Evaluate the integrand and accumulate element contributions
             ok = integrand.evalInt(*A,fe,time,X,normal);
           }
+
+          if (hasInterfaceElms && A)
+          {
+            // Assembly of global system integral of the interface element
+            if (ok && !glInt.assemble(A->ref(),fe.iel))
+              ok = false;
+
+            A->destruct();
+            A = nullptr;
+            ++jel;
+          }
         }
 
-      // Assembly of global system integral
-      if (ok && !glInt.assemble(A->ref(),fe.iel))
-        ok = false;
+      if (A)
+      {
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
+          ok = false;
 
-      A->destruct();
+        A->destruct();
+      }
 
       if (!ok) return false;
     }
