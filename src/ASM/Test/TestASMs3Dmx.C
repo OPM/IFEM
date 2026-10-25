@@ -14,6 +14,11 @@
 
 #include "GoTools/trivariate/SplineVolume.h"
 
+#include "Fields.h"
+#include "ItgPoint.h"
+
+#include <memory>
+
 #include "Catch2Support.h"
 
 
@@ -558,4 +563,34 @@ TEST_CASE("TestASMs3Dmx.WriteTH")
     REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
     REQUIRE(str.str() == cubeTH_2);
   }
+}
+
+
+TEST_CASE("TestASMs3Dmx.ProjectedFieldsSubgrid")
+{
+  // The projection basis of the subgrid spaces is the first basis, and the
+  // projected fields are used by mixed multi-patch models
+  const ASMmxBase::MixedType oldType = ASMmxBase::Type;
+  ASMmxBase::Type = ASMmxBase::SUBGRID;
+  ASMbase::resetNumbering();
+  ASMmxCube pch({3,1});
+  REQUIRE(pch.uniformRefine(0,1));
+  REQUIRE(pch.uniformRefine(1,1));
+  REQUIRE(pch.uniformRefine(2,1));
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pch.getNoProjectionNodes() == pch.getNoNodes(1));
+
+  // The x-coordinates of the nodes of the first basis
+  Vector coefs(pch.getNoNodes(1));
+  for (size_t n = 1; n <= coefs.size(); n++)
+    coefs(n) = pch.getCoord(n).x;
+
+  std::unique_ptr<Fields> f(pch.getProjectedFields(coefs,1));
+  REQUIRE(f);
+  Vector vals;
+  REQUIRE(f->valueFE(ItgPoint(0.3,0.7,0.4),vals));
+  REQUIRE(vals.size() == 1);
+  CHECK_THAT(vals(1), WithinAbs(0.3, 1e-12));
+
+  ASMmxBase::Type = oldType;
 }
