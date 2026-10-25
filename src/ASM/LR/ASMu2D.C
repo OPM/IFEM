@@ -2822,13 +2822,16 @@ ASMu2D::InterfaceChecker::InterfaceChecker (const ASMu2D& pch) : myPatch(pch)
 
 short int ASMu2D::InterfaceChecker::hasContribution (int e, int, int, int) const
 {
-  const LR::Element* elm = myPatch.lrspline->getElement(e-1);
+  // The elements are those of the first basis, as for the intersections,
+  // which may be ordered differently than those of the geometry
+  const LR::LRSplineSurface* lr = myPatch.getBasis(1);
+  const LR::Element* elm = lr->getElement(e-1);
 
   bool neighbor[4];
-  neighbor[0] = elm->getParmin(0) != myPatch.lrspline->startparam(0); // West
-  neighbor[1] = elm->getParmax(0) != myPatch.lrspline->endparam(0);   // East
-  neighbor[2] = elm->getParmin(1) != myPatch.lrspline->startparam(1); // South
-  neighbor[3] = elm->getParmax(1) != myPatch.lrspline->endparam(1);   // North
+  neighbor[0] = elm->getParmin(0) != lr->startparam(0); // West
+  neighbor[1] = elm->getParmax(0) != lr->endparam(0);   // East
+  neighbor[2] = elm->getParmin(1) != lr->startparam(1); // South
+  neighbor[3] = elm->getParmax(1) != lr->endparam(1);   // North
 
   // Check for existing neighbors
   short int status = 0, s = 1;
