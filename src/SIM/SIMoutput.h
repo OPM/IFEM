@@ -440,6 +440,7 @@ private:
   int    myGeofs1; //!< ID offset for immersed geometry block in the VTF-file
   int    myGeofs2; //!< ID offset for extra geometry block in the VTF-file
   VTF*   myVtf;    //!< VTF-file for result visualization
+  char*  vtfName;  //!< Name of the VTF-file, if any
   bool   mergeVtf; //!< If \e true, merge multi-patches into one on the VTF-file
   bool   logRpMap; //!< If \e true, print out the result point mapping
   int    idxGrid;  //!< Index into \ref myPoints for grid result output

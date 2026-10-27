@@ -37,6 +37,7 @@ SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
   myPtSize = 0.0;
   myGeomID = myGeofs1 = myGeofs2 = 0;
   myVtf = nullptr;
+  vtfName = nullptr;
   mergeVtf = logRpMap = false;
   idxGrid = -1;
 }
@@ -44,7 +45,7 @@ SIMoutput::SIMoutput (IntegrandBase* itg) : SIMinput(itg)
 
 SIMoutput::~SIMoutput ()
 {
-  delete myVtf;
+  this->closeGlv();
 
   for (std::pair<const std::string,RealFunc*>& func : myAddScalars)
     delete func.second;
@@ -2017,26 +2018,32 @@ bool SIMoutput::openGlv (const char* inpFile)
     inpFile = opt.vtf.c_str();
 
   // Create a valid VTF-file name
-  char* fName = new char[strlen(inpFile)+12];
-  strtok(strcpy(fName,inpFile),".");
+  vtfName = new char[strlen(inpFile)+12];
+  strtok(strcpy(vtfName,inpFile),".");
   if (!adm.dd.isPartitioned() && nProc > 1)
-    sprintf(fName+strlen(fName),"_p%04d",myPid);
+    sprintf(vtfName+strlen(vtfName),"_p%04d",myPid);
 #if HAS_VTFAPI == 2
-  strcat(fName,".vtfx");
+  strcat(vtfName,".vtfx");
 #else
-  strcat(fName,".vtf");
+  strcat(vtfName,".vtf");
 #endif
 
   // Open a new VTF-file
-  IFEM::cout <<"\nWriting VTF-file "<< fName << std::endl;
-  myVtf = new VTF(fName,opt.format);
-  delete[] fName;
+  IFEM::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
+  myVtf = new VTF(vtfName,opt.format);
   return true;
 }
 
 
 void SIMoutput::closeGlv ()
 {
+  if (vtfName)
+  {
+    IFEM::cout <<"\nFinalizing the VTF-file "<< vtfName << std::endl;
+    delete[] vtfName;
+    vtfName = nullptr;
+  }
+
   delete myVtf;
   myVtf = nullptr;
 }
