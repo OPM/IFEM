@@ -78,6 +78,12 @@ public:
   virtual bool isContinuousBasis(size_t basis) const
   { return ASMmxBase::continuousBasis(basis,nsd); }
 
+  //! \brief Returns \e true if a mixed basis is continuous over a boundary.
+  //! \param[in] lIndex Local index of the boundary edge or face
+  //! \param[in] basis 1-based basis index
+  virtual bool isContinuousOverBoundary(int lIndex, size_t basis) const
+  { return ASMmxBase::continuousOverBoundary(lIndex,basis,nsd); }
+
   //! \brief Flags whether the integrand maps this patch with the Piola transform.
   virtual void setPiolaMapped(bool mapped) { piola = mapped; }
 
