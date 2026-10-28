@@ -215,3 +215,47 @@ TEST_CASE("TestEqualOrderOperators.Source")
   REQUIRE_THAT(EV_vec(3), WithinAbs(0.0, 1e-13));
   REQUIRE_THAT(EV_vec(4), WithinRel(4.0));
 }
+
+
+TEST_CASE("TestEqualOrderOperators.GradDiv")
+{
+  MyElement fe;
+
+  // The term pairs the divergence of the two functions, so the matrix is
+  // the outer product of the one vector holding every derivative of every
+  // component: the entry of test (i,k) against trial (j,l) is the product
+  // of dN_i/dx_k with dN_j/dx_l and nothing else.
+  Matrix EM(2*2,2*2);
+  EqualOrderOperators::Weak::GradDiv(EM, fe);
+
+  const Real2DMat EM_ref = {{1.0,  3.0, 2.0,  4.0},
+                            {3.0,  9.0, 6.0, 12.0},
+                            {2.0,  6.0, 4.0,  8.0},
+                            {4.0, 12.0, 8.0, 16.0}};
+
+  check_matrix_equal(EM, EM_ref);
+
+  // Which is what the stress operator is not: the two agree wherever one
+  // of the indices is shared and part company where none is
+  Matrix EM_stress(2*2,2*2);
+  EqualOrderOperators::Weak::Stress(EM_stress, fe);
+  REQUIRE_THAT(EM_stress(1,4), WithinRel(6.0));
+
+  // A divergence free velocity is in the null space of the penalty, which
+  // is the whole of what it is there to leave alone
+  Vector u(2*2);
+  for (size_t i = 1; i <= 2; ++i)
+    for (size_t k = 1; k <= 2; ++k)
+      u((i-1)*2+k) = k == 1 ? fe.dNdX(i,2) : -fe.dNdX(i,1);
+
+  Vector Au;
+  EM.multiply(u, Au);
+  for (size_t i = 1; i <= Au.size(); ++i)
+    REQUIRE_THAT(Au(i), WithinAbs(0.0, 1.0e-13));
+
+  Matrix EM_scaled(2*2,2*2);
+  EqualOrderOperators::Weak::GradDiv(EM_scaled, fe, 2.0);
+  for (size_t i = 1; i <= 4; ++i)
+    for (size_t j = 1; j <= 4; ++j)
+      REQUIRE_THAT(EM_scaled(i,j), WithinRel(2.0*EM(i,j)));
+}

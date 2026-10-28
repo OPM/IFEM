@@ -117,6 +117,14 @@ public:
     static void Stress(Matrix& EM, const FiniteElement& fe,
                        double scale=1.0, int basis=1);
 
+    //! \brief Compute a least squares penalty on the divergence.
+    //! \param[out] EM The element matrix to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] basis Basis to use
+    static void GradDiv(Matrix& EM, const FiniteElement& fe,
+                        double scale=1.0, int basis=1);
+
     //! \brief Compute a heterogeneous coefficient laplacian.
     //! \param[out] EM The element matrix to add contribution to
     //! \param[in] K The coefficient matrix

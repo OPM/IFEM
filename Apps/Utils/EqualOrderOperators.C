@@ -201,6 +201,23 @@ void EqualOrderOperators::Weak::Stress (Matrix& EM,
 }
 
 
+void EqualOrderOperators::Weak::GradDiv (Matrix& EM,
+                                         const FiniteElement& fe,
+                                         double scale, int basis)
+{
+  const size_t cmp = EM.rows() / fe.basis(basis).size();
+
+  Matrix A;
+  for (size_t k = 1; k <= cmp; k++)
+    for (size_t l = 1; l <= cmp; l++) {
+      A.outer_product(fe.grad(basis).getColumn(k),
+                      fe.grad(basis).getColumn(l),
+                      false, scale*fe.detJxW);
+      addComponent(EM, A, k, l, cmp);
+    }
+}
+
+
 void EqualOrderOperators::Weak::LaplacianCoeff (Matrix& EM, const Matrix& K,
                                                 const FiniteElement& fe,
                                                 double scale, int basis)
