@@ -1882,14 +1882,20 @@ void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 
 
 double SIMbase::solutionNorms (const Vector& x, double* inf,
-			       size_t* ind, size_t nf, char type) const
+                               size_t* ind, size_t nf, char type) const
 {
-  if (inf && ind && nf == 0) nf = nsd;
-
-  for (size_t d = 0; d < nf; d++)
+  if (inf && ind)
   {
-    ind[d] = d+1;
-    inf[d] = mySam->normInf(x,ind[d],type);
+    size_t iabs = 0;
+    if (nf == 0)
+      nf = nsd;
+    else if (nf == static_cast<size_t>(nsd+1) && this->getNoFields(1) == nsd)
+      iabs = nf; // flag calculation of max absolute value
+    for (size_t d = 1; d <= nf; d++)
+    {
+      ind[d-1] = d == iabs ? 999 : d;
+      inf[d-1] = mySam->normInf(x,ind[d-1],type);
+    }
   }
 
   return mySam->normL2(x,type);

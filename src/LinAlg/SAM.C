@@ -189,9 +189,9 @@ void SAM::printMEQN (std::ostream& os) const
       os <<'\n'<< std::setw(4) << (minex ? minex[n] : n+1) <<":";
       for (dof = madof[n]; dof < madof[n+1]; dof++, i++)
       {
-	os <<' '<< std::setw(4) << meqn[dof-1];
-	code[i] = msc[dof-1] > 0 ? '0' + msc[dof-1] : '0';
-	dofType[i] = !dof_type.empty() ? dof_type[dof-1] : '\0';
+        os <<' '<< std::setw(4) << meqn[dof-1];
+        code[i] = msc[dof-1] > 0 ? '0' + msc[dof-1] : '0';
+        dofType[i] = !dof_type.empty() ? dof_type[dof-1] : '\0';
       }
       code[i] = dofType[i] = '\0';
       os <<'\t'<< code;
@@ -281,21 +281,18 @@ bool SAM::initSystemEquations ()
     {
       nddof++; // slave DOF
       while (ip++ < jp)
-      {
-	int jdof = mmceq[ip-1];
-	if (jdof < 1 || jdof > ndof)
-	{
+        if (int jdof = mmceq[ip-1]; jdof < 1 || jdof > ndof)
+        {
           ierr--;
           std::cerr <<" *** SAM::initSystemEquations: jdof = "<< jdof
                     <<" is out of range [1,"<< ndof <<"]."<< std::endl;
-	}
-	else if (msc[jdof-1] < 1)
-	{
+        }
+        else if (msc[jdof-1] < 1)
+        {
           ierr--;
           std::cerr <<" *** SAM::initSystemEquations: Invalid status code "
                     << msc[jdof-1] <<" for master dof "<< jdof << std::endl;
-	}
-      }
+        }
     }
     else
     {
@@ -402,9 +399,7 @@ void SAM::getDofCouplings (std::vector<IntSet>& dofc) const
           {
             jeq = meqn[mmceq[jp]-1];
             for (size_t i = 0; i < meen.size(); i++)
-            {
-              int ieq = meen[i];
-              if (ieq > 0)
+              if (int ieq = meen[i]; ieq > 0)
               {
                 dofc[ieq-1].insert(jeq);
                 dofc[jeq-1].insert(ieq);
@@ -420,7 +415,6 @@ void SAM::getDofCouplings (std::vector<IntSet>& dofc) const
                     dofc[ieq-1].insert(jeq);
                   }
               }
-            }
           }
       }
   }
@@ -669,9 +663,9 @@ bool SAM::getElmEqns (IntVec& meen, int iel, size_t nedof) const
   int neldof = 0;
   if (nedof == 0) // Calculate element size from the nodal connectivity
     neldof = std::accumulate(mmnpc+ip, mmnpc+ip+nenod, 0,
-                             [this](const int& offs, const int& inod) {
+                             [MADOF=madof](const int& offs, const int& inod) {
                                int node = inod > 0 ? inod : -inod;
-                               return offs + madof[node] - madof[node-1]; });
+                               return offs + MADOF[node] - MADOF[node-1]; });
 
 #ifdef USE_F77SAM
   int neslv, neprd;
@@ -859,7 +853,7 @@ Real SAM::dot (const Vector& x, const Vector& y, char dofType) const
 
 Real SAM::normL2 (const Vector& x, char dofType) const
 {
-  if (x.empty())
+  if (x.empty() || nnod < 1)
     return Real(0);
   else if (nodeType.empty() && dof_type.empty())
     return x.norm2()/sqrt(x.size()); // All DOFs are of the same type
@@ -882,9 +876,9 @@ Real SAM::normL2 (const Vector& x, char dofType) const
 
 Real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
 {
-  if (x.empty() || comp < 1)
+  if (x.empty() || comp < 1 || nnod < 1)
     return Real(0);
-  else if (nodeType.empty() && dof_type.empty())
+  else if (nodeType.empty() && dof_type.empty() && comp != 999)
   {
     // All DOFs are of the same type and the number of nodal DOFs is constant
     if (int nndof = madof[1] - madof[0]; static_cast<int>(comp) <= nndof)
@@ -894,10 +888,23 @@ Real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
   }
 
   // Consider only the dofType DOFs
-  size_t icmp = comp;
+  size_t icmp = 1;
   Real retVal = Real(0);
+  std::swap(icmp,comp);
   for (int i = 0; i < nnod; i++)
-    if (!dof_type.empty())
+    if (icmp == 999) // DOF code for absolute value calculation
+    {
+      // Find nodal max absolute value
+      Real amax = Real(0);
+      for (int idof = madof[i]; idof < madof[i+1]; idof++)
+        amax += x[idof-1]*x[idof-1];
+      if (amax > retVal)
+      {
+        comp = i+1;
+        retVal = amax;
+      }
+    }
+    else if (!dof_type.empty())
     {
       size_t k = 0;
       for (int idof = madof[i]-1; idof+1 < madof[i+1]; idof++)
@@ -916,7 +923,7 @@ Real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
           retVal = fabs(x[idof]);
         }
 
-  return retVal;
+  return icmp == 999 ? sqrt(retVal) : retVal;
 }
 
 
@@ -1002,11 +1009,11 @@ bool SAM::getNodalReactions (int inod, const RealArray& rf,
 IntSet SAM::getEquations (char dType, int dof) const
 {
   IntSet result;
-  auto&& getEquation = [this,dType,&result](int idof)
+  auto getEquation = [&dofType=dof_type,MEQN=meqn,dType,&result](int idof)
   {
-    if (dof_type.empty() || dof_type[idof] == dType)
-      if (meqn[idof] > 0)
-        result.insert(meqn[idof]);
+    if (dofType.empty() || dofType[idof] == dType)
+      if (MEQN[idof] > 0)
+        result.insert(MEQN[idof]);
   };
 
   for (int inod = 0; inod < nnod; inod++)
