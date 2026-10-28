@@ -377,8 +377,13 @@ public:
   virtual size_t getNoBasis() const { return 1; }
 
   //! \brief Returns \e true if a basis is continuous across a patch interface.
+  virtual bool isContinuousBasis(size_t) const { return true; }
+
+  //! \brief Returns \e true if a basis is continuous over one boundary.
+  //! \param[in] lIndex Local index of the boundary edge or face
   //! \param[in] basis 1-based basis index
-  virtual bool isContinuousBasis(size_t basis) const { return true; }
+  virtual bool isContinuousOverBoundary(int lIndex, size_t basis) const
+  { return this->isContinuousBasis(basis); }
 
   //! \brief Flags whether the integrand maps this patch with the Piola transform.
   virtual void setPiolaMapped(bool) {}

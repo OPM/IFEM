@@ -13,6 +13,7 @@
 
 #include "SIM3D.h"
 #include "ModelGenerator.h"
+#include "IntegrandBase.h"
 #include "ASMs3D.h"
 #include "Functions.h"
 #include "Utilities.h"
@@ -76,10 +77,12 @@ bool SIM3D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
       std::set<int> bases;
       if (ifc.basis == 0)
       {
-        // Only the continuous bases, since a basis that is discontinuous
-        // across the interface has nothing to tie there
+        const bool penalized = myProblem &&
+          (myProblem->getIntegrandType() & IntegrandBase::PATCH_INTERFACES);
         for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
-          if (myModel[lslave-1]->isContinuousBasis(b))
+          if (penalized
+              ? myModel[lslave-1]->isContinuousOverBoundary(ifc.sidx,b)
+              : myModel[lslave-1]->isContinuousBasis(b))
             bases.insert(b);
       }
       else
