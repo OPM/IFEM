@@ -1302,7 +1302,8 @@ bool ASMu2Dmx::connectPatch (int edge, ASM2D& neighbor, int nedge, bool revers,
   if (!neighMx) return false;
 
   for (size_t i = 1; i <= m_basis.size(); ++i)
-    if (basis == 0 || i == (size_t)basis)
+    if (basis == 0 ? this->isContinuousBasis(i)
+                   : i == static_cast<size_t>(basis))
       if (!this->connectBasis(edge,*neighMx,nedge,revers,i,0,0,coordCheck,thick))
         return false;
 

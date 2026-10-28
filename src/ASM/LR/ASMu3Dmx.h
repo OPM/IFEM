@@ -208,6 +208,27 @@ public:
   //! \brief Checks if a separate projection basis is used for this patch.
   virtual bool separateProjectionBasis() const;
 
+  //! \brief Connects all matching nodes on two adjacent boundary faces.
+  //! \param[in] face Local face index of this patch, in range [1,6]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nface Local face index of neighbor patch, in range [1,6]
+  //! \param[in] norient Relative face orientation flag, see connectPatch()
+  //! \param[in] basis Which basis to connect, 0 for every continuous one
+  //! \param[in] coordCheck False to disable coordinate checks
+  //! \param[in] thick Thickness of connection
+  bool connectPatch(int face, ASM3D& neighbor, int nface, int norient,
+                    int basis, bool coordCheck, int thick) override;
+
+  //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary face
+  //! \param nodes Array of node numbers
+  //! \param[in] basis Which basis to grab nodes for (0 for all)
+  //! \param[in] thick Thickness of connection
+  //! \param[in] orient Orientation for returned boundary nodes
+  //! \param[in] local If \e true return patch-local node numbers
+  void getBoundaryNodes(int lIndex, IntVec& nodes, int basis,
+                        int thick, int orient, bool local) const override;
+
   //! \brief Returns true if the last passed integrand used Piola mapping.
   bool usePiola() const { return piola; }
 

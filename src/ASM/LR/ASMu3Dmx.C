@@ -1168,6 +1168,35 @@ void ASMu3Dmx::getElementsAt (const RealArray& param,
 }
 
 
+bool ASMu3Dmx::connectPatch (int face, ASM3D& neighbor, int nface, int norient,
+                             int basis, bool coordCheck, int thick)
+{
+  ASMu3Dmx* neighMx = dynamic_cast<ASMu3Dmx*>(&neighbor);
+  if (!neighMx) return false;
+
+  for (size_t i = 1; i <= m_basis.size(); i++)
+    if (basis == 0 ? this->isContinuousBasis(i)
+                   : i == static_cast<size_t>(basis))
+      if (!this->connectBasis(face,*neighMx,nface,norient,i,0,0,
+                              coordCheck,thick))
+        return false;
+
+  this->addNeighbor(neighMx);
+  return true;
+}
+
+
+void ASMu3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
+                                 int thick, int orient, bool local) const
+{
+  if (basis > 0)
+    this->ASMu3D::getBoundaryNodes(lIndex,nodes,basis,thick,orient,local);
+  else
+    for (size_t b = 1; b <= this->getNoBasis(); b++)
+      this->ASMu3D::getBoundaryNodes(lIndex,nodes,b,thick,orient,local);
+}
+
+
 bool ASMu3Dmx::separateProjectionBasis () const
 {
   return std::none_of(m_basis.begin(), m_basis.end(),
