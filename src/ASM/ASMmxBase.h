@@ -94,6 +94,19 @@ public:
   static bool continuousBasis(size_t basis, size_t nsd)
   { return !compatibleSpace() || basis <= nsd; }
 
+  //! \brief Returns \e true if a mixed basis is continuous over a boundary.
+  //! \param[in] lIndex Local index of the boundary edge or face
+  //! \param[in] basis 1-based basis index
+  //! \param[in] nsd Number of space dimensions
+  static bool continuousOverBoundary(int lIndex, size_t basis, size_t nsd)
+  {
+    if (!compatibleSpace() || basis > nsd)
+      return continuousBasis(basis,nsd);
+
+    const size_t through = (lIndex%10 + 1)/2;
+    return Type == DIV_COMPATIBLE ? basis == through : basis != through;
+  }
+
 protected:
   typedef std::vector<std::shared_ptr<Go::SplineSurface>> SurfaceVec; //!< Convenience type
   typedef std::vector<std::shared_ptr<Go::SplineVolume>> VolumeVec; //!< Convenience type

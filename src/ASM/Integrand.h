@@ -171,6 +171,7 @@ public:
     POINT_DEFORMATION  = 1<<12, //!< Integrand wants point-wise deformation
     CONTRAVARIANT      = 1<<13, //!< Integrand wants contravariant Piola mapping
     COVARIANT          = 1<<14, //!< Integrand wants covariant Piola mapping
+    PATCH_INTERFACES   = 1<<15, //!< Integrand has patch interface terms
     PIOLA_MAPPING      = CONTRAVARIANT | COVARIANT //!< Any Piola mapping
   };
 

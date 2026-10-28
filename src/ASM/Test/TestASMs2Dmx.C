@@ -374,3 +374,47 @@ TEST_CASE("TestASMs2Dmx.ContinuousBasis")
     REQUIRE(!pch2.dofsFollowParametrization(b));
   }
 }
+
+
+TEST_CASE("TestASMs2Dmx.ContinuousOverBoundary")
+{
+  const ASMmxBase::MixedType param = GENERATE(
+    ASMmxBase::DIV_COMPATIBLE,
+    ASMmxBase::CURL_COMPATIBLE
+  );
+
+  const bool div = param == ASMmxBase::DIV_COMPATIBLE;
+  SECTION(div ? "Div" : "Curl") {
+    ASMmxBase::Type = param;
+    ASMbase::resetNumbering();
+    ASMmxSquare pch1({1,1,1});
+    pch1.raiseOrder(1,1);
+    REQUIRE(pch1.generateFEMTopology());
+
+    // Edges 1 and 2 hold u constant and the component through them is on
+    // the first basis, edges 3 and 4 hold v and theirs is the second. An
+    // H(div) field carries the component through an edge over it and an
+    // H(curl) field the one along it, so the two pairs answer the one way
+    // and the other
+    for (int edge = 1; edge <= 4; edge++)
+    {
+      const size_t through = (edge+1)/2;
+      for (size_t b = 1; b <= 2; b++)
+        REQUIRE(pch1.isContinuousOverBoundary(edge,b) ==
+                (div ? b == through : b != through));
+
+      // Neither carries the last basis over anything
+      REQUIRE(!pch1.isContinuousOverBoundary(edge,3));
+    }
+  }
+
+  // A pair continuous in everything it has is continuous over every edge
+  ASMmxBase::Type = ASMmxBase::REDUCED_CONT_RAISE_BASIS1;
+  ASMbase::resetNumbering();
+  ASMmxSquare pch2({1,1});
+  REQUIRE(pch2.generateFEMTopology());
+
+  for (int edge = 1; edge <= 4; edge++)
+    for (size_t b = 1; b <= 2; b++)
+      REQUIRE(pch2.isContinuousOverBoundary(edge,b));
+}

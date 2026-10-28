@@ -67,6 +67,10 @@ public:
   virtual bool isContinuousBasis(size_t basis) const
   { return ASMmxBase::continuousBasis(basis,nsd); }
 
+  //! \copydoc ASMmxBase::continuousOverBoundary(int,size_t,size_t)
+  virtual bool isContinuousOverBoundary(int lIndex, size_t basis) const
+  { return ASMmxBase::continuousOverBoundary(lIndex,basis,nsd); }
+
   //! \brief Flags whether the integrand maps this patch with the Piola transform.
   virtual void setPiolaMapped(bool mapped) { piola = mapped; }
 
