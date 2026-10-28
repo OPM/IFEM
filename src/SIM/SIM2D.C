@@ -99,6 +99,10 @@ bool SIM2D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
               ? myModel[lslave-1]->isContinuousOverBoundary(ifc.sidx,b)
               : myModel[lslave-1]->isContinuousBasis(b))
             bases.insert(b);
+        if (myProblem)
+          for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
+            if (myProblem->needsTiedBasis(b))
+              bases.insert(b);
       }
       else
         bases = utl::getDigits(ifc.basis);
