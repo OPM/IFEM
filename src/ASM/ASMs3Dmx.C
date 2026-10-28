@@ -398,7 +398,7 @@ bool ASMs3Dmx::connectPatch (int face, ASM3D& neighbor, int nface, int norient,
   if (swapW && face > 4) // Account for swapped parameter direction
     face = 11-face;
 
-  if (neighMx->swapW && face > 4) // Account for swapped parameter direction
+  if (neighMx->swapW && nface > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
   size_t nb1 = 0, nb2 = 0;
