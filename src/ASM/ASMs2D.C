@@ -3343,7 +3343,8 @@ Field* ASMs2D::getProjectedField (const Vector& coefs) const
 
 Fields* ASMs2D::getProjectedFields (const Vector& coefs, size_t) const
 {
-  if (projB.get() == this->getBasis(1) || this->getNoProjectionNodes() == 0)
+  // The projection basis can be the first basis of a mixed patch
+  if (this->getNoProjectionNodes() == 0)
     return nullptr;
 
   size_t ncmp = coefs.size() / this->getNoProjectionNodes();
