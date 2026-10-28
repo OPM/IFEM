@@ -182,6 +182,10 @@ public:
                       const std::vector<size_t>& basis_sizes,
                       LocalIntegral& elmInt) override;
 
+  //! \brief Returns whether a basis has to be tied where two patches meet.
+  //! \param[in] basis 1-based basis index
+  virtual bool needsTiedBasis(size_t basis) const { return false; }
+
   //! \brief Returns whether this integrand has explicit interior contributions.
   virtual bool hasInteriorTerms() const { return true; }
   //! \brief Returns whether this integrand has explicit boundary contributions.
