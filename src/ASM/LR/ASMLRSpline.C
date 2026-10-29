@@ -374,9 +374,10 @@ IntVec ASMLRSpline::getBoundaryCovered (const IntSet& nodes) const
   for (int edge = 1; edge <= numbEdges; edge++)
   {
     IntVec bnd = GlobalNodes::getBoundaryNodes(*refB, boundrDim, edge, 0);
+    IntSet bset(bnd.begin(), bnd.end());
     for (const int i : nodes)
-      for (const int j : bnd)
-        if (refB->getBasisfunction(i)->contains(*refB->getBasisfunction(j)))
+      for (int j : this->getOverlappingNodes(i))
+        if (bset.find(j) != bset.end())
           result.insert(j);
   }
 
