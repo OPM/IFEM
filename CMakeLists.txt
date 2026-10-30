@@ -585,6 +585,7 @@ IFEM_add_test_app(
       src/Utility/Test/TestAnaSol.C
       src/Utility/Test/TestBDF.C
       src/Utility/Test/TestChebyshev.C
+      src/Utility/Test/TestHDF5Restart.C
       src/Utility/Test/TestControlFIFO.C
       src/Utility/Test/TestCoordinateMapping.C
       src/Utility/Test/TestElementBlock.C
