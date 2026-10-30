@@ -137,6 +137,8 @@ void ASMs1D::clear (bool retainGeometry)
 
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
+  xnMap.clear();
+  nxMap.clear();
 }
 
 
@@ -607,8 +609,43 @@ double ASMs1D::getKnotSpan (int i) const
 }
 
 
+size_t ASMs1D::getNodeIndex (int globalNum, bool noAddedNodes) const
+{
+  size_t inod = 1 + utl::findIndex(MLGN,globalNum);
+  if (noAddedNodes && !xnMap.empty() && inod > nnod)
+  {
+    std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
+    if (it != xnMap.end()) return it->second;
+  }
+
+  return inod;
+}
+
+
+int ASMs1D::getNodeID (size_t inod, bool noAddedNodes) const
+{
+  if (noAddedNodes && !nxMap.empty())
+  {
+    std::map<size_t,size_t>::const_iterator it = nxMap.find(inod);
+    if (it != nxMap.end()) inod = it->second;
+  }
+
+  if (inod < 1 || inod > MLGN.size())
+    return 0;
+
+  return MLGN[inod-1];
+}
+
+
 Vec3 ASMs1D::getCoord (size_t inod) const
 {
+  if (inod > nnod && inod <= MLGN.size())
+  {
+    // This is a node added due to constraints in local directions.
+    // Find the corresponding original node (see constrainEndLocal)
+    std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
+    if (it != xnMap.end()) inod = it->second;
+  }
   if (inod == 0) return Vec3();
 
   std::map<size_t,XYZ>::const_iterator it = myRmaster.find(inod);
