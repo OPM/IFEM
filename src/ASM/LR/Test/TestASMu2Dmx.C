@@ -13,6 +13,9 @@
 #include "ASMmxBase.h"
 #include "ASMuSquare.h"
 
+#include <LRSpline/Element.h>
+#include <LRSpline/LRSplineSurface.h>
+
 #include "Catch2Support.h"
 
 
@@ -384,4 +387,53 @@ TEST_CASE("TestASMu2Dmx.WriteTH")
     REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
     REQUIRE(str.str() == squareTH_2);
   }
+}
+
+
+TEST_CASE("TestASMu2Dmx.InterfaceChecker")
+{
+  // After local refinement, the elements of the first basis are ordered
+  // differently than those of the geometry. The interface checker gives the
+  // element boundaries with neighbors of the elements of the first basis,
+  // which the interface integrals of the mixed patches loop over.
+  const ASMmxBase::MixedType oldType = ASMmxBase::Type;
+  ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
+  ASMbase::resetNumbering();
+  ASMmxuSquare pch({2,1});
+  REQUIRE(pch.uniformRefine(0,1));
+  REQUIRE(pch.uniformRefine(1,2));
+  REQUIRE(pch.generateFEMTopology());
+
+  IntSet functions;
+  pch.getFunctionsForElements(functions,{0,5},false);
+  LR::RefineData prm(true);
+  prm.options = { 10, 1, 2 };
+  prm.elements.assign(functions.begin(),functions.end());
+  Vectors sol;
+  REQUIRE(pch.refine(prm,sol));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+
+  const LR::LRSplineSurface* basis = pch.getBasis(1);
+  bool reordered = false;
+  for (const LR::Element* el : basis->getAllElements())
+  {
+    const LR::Element* gel = pch.getBasis(ASM::GEOMETRY_BASIS)->getElement(el->getId());
+    reordered |= gel->umin() != el->umin() || gel->vmin() != el->vmin();
+  }
+  REQUIRE(reordered);
+
+  ASMu2D::InterfaceChecker iChk(pch);
+  for (const LR::Element* el : basis->getAllElements())
+  {
+    INFO("element " << el->getId()+1);
+    short int status = 0;
+    if (el->umin() > 0.0) status |= 1;
+    if (el->umax() < 1.0) status |= 2;
+    if (el->vmin() > 0.0) status |= 4;
+    if (el->vmax() < 1.0) status |= 8;
+    CHECK(iChk.hasContribution(el->getId()+1) == status);
+  }
+
+  ASMmxBase::Type = oldType;
 }

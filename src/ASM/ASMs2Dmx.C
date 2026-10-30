@@ -878,7 +878,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   std::copy(elem_size.begin(),elem_size.end(),std::back_inserter(elem_sizes2));
 
   MxFiniteElement fe(elem_sizes2);
-  Matrix        Xnod, Jac;
+  Matrix        Xnod, Xnod2, Jac;
   Vec4          X(nullptr,time.t);
   Vec3          normal;
   double        u[2], v[2];
@@ -944,6 +944,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
           }
           A_neigh->destruct();
 
+          // The neighbor's own coordinates map its basis function derivatives
+          if (!this->getElementCoordinates(Xnod2,1+kel))
+            ok = false;
+
           // Get element edge length in the parameter space
           double dS = 0.5*this->getParametricLength(1+iel,t2);
           if (dS < 0.0) // topology error (probably logic error)
@@ -984,7 +988,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             }
 
             // Compute basis function derivatives and the edge normal
-            if (fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2,nB) < 0.0)
+            if (fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2,nB,&Xnod2) < 0.0)
               ok = false;
 
             if (edgeDir < 0) normal *= -1.0;

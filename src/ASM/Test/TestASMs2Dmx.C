@@ -12,6 +12,7 @@
 
 #include "ASMmxBase.h"
 #include "ASMSquare.h"
+#include "MixedJumpIntegrand.h"
 
 #include "Catch2Support.h"
 
@@ -417,4 +418,31 @@ TEST_CASE("TestASMs2Dmx.ContinuousOverBoundary")
   for (int edge = 1; edge <= 4; edge++)
     for (size_t b = 1; b <= 2; b++)
       REQUIRE(pch2.isContinuousOverBoundary(edge,b));
+}
+
+
+TEST_CASE("TestASMs2Dmx.InterfaceJumps")
+{
+  // A field on a C1 first basis has no jumps in its normal derivative on a
+  // C1 non-affine geometry, when the derivatives of the neighbor element
+  // are mapped with its own coordinates
+  const ASMmxBase::MixedType oldType = ASMmxBase::Type;
+  ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
+
+  std::istringstream is("200 1 0 0\n2 0\n"
+                        "3 3\n0 0 0 1 1 1\n3 3\n0 0 0 1 1 1\n"
+                        "0 0\n0.5 0.1\n1 0\n"
+                        "0.1 0.5\n0.6 0.6\n1.1 0.4\n"
+                        "0 1\n0.4 1.1\n1 1\n");
+  ASMs2Dmx pch(2,{2,1});
+  REQUIRE(pch.read(is));
+  REQUIRE(pch.uniformRefine(0,2));
+  REQUIRE(pch.uniformRefine(1,1));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+  pch.setGauss(3);
+
+  checkNoJumps(pch,ASMs2D::InterfaceChecker(pch));
+
+  ASMmxBase::Type = oldType;
 }
