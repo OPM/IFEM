@@ -161,6 +161,28 @@ TEST_CASE("TestASMu2D.SecondDerivatives")
 }
 
 
+TEST_CASE("TestASMu2D.GetCoordNurbs")
+{
+  // The nodal coordinates of a NURBS patch are the control points
+  ASMu2D pch(2, 1);
+  std::ifstream g2file("src/ASM/LR/Test/refdata/hole2D.g2");
+  REQUIRE(pch.read(g2file));
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pch.rational());
+
+  Matrix X;
+  pch.getNodalCoordinates(X);
+  REQUIRE(X.cols() == pch.getNoNodes());
+  for (size_t inod = 1; inod <= pch.getNoNodes(); inod++)
+  {
+    const Vec3 Xn = pch.getCoord(inod);
+    INFO("node " << inod);
+    CHECK_THAT(Xn.x, WithinAbs(X(1,inod), 1e-14));
+    CHECK_THAT(Xn.y, WithinAbs(X(2,inod), 1e-14));
+  }
+}
+
+
 TEST_CASE("TestASMu2D.GetElementCorners")
 {
   ASM2DTests<ASMuTrap<ASMu2D>>::GetElementCorners();
