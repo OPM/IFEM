@@ -2576,16 +2576,25 @@ bool ASMu3D::BasisFunctionCache::internalInit ()
 }
 
 
+void ASMu3D::BasisFunctionCache::noGaussPts (std::array<int,3>& ng) const
+{
+  // The quadrature is set up by the cache of the first basis
+  const LR::LRSplineVolume* b = patch.getBasis(1);
+
+  ng = {
+    patch.getNoGaussPt(b->order(0)),
+    patch.getNoGaussPt(b->order(1)),
+    patch.getNoGaussPt(b->order(2))
+  };
+}
+
+
 bool ASMu3D::BasisFunctionCache::setupQuadrature ()
 {
-  std::array<int,3> order = { patch.getBasis(basis)->order(0),
-                              patch.getBasis(basis)->order(1),
-                              patch.getBasis(basis)->order(2) };
-
   // Get Gaussian quadrature points and weights
+  this->noGaussPts(mainQ->ng);
   for (int d = 0; d < 3; d++)
   {
-    mainQ->ng[d] = patch.getNoGaussPt(order[d]);
     mainQ->xg[d] = GaussQuadrature::getCoord(mainQ->ng[d]);
     mainQ->wg[d] = GaussQuadrature::getWeight(mainQ->ng[d]);
     if (!mainQ->xg[d] || !mainQ->wg[d]) return false;
