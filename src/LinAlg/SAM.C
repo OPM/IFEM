@@ -820,14 +820,21 @@ bool SAM::applyDirichlet (Vector& dofVec) const
 {
   if (!meqn) return false;
 
+  // The fixed DOFs first, as they may be masters of the constrained DOFs
+  for (int idof = 0; idof < ndof; idof++)
+    if (meqn[idof] == 0)
+      dofVec[idof] = Real(0);
+
+  // The constrained DOFs, with the contributions of their master DOFs
   for (int idof = 0; idof < ndof; idof++)
     if (int iceq = -meqn[idof]; iceq > 0)
     {
       int ip = mpmceq[iceq-1];
       dofVec[idof] = ttcc[ip-1];
+      for (; ip < mpmceq[iceq]-1; ip++)
+        if (mmceq[ip] > 0)
+          dofVec[idof] += ttcc[ip]*dofVec[mmceq[ip]-1];
     }
-    else if (iceq == 0)
-      dofVec[idof] = Real(0);
 
   return true;
 }
