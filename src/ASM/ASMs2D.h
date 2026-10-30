@@ -242,6 +242,14 @@ public:
 
   //! \brief Returns the coordinate of the element center.
   virtual Vec3 getElementCenter(int iel) const;
+  //! \brief Computes the element corner coordinates.
+  //! \param[in] iel 1-based element index
+  //! \param[out] XC Coordinates of the element corners, the first direction
+  //! running fastest
+  //! \param[out] uC Spline parameters of the element corners (optional)
+  //! \return Characteristic element size
+  virtual double getElementCorners(int iel, std::vector<Vec3>& XC,
+                                   RealArray* uC = nullptr) const;
 
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
@@ -676,14 +684,14 @@ protected:
   //! \param[out] u Parameter values of the element borders
   virtual void getElementBorders(int iel, double* u) const;
 
-  //! \brief Computes the element corner coordinates.
+  //! \brief Computes the corner coordinates of a knot span.
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction
-  //! \param[out] XC Coordinates of the element corners
-  //! \param[out] uC Spline parameters of the element corners (optional)
+  //! \param[out] XC Coordinates of the knot-span corners
+  //! \param[out] uC Spline parameters of the knot-span corners (optional)
   //! \return Characteristic element size
-  double getElementCorners(int i1, int i2, std::vector<Vec3>& XC,
-                           RealArray* uC = nullptr) const;
+  double getSpanCorners(int i1, int i2, std::vector<Vec3>& XC,
+                        RealArray* uC = nullptr) const;
   //! \brief Computes the element corner coordinates and parameters.
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction

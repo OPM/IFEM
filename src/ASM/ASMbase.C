@@ -334,6 +334,14 @@ const IntVec& ASMbase::getElementNodes (int iel) const
 }
 
 
+double ASMbase::getElementCorners (int, Vec3Vec& XC, RealArray* uC) const
+{
+  XC.clear();
+  if (uC) uC->clear();
+  return -1.0;
+}
+
+
 bool ASMbase::getElementBBox (Vec3& X0, Vec3& X1, int iel) const
 {
   X0 =  1.0e99;

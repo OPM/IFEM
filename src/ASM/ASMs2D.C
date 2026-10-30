@@ -1699,8 +1699,19 @@ void ASMs2D::getElementBorders (int i1, int i2, double* u, double* v) const
 }
 
 
-double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC,
-                                  RealArray* uC) const
+double ASMs2D::getElementCorners (int iel, Vec3Vec& XC, RealArray* uC) const
+{
+  int p1 = surf->order_u();
+  int p2 = surf->order_v();
+  int n1 = surf->numCoefs_u() - p1 + 1;
+  int i1 = p1 + (iel-1) % n1;
+  int i2 = p2 + (iel-1) / n1;
+  return this->getSpanCorners(i1-1,i2-1,XC,uC);
+}
+
+
+double ASMs2D::getSpanCorners (int i1, int i2, Vec3Vec& XC,
+                               RealArray* uC) const
 {
   // Fetch parameter values of the element (knot-span) corners
   RealArray u(2), v(2);
@@ -1740,7 +1751,7 @@ void ASMs2D::getCornerPoints (int i1, int i2, PointVec& XC) const
 {
   RealArray uC;
   Vec3Vec  XYZ;
-  this->getElementCorners(i1,i2,XYZ,&uC);
+  this->getSpanCorners(i1,i2,XYZ,&uC);
 
   XC.clear();
   XC.reserve(4);
@@ -1851,7 +1862,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         }
 
         if (useElmVtx)
-          fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
+          fe.h = this->getElementCorners(iel,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
@@ -2147,11 +2158,11 @@ bool ASMs2D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
-          fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
+          fe.h = this->getElementCorners(iel,fe.XC);
           X.assign(0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]));
         }
         else if (useElmVtx)
-          fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
+          fe.h = this->getElementCorners(iel,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
@@ -2322,7 +2333,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       if (!this->getElementCoordinates(Xnod,1+iel)) return false;
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
+        fe.h = this->getElementCorners(1+iel,fe.XC);
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(MNPC[jel].size(),fe.iel);
@@ -2541,7 +2552,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,1+iel)) return false;
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        fe.h = this->getElementCorners(i1-1,i2-1,fe.XC);
+        fe.h = this->getElementCorners(1+iel,fe.XC);
 
       if (useGmat)
       {

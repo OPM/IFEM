@@ -68,6 +68,13 @@ public:
 
   //! \brief Returns the geometric center of an element.
   virtual Vec3 getElementCenter(int iel) const;
+  //! \brief Computes the element end coordinates.
+  //! \param[in] iel 1-based element index
+  //! \param[out] XC Coordinates of the end nodes of the element
+  //! \param[out] uC Not used, the nodes have no spline parameters
+  //! \return Element length
+  virtual double getElementCorners(int iel, std::vector<Vec3>& XC,
+                                   RealArray* uC = nullptr) const;
 
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
@@ -154,6 +161,13 @@ private:
   static void createMNPC(size_t nel, int p1, IntMat& MNPC);
 
 protected:
+  //! \brief Computes the element end parameters.
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[out] ub Parameter values of the element ends
+  //!
+  //! \details There is one element in each non-zero knot span.
+  virtual void getElementBorders(int iel, double* ub) const;
+
   size_t nx; //!< Number of nodes
   int    p1; //!< Polynomial order of the basis
 };

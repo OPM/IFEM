@@ -11,8 +11,7 @@
 //==============================================================================
 
 #include "ASMuCube.h"
-#include "ASMuTrap3.h"
-#include "ASMs3D.h"
+#include "Test/ASMTrap3.h"
 #include "GaussQuadrature.h"
 #include "GlobalIntegral.h"
 #include "LaplacianIntegrand.h"
@@ -185,7 +184,7 @@ TEST_CASE("TestASMu3D.FaceIntegrate")
 
 TEST_CASE("TestASMu3D.GetElementCorners")
 {
-  ASM3DTests<ASMuTrap3<ASMu3D>>::GetElementCorners();
+  ASM3DTests<ASMTrap3<ASMu3D>>::GetElementCorners();
 }
 
 

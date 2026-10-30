@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "ASMs1D.h"
+#include "ASMs1DLag.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include <sstream>
@@ -219,5 +220,61 @@ TEST_CASE("TestASMs1D.ElmNodes")
     REQUIRE(mnpc_proj[i].size() == ref_proj[i].size());
     for (size_t j = 0; j < mnpc_proj[i].size(); ++j)
       REQUIRE(mnpc_proj[i][j] == ref_proj[i][j]);
+  }
+}
+
+
+TEST_CASE("TestASMs1D.LagrangeElementCenter")
+{
+  // A cubic straight line with a double knot, giving two elements
+  // over the non-zero knot spans
+  ASMbase::resetNumbering();
+  ASMs1DLag pch(2,1);
+  std::stringstream geo("100 1 0 0\n2 0\n2 2\n0 0 1 1\n0 0\n1 0\n");
+  REQUIRE(pch.read(geo));
+  REQUIRE(pch.raiseOrder(2));
+  REQUIRE(pch.refine({0.4,0.4}));
+  REQUIRE(pch.generateFEMTopology());
+  REQUIRE(pch.getNoElms() == 2);
+  CHECK_THAT(pch.getElementCenter(1).x, WithinAbs(0.2, 1e-14));
+  CHECK_THAT(pch.getElementCenter(2).x, WithinAbs(0.7, 1e-14));
+}
+
+
+TEST_CASE("TestASMs1D.ElementCorners")
+{
+  // The element ends of a quadratic line with four elements, as spline and
+  // as Lagrange elements, through the generic patch interface
+  ASMbase::resetNumbering();
+  ASMLine spline(3,1);
+  ASMs1DLag lagrange;
+  std::stringstream geo("100 1 0 0\n2 0\n2 2\n0 0 1 1\n0 0\n1 0\n");
+  REQUIRE(lagrange.read(geo));
+  REQUIRE(lagrange.raiseOrder(1));
+  REQUIRE(lagrange.uniformRefine(3));
+  REQUIRE(lagrange.generateFEMTopology());
+
+  for (const ASMbase* pch : {static_cast<const ASMbase*>(&spline),
+                             static_cast<const ASMbase*>(&lagrange)})
+  {
+    REQUIRE(pch->getNoElms() == 4);
+    for (int iel = 1; iel <= 4; iel++)
+    {
+      INFO((pch == &spline ? "spline" : "Lagrange") << " element " << iel);
+      std::vector<Vec3> XC;
+      RealArray uC;
+      CHECK_THAT(pch->getElementCorners(iel,XC,&uC), WithinAbs(0.25, 1e-14));
+      REQUIRE(XC.size() == 2);
+      CHECK_THAT(XC.front().x, WithinAbs(0.25*(iel-1), 1e-14));
+      CHECK_THAT(XC.back().x, WithinAbs(0.25*iel, 1e-14));
+      if (pch == &spline)
+      {
+        REQUIRE(uC.size() == 2);
+        CHECK_THAT(uC.front(), WithinAbs(0.25*(iel-1), 1e-14));
+        CHECK_THAT(uC.back(), WithinAbs(0.25*iel, 1e-14));
+      }
+      else
+        CHECK(uC.empty());
+    }
   }
 }
