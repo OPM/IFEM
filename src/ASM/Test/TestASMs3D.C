@@ -346,6 +346,12 @@ TEST_CASE("TestASMs3D.GetElementCorners")
 }
 
 
+TEST_CASE("TestASMs3D.EvalSecondary")
+{
+  ASM3DTests<ASMCube>::EvalSecondary();
+}
+
+
 TEST_CASE("TestASMs3D.Write")
 {
   ASM3DTests<ASMCube>::Write(false);

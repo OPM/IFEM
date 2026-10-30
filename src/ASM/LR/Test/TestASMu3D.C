@@ -183,6 +183,12 @@ TEST_CASE("TestASMu3D.FaceIntegrate")
 }
 
 
+TEST_CASE("TestASMu3D.EvalSecondary")
+{
+  ASM3DTests<ASMuCube>::EvalSecondary();
+}
+
+
 TEST_CASE("TestASMu3D.GetElementCorners")
 {
   ASM3DTests<ASMuTrap3<ASMu3D>>::GetElementCorners();

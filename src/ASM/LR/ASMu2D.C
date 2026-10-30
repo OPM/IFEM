@@ -2248,15 +2248,13 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         return this->evalSolution(sField,integrand,gpar.data());
       else if (s)
       {
-        // Evaluate the projected field at the result sampling points
+        // Evaluate the projected field at the result sampling points,
+        // which are given element by element
         Go::Point p;
-        sField.resize(s->dimension(),gpar[0].size()*gpar[1].size());
-
-        int iel = 0; // evaluation points are always structured in element order
+        sField.resize(s->dimension(),gpar[0].size());
         for (size_t i = 0; i < gpar[0].size(); i++)
         {
-          if ((i+1)%npe[0] == 0) iel++;
-          s->point(p,gpar[0][i],gpar[1][i],iel);
+          s->point(p,gpar[0][i],gpar[1][i]);
           sField.fillColumn(i+1,p.begin());
         }
         delete s;
@@ -2325,6 +2323,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.u = gpar[0][i];
     fe.v = gpar[1][i];
     int iel = lrspline->getElementContaining(fe.u,fe.v);
+    fe.iel = MLGE[iel];
 
     // Evaluate the basis functions at current parametric point
     if (use3rdDer)
