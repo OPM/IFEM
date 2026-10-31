@@ -1043,7 +1043,35 @@ bool PETScMatrix::setParameters (bool setup)
     else
       PCFieldSplitSetSchurFactType(pc,PC_FIELDSPLIT_SCHUR_FACT_UPPER);
 
-    PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELFP,nullptr);
+    std::string schurPre = solParams.getStringValue("schur_precondition");
+    if (schurPre.empty()) {
+      bool ownSchur = false, approximate = false;
+      for (size_t m = 0; m < solParams.getNoBlocks(); m++)
+        if (solParams.getBlock(m).getStringValue("pc") == "schur")
+        {
+          ownSchur = true;
+
+          const std::string& ask =
+            solParams.getBlock(m).getStringValue("schur_precondition");
+          approximate = !ask.empty() && ask != "0" && ask != "false";
+        }
+
+      schurPre = ownSchur && !approximate ? "self" : "selfp";
+    }
+    if (schurPre == "selfp")
+      PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELFP,nullptr);
+    else if (schurPre == "self")
+      PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_SELF,nullptr);
+    else if (schurPre == "a11")
+      PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_A11,nullptr);
+    else if (schurPre == "full")
+      PCFieldSplitSetSchurPre(pc,PC_FIELDSPLIT_SCHUR_PRE_FULL,nullptr);
+    else {
+      std::cerr <<" *** PETScMatrix: Unknown schur_precondition: "<< schurPre
+                <<".\n     is one of\n     selfp, self, a11 and full."
+                << std::endl;
+      return false;
+    }
 
     PCSetFromOptions(pc);
     if (setup &&
@@ -1058,12 +1086,44 @@ bool PETScMatrix::setParameters (bool setup)
         prefix += (m == 0 ? 'u' : 'p');
       else
         prefix += "b" + std::to_string(1+m);
-      KSPSetType(subksp[m],"preonly");
+      const LinSolParams::BlockParams& blockParams = solParams.getBlock(m);
+
+      // A block applies its preconditioner once unless a Krylov method is
+      // asked for
+      const std::string blockKSP = blockParams.getStringValue("ksp");
+      const double rtol = blockParams.getDoubleValue("rtol");
+      const double atol = blockParams.getDoubleValue("atol");
+      const double dtol = blockParams.getDoubleValue("dtol");
+      const int maxits = blockParams.getIntValue("maxits");
+      const bool iterate = !blockKSP.empty() && blockKSP != "preonly";
+      if (!iterate && (rtol > 0.0 || atol > 0.0 || dtol > 0.0 || maxits > 0)) {
+        std::cerr <<" *** PETScMatrix: Block "<< m+1 <<" is given tolerances,"
+                  <<" but no method to use\n     them: it applies its"
+                  <<" preconditioner once and stops. Ask for a Krylov\n"
+                  <<"     method on the block with a ksp tag, or drop the"
+                  <<" tolerances."<< std::endl;
+        return false;
+      }
+
+      KSPSetType(subksp[m], iterate ? blockKSP.c_str() : "preonly");
+      if (iterate)
+        KSPSetTolerances(subksp[m],
+                         rtol > 0.0 ? rtol : PETSC_DEFAULT,
+                         atol > 0.0 ? atol : PETSC_DEFAULT,
+                         dtol > 0.0 ? dtol : PETSC_DEFAULT,
+                         maxits > 0 ? maxits : PETSC_DEFAULT);
+
       KSPGetPC(subksp[m],&subpc[m]);
-      if (solParams.getBlock(m).getStringValue("pc") == "schur")
-        new PETScSchurPC(subpc[m], matvec, solParams.getBlock(m), adm);
+      // The inner solve of the Schur preconditioner approximates the inverse
+      // of matvec[0]
+      if (blockParams.getStringValue("pc") == "schur")
+        new PETScSchurPC(subpc[m], matvec, blockParams, adm,
+                         solParams.getIntValue("verbosity"),
+                         this->getSchurPrecond(m));
       else
         solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m), setup);
+
+      KSPSetFromOptions(subksp[m]);
     }
   }
 
@@ -1077,6 +1137,23 @@ bool PETScMatrix::setParameters (bool setup)
   return true;
 }
 
+
+Mat PETScMatrix::getDiagonalBlock (size_t block) const
+{
+  if (matvec.empty())
+    return block == 0 ? pA : nullptr;
+
+  const size_t nb = solParams.getNoBlocks();
+  return block < nb ? matvec[block*nb+block] : nullptr;
+}
+
+
+SchurComplementPrecond* PETScMatrix::getSchurPrecond (size_t block) const
+{
+  std::map<size_t,SchurComplementPrecond*>::const_iterator it;
+  it = schurPrecond.find(block);
+  return it == schurPrecond.end() ? nullptr : it->second;
+}
 
 const DomainDecomposition& PETScMatrix::getDD () const
 {

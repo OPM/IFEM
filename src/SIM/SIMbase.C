@@ -1852,6 +1852,12 @@ SystemMatrix* SIMbase::getLHSmatrix (size_t idx, bool copy) const
 }
 
 
+SystemMatrix* SIMbase::releaseLHSmatrix (size_t idx)
+{
+  return myEqSys ? myEqSys->releaseMatrix(idx) : nullptr;
+}
+
+
 SystemVector* SIMbase::getRHSvector (size_t idx, bool copy) const
 {
   if (!myEqSys) return nullptr;

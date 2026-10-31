@@ -15,10 +15,17 @@
 #include "LinSolParams.h"
 #include "ProcessAdm.h"
 
+#include <cstring>
+#include <iostream>
+
 
 PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
-                            const LinSolParams::BlockParams& params, const ProcessAdm& adm)
-  : m_blocks(&blocks)
+                            const LinSolParams::BlockParams& params,
+                            const ProcessAdm& adm, int verbosity,
+                            SchurComplementPrecond* schurPc)
+  : precond(schurPc),
+    m_blocks(&blocks),
+    hasC(schurPc && schurPc->hasC())
 {
   PCSetType(pc_init, PCSHELL);
   PCShellSetContext(pc_init, this);
@@ -37,11 +44,41 @@ PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
   PCSetType(pc, schurpc.c_str());
   KSPSetFromOptions(inner_ksp);
   KSPSetUp(inner_ksp);
-  KSPView(inner_ksp, PETSC_VIEWER_STDOUT_WORLD);
+  if (verbosity > 0)
+    KSPView(inner_ksp, PETSC_VIEWER_STDOUT_(*adm.getCommunicator()));
 
   KSPCreate(*adm.getCommunicator(), &outer_ksp);
   KSPGetPC(outer_ksp, &pc);
-  PCSetType(pc, PCNONE);
+
+  Mat sA = nullptr, sP = nullptr;
+  MatType ptype = nullptr;
+  PCGetOperators(pc_init, &sA, &sP);
+  if (sP)
+    MatGetType(sP, &ptype);
+
+  const bool approximated = sP && ptype &&
+                            strcmp(ptype, MATSHELL) &&
+                            strcmp(ptype, MATSCHURCOMPLEMENT);
+
+  if (precond && !precond->setUp(adm))
+    precond = nullptr;
+
+  if (precond)
+  {
+    PCSetType(pc, PCSHELL);
+    PCShellSetContext(pc, precond);
+    PCShellSetName(pc, precond->getName());
+    PCShellSetApply(pc, PETScSchurPC::Apply_Precond);
+  }
+  else if (approximated)
+  {
+    MatDuplicate(sP, MAT_COPY_VALUES, &prec);
+    MatScale(prec, -1.0);
+    PCSetType(pc, PCILU);
+    PCFactorSetShiftType(pc, MAT_SHIFT_NONZERO);
+  }
+  else
+    PCSetType(pc, PCNONE);
   int maxits = params.getIntValue("schur_maxits");
   if (maxits < 1)
     maxits = 1000;
@@ -61,9 +98,9 @@ PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
   KSPSetTolerances(outer_ksp, rtol, atol, dtol, maxits);
 
   MatCreate(*adm.getCommunicator(), &outer_mat);
-  PetscInt r;
-  MatGetSize(blocks[3], &r, &r);
-  MatSetSizes(outer_mat, r, r, PETSC_DETERMINE, PETSC_DETERMINE);
+  PetscInt m, n;
+  MatGetLocalSize(blocks[3], &m, &n);
+  MatSetSizes(outer_mat, m, n, PETSC_DETERMINE, PETSC_DETERMINE);
   MatSetFromOptions(outer_mat);
   MatSetType(outer_mat, MATSHELL);
   MatShellSetContext(outer_mat, this);
@@ -71,17 +108,18 @@ PETScSchurPC::PETScSchurPC (PC& pc_init, const std::vector<Mat>& blocks,
                        (void(*)(void))&PETScSchurPC::Apply_Schur);
   MatSetUp(outer_mat);
 
-  KSPSetOperators(outer_ksp, outer_mat, outer_mat);
+  KSPSetOperators(outer_ksp, outer_mat,
+                  prec ? prec : outer_mat);
   KSPSetFromOptions(outer_ksp);
   KSPSetUp(outer_ksp);
-  KSPView(outer_ksp, PETSC_VIEWER_STDOUT_WORLD);
+  if (verbosity > 0)
+    KSPView(outer_ksp, PETSC_VIEWER_STDOUT_(*adm.getCommunicator()));
   PCSetUp(pc_init);
 
-  VecCreate(*adm.getCommunicator(), &tmp);
-  VecSetFromOptions(tmp);
-  MatGetSize(blocks[0], &r, &r);
-  VecSetSizes(tmp, r, PETSC_DETERMINE);
-  VecSetUp(tmp);
+  // The inner solve works on the rows of the momentum operator
+  MatCreateVecs(blocks[0], nullptr, &tmp);
+  if (hasC)
+    MatCreateVecs(blocks[3], nullptr, &ptmp);
 }
 
 
@@ -90,9 +128,17 @@ PETScSchurPC::~PETScSchurPC ()
   KSPDestroy(&inner_ksp);
   KSPDestroy(&outer_ksp);
   MatDestroy(&outer_mat);
+  if (prec) MatDestroy(&prec);
   VecDestroy(&tmp);
+  if (ptmp) VecDestroy(&ptmp);
 }
 
+
+/*!
+  The Schur complement of the block being preconditioned is
+
+  \f[ {\bf S} = {\bf A}_{11} - {\bf A}_{10}{\bf A}_{00}^{-1}{\bf A}_{01} \f]
+*/
 
 PetscErrorCode PETScSchurPC::Apply_Schur (Mat A, Vec x, Vec y)
 {
@@ -103,7 +149,22 @@ PetscErrorCode PETScSchurPC::Apply_Schur (Mat A, Vec x, Vec y)
   KSPSolve(spc->inner_ksp, spc->tmp, spc->tmp);
   MatMult(spc->m_blocks->at(2), spc->tmp, y);
 
+  if (spc->hasC)
+  {
+    MatMult(spc->m_blocks->at(3), x, spc->ptmp);
+    VecAXPY(y, -1.0, spc->ptmp);
+  }
+
   return 0;
+}
+
+
+PetscErrorCode PETScSchurPC::Apply_Precond (PC pc, Vec x, Vec y)
+{
+  void* p;
+  PCShellGetContext(pc, &p);
+
+  return static_cast<SchurComplementPrecond*>(p)->apply(x, y);
 }
 
 

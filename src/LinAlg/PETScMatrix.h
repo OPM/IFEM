@@ -89,6 +89,7 @@ protected:
 
 
 class PETScMatrix;
+class SchurComplementPrecond;
 
 /*!
   \brief Class for representing a set of system vectors in PETSc format.
@@ -310,6 +311,23 @@ public:
   //! \return True on success
   bool setParameters(bool setup);
 
+  /*!
+    \brief Gives the solver what to precondition a Schur complement with.
+    \param[in] block The block whose Schur complement it belongs to
+    \param[in] precond The preconditioner, or nothing to solve against the
+    complement unpreconditioned
+  */
+  void setSchurPrecond(size_t block, SchurComplementPrecond* precond)
+  { schurPrecond[block] = precond; }
+
+  //! \brief Returns the preconditioner set for the Schur complement of a block.
+  //! \param[in] block The block to ask about
+  SchurComplementPrecond* getSchurPrecond(size_t block) const;
+
+  //! \brief Returns the diagonal block of the matrix a solver works on.
+  //! \param[in] block The block to return, counted from zero
+  Mat getDiagonalBlock(size_t block) const;
+
   //! \brief Returns a const-ref to process administrator.
   const ProcessAdm& getAdm() const { return adm; }
 
@@ -369,6 +387,9 @@ protected:
   std::vector<IS> isvec; //!< Index sets for blocks
 
   std::vector<std::array<int,2>> glb2Blk; //!< Maps equations to block and block eq
+
+  //! The preconditioner of the Schur complement of a block, by block
+  std::map<size_t,SchurComplementPrecond*> schurPrecond;
   std::unique_ptr<DomainDecomposition> m_dd{}; //!< Internal partitioning information
 };
 
