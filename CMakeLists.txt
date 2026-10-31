@@ -659,6 +659,7 @@ if(TARGET IFEM-test)
     target_sources(
       IFEM-test
       PRIVATE
+        src/ASM/LR/Test/TestASMLRSpline.C
         src/ASM/LR/Test/TestASMu2D.C
         src/ASM/LR/Test/TestASMu2Dmx.C
         src/ASM/LR/Test/TestASMu3D.C
