@@ -2028,7 +2028,8 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
           if (mit != mpcs.end())
           {
             // Now update the prescribed value in the constraint equation
-            if (dfac.dof < 10 || piolaBC) dof = 1; // scalar condition
+            if (piolaBC || fit != func.end())
+              dof = 1; // a single value was fitted
             (*mit)->setSlaveCoeff(controlPts[dof-1][j]);
 #if SP_DEBUG > 1
             std::cout <<"Updated constraint: "<< **mit;
