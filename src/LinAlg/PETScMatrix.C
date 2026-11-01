@@ -1016,6 +1016,8 @@ bool PETScMatrix::setParameters (bool setup)
                    solParams.getDoubleValue("atol"),
                    solParams.getDoubleValue("dtol"),
                    solParams.getIntValue("maxits"));
+  // Only the GMRES family restarts, the others ignore this
+  KSPGMRESSetRestart(ksp,solParams.getIntValue("gmres_restart_iterations"));
   PC pc;
   KSPGetPC(ksp,&pc);
 
