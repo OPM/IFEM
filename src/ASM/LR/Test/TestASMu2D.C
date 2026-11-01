@@ -11,7 +11,7 @@
 //==============================================================================
 
 #include "ASMuSquare.h"
-#include "ASMuTrap.h"
+#include "Test/ASMTrap.h"
 #include "ASMs2D.h"
 #include "GaussQuadrature.h"
 #include "GlobalIntegral.h"
@@ -163,7 +163,7 @@ TEST_CASE("TestASMu2D.SecondDerivatives")
 
 TEST_CASE("TestASMu2D.GetElementCorners")
 {
-  ASM2DTests<ASMuTrap<ASMu2D>>::GetElementCorners();
+  ASM2DTests<ASMTrap<ASMu2D>>::GetElementCorners();
 }
 
 

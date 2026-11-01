@@ -677,8 +677,6 @@ if(TARGET IFEM-test)
         FILES
           src/ASM/LR/Test/ASMuCube.h
           src/ASM/LR/Test/ASMuSquare.h
-          src/ASM/LR/Test/ASMuTrap.h
-          src/ASM/LR/Test/ASMuTrap3.h
           src/ASM/LR/Test/LaplacianIntegrand.h
       )
     endif()

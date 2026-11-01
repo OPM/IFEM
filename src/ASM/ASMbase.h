@@ -269,6 +269,15 @@ public:
   bool getElementBBox(Vec3& X0, Vec3& X1, int iel) const;
   //! \brief Returns the coordinates of the element center.
   virtual Vec3 getElementCenter(int) const = 0;
+  //! \brief Computes the element corner coordinates.
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[out] XC Coordinates of the element corners, the first parameter
+  //! direction running fastest
+  //! \param[out] uC Spline parameters of the element corners (optional),
+  //! if the patch has them
+  //! \return Characteristic element size, negative if not available
+  virtual double getElementCorners(int iel, std::vector<Vec3>& XC,
+                                   RealArray* uC = nullptr) const;
 
   //! \brief Finds the global (or patch-local) node numbers on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face/edge

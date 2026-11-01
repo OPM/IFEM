@@ -586,6 +586,14 @@ public:
   virtual void generateThreadGroups(const Integrand& integrand, bool silence,
                                     bool ignoreGlobalLM);
 
+  //! \brief Computes the element corner coordinates.
+  //! \param[in] iel 1-based element index
+  //! \param[out] XC Coordinates of the element corners
+  //! \param[out] uC Spline parameters of the element corners (optional)
+  //! \return Characteristic element size
+  virtual double getElementCorners(int iel, std::vector<Vec3>& XC,
+                                   RealArray* uC = nullptr) const;
+
 protected:
 
   // Internal utility methods
@@ -647,13 +655,6 @@ protected:
   //! \param[in] dir Local face index of the boundary face
   double getParametricArea(int iel, int dir) const;
 
-  //! \brief Computes the element corner coordinates.
-  //! \param[in] iel 1-based element index
-  //! \param[out] XC Coordinates of the element corners
-  //! \param[out] uC Spline parameters of the element corners (optional)
-  //! \return Characteristic element size
-  double getElementCorners(int iel, std::vector<Vec3>& XC,
-                           RealArray* uC = nullptr) const;
   //! \brief Computes the element corner coordinates and parameters.
   //! \param[in] iel 1-based element index
   //! \param[out] XC Coordinates and parameters of the element corners

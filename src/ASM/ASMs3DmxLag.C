@@ -330,7 +330,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
         int i3 =  iel / (nelx*nely);
 
         if (useElmVtx)
-          fe.h = this->getElementCorners(p1+i1-1,p2+i2-1,p3+i3-1,fe.XC);
+          fe.h = this->getElementCorners(1+iel,fe.XC);
 
 
         // --- Integration loop over all Gauss points in each direction --------
