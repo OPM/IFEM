@@ -29,17 +29,21 @@
 
 
 HDF5Restart::HDF5Restart (const std::string& name, const ProcessAdm& adm,
-                          int stride, int level0)
-  : HDF5Base(name, adm), m_stride(stride), m_level(level0-1), m_last(0)
+                          int stride, int level0, int step0)
+  : HDF5Base(name, adm), m_stride(stride), m_level(level0-1), m_last(step0)
 {
   if (m_hdf5_name.find('.') == std::string::npos)
     m_hdf5_name += ".hdf5";
 }
 
 
+/*!
+  The steps are dumped at the multiples of the stride, also when restarted.
+*/
+
 bool HDF5Restart::dumpStep (const TimeStep& tp)
 {
-  if (tp.step < m_last + m_stride)
+  if (m_stride < 1 || tp.step/m_stride <= m_last/m_stride)
     return false;
 
   m_last = tp.step;
