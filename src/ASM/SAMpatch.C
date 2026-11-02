@@ -97,7 +97,9 @@ bool SAMpatch::initNodeDofs (const std::vector<char>& dTypes)
     for (size_t j = 1; j <= pch->getNoNodes(); j++)
       if ((n = pch->getNodeID(j)) > 0 && n <= nnod)
       {
-        if (madof[n] == 0)
+        if (pch->isBorrowedNode(j))
+          ; // not ours to count
+        else if (madof[n] == 0)
           madof[n] = pch->getNodalDOFs(j);
         else if (madof[n] != pch->getNodalDOFs(j))
           ierr++;

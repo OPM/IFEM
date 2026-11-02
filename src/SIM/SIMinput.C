@@ -32,6 +32,7 @@
 #include "HDF5Restart.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <numeric>
@@ -85,6 +86,164 @@ bool SIMinput::readPatches (std::istream& isp, const char* whiteSpace)
                <<" to match patch file dimensionality."<< std::endl;
     nsd = maxSpaceDim;
   }
+
+  return true;
+}
+
+
+namespace {
+
+/*!
+  \brief Maps a place in the grid of an interface onto the side facing it.
+  \param[in] ndim Number of directions the interface has
+  \param[in] orient Orientation flag of the interface
+  \param[in] i Index along its first direction, counted from zero
+  \param[in] j Index along its second, which an edge has none of
+  \param[in] n1 Number of places along the first direction
+  \param[in] n2 Number along the second
+  \param[out] k Index along the first direction of the other side
+  \param[out] l Index along its second
+
+  \details The grids of the two sides are the same grid counted two ways.
+  The orientation flag says how: for a face its lowest two bits reverse each
+  of the directions and the third says the two sides count them the other way
+  round, and for an edge it says whether the two run along it in opposite
+  directions.
+*/
+
+void facingIndex (int ndim, int orient, size_t i, size_t j,
+                  size_t n1, size_t n2, size_t& k, size_t& l)
+{
+  if (ndim < 2)
+  {
+    k = orient ? n1-1-i : i;
+    l = 0;
+    return;
+  }
+
+  if (orient & 4)
+  {
+    std::swap(i,j);
+    std::swap(n1,n2);
+  }
+
+  k = (orient & 2) ? n1-1-i : i;
+  l = (orient & 1) ? n2-1-j : j;
+}
+
+}
+
+
+bool SIMinput::addInterfaceElms ()
+{
+  myIfcElms.clear();
+
+  int nextId = 0;
+  for (const ASMbase* pch : myModel)
+    for (size_t e = 1; e <= pch->getNoElms(true); e++)
+      nextId = std::max(nextId,abs(pch->getElmID(e)));
+
+  size_t nifc = 0;
+  for (const ASM::Interface& ifc : myInterfaces)
+  {
+    if (ifc.dim + 1 != static_cast<int>(this->getNoParamDim()))
+      continue; // not a face of the model
+
+    const int mp = this->getLocalPatchIndex(ifc.master);
+    const int sp = this->getLocalPatchIndex(ifc.slave);
+    if (mp < 1 || sp < 1)
+    {
+      std::cerr <<" *** SIMinput::addInterfaceElms: The interface between"
+                <<" patches "<< ifc.master <<" and "<< ifc.slave
+                <<"\n     has only one side on this process, which a term"
+                <<" spanning it cannot be integrated from."<< std::endl;
+      return false;
+    }
+
+    ASMbase* mpch = myModel[mp-1];
+    const ASMbase* spch = myModel[sp-1];
+
+    IntVec melms, selms;
+    mpch->getBoundaryElms(ifc.midx,melms,0,true);
+    spch->getBoundaryElms(ifc.sidx,selms,0,true);
+    if (melms.size() != selms.size())
+    {
+      std::cerr <<" *** SIMinput::addInterfaceElms: The interface between"
+                <<" patches "<< ifc.master <<" and "<< ifc.slave <<" has "
+                << melms.size() <<" and "<< selms.size()
+                <<"\n     elements on its two sides. They have to match."
+                << std::endl;
+      return false;
+    }
+
+    size_t m1 = 0, m2 = 0, s1 = 0, s2 = 0;
+    if (!mpch->getBoundaryElmSize(ifc.midx,m1,m2) ||
+        !spch->getBoundaryElmSize(ifc.sidx,s1,s2) ||
+        m1*m2 != melms.size() || s1*s2 != selms.size())
+    {
+      std::cerr <<" *** SIMinput::addInterfaceElms: Boundary "<< ifc.midx
+                <<" of patch "<< ifc.master <<" and boundary "<< ifc.sidx
+                <<"\n     of patch "<< ifc.slave <<" do not say how their"
+                <<" elements are laid out."<< std::endl;
+      return false;
+    }
+
+    // Put the far side in the order of the near one, so that what is walked
+    // when the term is integrated is pairs
+    IntVec facing(melms.size());
+    for (size_t j = 0, at = 0; j < m2; j++)
+      for (size_t i = 0; i < m1; i++, at++)
+      {
+        size_t k, l;
+        facingIndex(ifc.dim,ifc.orient,i,j,m1,m2,k,l);
+        if (k >= s1 || l >= s2)
+        {
+          std::cerr <<" *** SIMinput::addInterfaceElms: The interface between"
+                    <<" patches "<< ifc.master <<" and "<< ifc.slave
+                    <<"\n     is "<< m1 <<" by "<< m2 <<" elements on the"
+                    <<" one side and "<< s1 <<" by "<< s2 <<" on the other,"
+                    <<"\n     which its orientation "<< ifc.orient
+                    <<" cannot pair."<< std::endl;
+          return false;
+        }
+        facing[at] = selms[l*s1+k];
+      }
+
+    selms.swap(facing);
+
+    std::vector<IntVec> xnodes;
+    std::vector<std::vector<size_t>> sizes;
+    xnodes.reserve(selms.size());
+    sizes.reserve(selms.size());
+    for (int sel : selms)
+    {
+      IntVec global;
+      for (int inod : spch->getElementNodes(sel+1))
+        global.push_back(spch->getNodeID(inod+1));
+      xnodes.push_back(global);
+      sizes.push_back(spch->getElementSizes(sel+1));
+    }
+
+    InterfaceElms built;
+    built.master = mp;
+    built.slave  = sp;
+    built.midx   = ifc.midx;
+    built.sidx   = ifc.sidx;
+    built.orient = ifc.orient;
+    built.melms  = melms;
+    built.selms  = selms;
+    built.first  = mpch->getNoElms(true,true); // they are appended after these
+
+    if (!mpch->addInterfaceElms(ifc.midx,xnodes,sizes,nextId))
+      return false;
+
+    myIfcElms.push_back(built);
+    ++nifc;
+  }
+
+  if (nifc > 0)
+    IFEM::cout <<"\nAdded elements over "<< nifc <<" patch interfaces"
+               << std::endl;
 
   return true;
 }

@@ -832,6 +832,81 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 }
 
 
+double ASMs2Dmx::evalBoundaryPoint (int iel, short int lIndex,
+                                    double s, double,
+                                    MxFiniteElement& fe, Matrix& Xnod,
+                                    Matrix& Jac, Vec3& normal, Vec3& X,
+                                    int piola) const
+{
+  const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  const bool separateGeometry = geo != surf.get();
+
+  // Find the parametric direction of the edge normal {-2,-1, 1, 2}
+  const int edgeDir = (lIndex+1) / ((lIndex%2) ? -2 : 2);
+  const size_t t1 = abs(edgeDir);   // Tangent direction normal to the edge
+  const size_t t2 = 3-abs(edgeDir); // Tangent direction along the edge
+
+  if (!this->getElementCoordinates(Xnod,iel))
+    return -1.0;
+
+  double ub[4];
+  this->getElementBorders(iel,ub);
+  const double p0 = ub[2*t2-2], p1 = ub[2*t2-1];
+  const double par = p0 + s*(p1-p0);
+
+  fe.u = t1 == 1 ? ub[edgeDir < 0 ? 0 : 1] : par;
+  fe.v = t1 == 1 ? par : ub[edgeDir < 0 ? 2 : 3];
+
+  const size_t nB = m_basis.size();
+  BasisValues bfs(nB + separateGeometry);
+  for (size_t b = 1; b <= nB; b++)
+  {
+    Go::BasisDerivsSf spline;
+    this->getBasis(b)->computeBasis(fe.u,fe.v,spline,edgeDir < 0);
+    SplineUtils::extractBasis(spline,fe.basis(b),bfs[b-1].dNdu);
+  }
+
+  if (separateGeometry)
+  {
+    if (piola)
+    {
+      Go::BasisDerivsSf2 spline;
+      geo->computeBasis(fe.u,fe.v,spline,edgeDir < 0);
+      SplineUtils::extractBasis(spline,bfs.back().N,
+                                bfs.back().dNdu,bfs.back().d2Ndu2);
+    }
+    else
+    {
+      Go::BasisDerivsSf spline;
+      geo->computeBasis(fe.u,fe.v,spline,edgeDir < 0);
+      SplineUtils::extractBasis(spline,bfs.back().N,bfs.back().dNdu);
+    }
+  }
+
+  const double detJ = fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2);
+  if (detJ < 0.0)
+    return detJ;
+
+  if (piola)
+  {
+    const double dS = fe.detJxW;
+    fe.detJxW = detJ;
+    fe.piolaMapping(Jac,Xnod,bfs,piola & Integrand::CONTRAVARIANT,
+                    piola & Integrand::COVARIANT);
+    fe.detJxW = dS;
+  }
+
+  if (edgeDir < 0)
+    normal *= -1.0;
+
+  X = Xnod * (separateGeometry ? bfs.back().N : fe.basis(itgBasis));
+
+  fe.detJxW *= p1-p0;
+
+  return fe.detJxW;
+}
+
+
 bool ASMs2Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time,

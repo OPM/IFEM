@@ -21,6 +21,11 @@
 #include "SAMpatch.h"
 #endif
 #include "IntegrandBase.h"
+#include "FiniteElement.h"
+#include "GaussQuadrature.h"
+#include "GlobalIntegral.h"
+#include "LocalIntegral.h"
+#include "Integrand.h"
 #include "AlgEqSystem.h"
 #include "ReactionsOnly.h"
 #include "SystemMatrix.h"
@@ -303,6 +308,11 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
   // Renumber the nodes to account for resolved patch topology
   if (!nGlbNodes) nGlbNodes = this->renumberNodes(fixDup);
   if (nGlbNodes < 0) return false;
+
+  if (myProblem &&
+      (myProblem->getIntegrandType() & IntegrandBase::PATCH_INTERFACES))
+    if (!this->addInterfaceElms())
+      return false;
 
   // Perform specialized preprocessing before the assembly initialization.
   // This typically involves the system-level Lagrange multipliers, etc.
@@ -1307,6 +1317,238 @@ int SIMbase::findClosestNode (const Vec3& X) const
   (for Neumann and Robin type boundary conditions).
 */
 
+namespace {
+
+/*!
+  \brief Maps a point of a patch interface onto the side facing it.
+  \param[in] ndim Number of directions the interface has
+  \param[in] orient Orientation flag of the interface
+  \param[in] a Where along its first direction the point is, as a fraction
+  \param[in] b Where along its second, which an edge has none of
+  \param[out] c Where that is along the first direction of the other side
+  \param[out] d Where along its second
+
+  \details The two sides number the directions of the interface each in their
+  own way, and the orientation flag says how. A face has two: its lowest two
+  bits reverse each of them and the third says the two sides count them the
+  other way round. An edge has one, and the flag says whether the two sides
+  run along it in opposite directions.
+*/
+
+void facingPoint (int ndim, int orient, double a, double b,
+                  double& c, double& d)
+{
+  if (ndim < 2)
+  {
+    c = orient ? 1.0-a : a;
+    d = 0.0;
+    return;
+  }
+
+  if (orient & 4)
+    std::swap(a,b);
+
+  c = (orient & 2) ? 1.0-a : a;
+  d = (orient & 1) ? 1.0-b : b;
+}
+
+
+}
+
+
+bool SIMbase::gatherInterfaceSolution (IntegrandBase& integrand,
+                                        const Vectors& prevSol,
+                                        int patch, const IntVec& elms,
+                                        std::vector<Vectors>& evec) const
+{
+  const int lp = this->getLocalPatchIndex(patch);
+  ASMbase* pch = myModel[lp-1];
+
+  // The element solutions of one side, read off the vector of its own patch
+  if (!this->extractPatchSolution(&integrand,prevSol,lp-1))
+    return false;
+
+  std::vector<size_t> nb(pch->getNoBasis());
+  for (size_t b = 0; b < nb.size(); b++)
+    nb[b] = pch->getNoNodes(1+b);
+
+  evec.resize(elms.size());
+  for (size_t e = 0; e < elms.size(); e++)
+  {
+    const int iel = elms[e]+1;
+    const std::vector<size_t> sizes = pch->getElementSizes(iel);
+    LocalIntegral* A = integrand.getLocalIntegral(sizes,iel);
+    if (!A)
+    {
+      std::cerr <<" *** SIMbase::gatherInterfaceSolution: No local integral"
+                <<" for element "<< iel <<" of patch "<< patch << std::endl;
+      return false;
+    }
+
+    const bool ok = integrand.initElement(pch->getElementNodes(iel),
+                                          sizes,nb,*A);
+    if (ok)
+      evec[e] = A->vec;
+    else
+      std::cerr <<" *** SIMbase::gatherInterfaceSolution: Failed to read the"
+                <<" solution of element "<< iel <<"\n     of patch "<< patch
+                << std::endl;
+
+    A->destruct();
+    if (!ok) return false;
+  }
+
+  return true;
+}
+
+
+bool SIMbase::assembleInterfaceTerms (IntegrandBase& integrand,
+                                       GlobalIntegral& glbInt,
+                                       const TimeDomain& time,
+                                       const Vectors& prevSol)
+{
+  if (myIfcElms.empty())
+    return true;
+
+  const int piola = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
+
+  // How many directions an interface of this model has: an edge of a surface
+  // has one and a face of a volume has two, and the quadrature over it is of
+  // that many
+  const int ndim = static_cast<int>(this->getNoParamDim()) - 1;
+
+  const int ng = opt.nGauss[0];
+  const double* xg = GaussQuadrature::getCoord(ng);
+  const double* wg = GaussQuadrature::getWeight(ng);
+  if (!xg || !wg) return false;
+
+  for (const InterfaceElms& ifc : myIfcElms)
+  {
+    ASMbase* mpch = myModel[ifc.master-1];
+    ASMbase* spch = myModel[ifc.slave-1];
+
+    // The solution of an element is gathered from the vector of the patch it
+    // belongs to, and there is one of those per patch at a time. So each side
+    // of the interface is walked once, as the ordinary elements they are,
+    // before the two are put together below.
+    std::vector<Vectors> mvec, svec;
+    if (!this->gatherInterfaceSolution(integrand,prevSol,ifc.master,
+                                       ifc.melms,mvec) ||
+        !this->gatherInterfaceSolution(integrand,prevSol,ifc.slave,
+                                       ifc.selms,svec))
+      return false;
+
+    for (size_t e = 0; e < ifc.melms.size(); e++)
+    {
+      if (!mpch->isElementInPartition(ifc.melms[e]))
+        continue; // this element is in the partition of another process
+
+      const int mel = ifc.melms[e]+1;
+      const int sel = ifc.selms[e]+1;
+      const int iel = abs(mpch->getElmID(ifc.first+e+1));
+
+      const std::vector<size_t> msizes = mpch->getElementSizes(mel);
+      const std::vector<size_t> ssizes = spch->getElementSizes(sel);
+      if (msizes.size() != ssizes.size())
+      {
+        std::cerr <<" *** SIMbase::assembleInterfaceTerms: Patches "
+                  << ifc.master <<" and "<< ifc.slave <<" have "
+                  << msizes.size() <<" and "<< ssizes.size() <<" bases."
+                  << std::endl;
+        return false;
+      }
+
+      std::vector<size_t> sizes(msizes);
+      for (size_t b = 0; b < sizes.size(); b++)
+        sizes[b] += ssizes[b];
+
+      LocalIntegral* A = integrand.getLocalIntegral(sizes,iel);
+      if (!A)
+      {
+        std::cerr <<" *** SIMbase::assembleInterfaceTerms: No local integral"
+                  <<" for element "<< iel << std::endl;
+        return false;
+      }
+
+      bool ok = integrand.initElementIfc(mvec[e],svec[e],*A);
+      if (!ok)
+        std::cerr <<" *** SIMbase::assembleInterfaceTerms: Failed to"
+                  <<" initialize element "<< iel << std::endl;
+
+      MxFiniteElement fe1(msizes);
+      MxFiniteElement fe2(ssizes);
+      Matrix Xnod1, Xnod2, Jac1, Jac2;
+      Vec3 n1, n2, X1, X2;
+      Vec4 X(nullptr,time.t);
+
+      for (int g = 0; ok && g < (ndim < 2 ? ng : ng*ng); g++)
+      {
+        const int g1 = g%ng, g2 = g/ng;
+        const double a = 0.5*(xg[g1]+1.0);
+        const double b = ndim < 2 ? 0.0 : 0.5*(xg[g2]+1.0);
+        double c, d;
+        facingPoint(ndim,ifc.orient,a,b,c,d);
+
+        if (mpch->evalBoundaryPoint(mel,ifc.midx,a,b,
+                                    fe1,Xnod1,Jac1,n1,X1,piola) < 0.0)
+        {
+          std::cerr <<" *** SIMbase::assembleInterfaceTerms: The mapping of"
+                    <<" element "<< mel <<" of patch "<< ifc.master
+                    <<"\n     is singular at the interface."<< std::endl;
+          ok = false;
+          break;
+        }
+
+        if (spch->evalBoundaryPoint(sel,ifc.sidx,c,d,
+                                    fe2,Xnod2,Jac2,n2,X2,piola) < 0.0)
+        {
+          std::cerr <<" *** SIMbase::assembleInterfaceTerms: The mapping of"
+                    <<" element "<< sel <<" of patch "<< ifc.slave
+                    <<"\n     is singular at the interface."<< std::endl;
+          ok = false;
+          break;
+        }
+
+        X.assign(X1);
+
+        if ((X1-X2).length() > 1.0e-8*(1.0+X1.length()))
+        {
+          std::cerr <<" *** SIMbase::assembleInterfaceTerms: The interface"
+                    <<" between patches "<< ifc.master <<" and "<< ifc.slave
+                    <<"\n     is paired wrongly: "<< X1 <<" on the one side"
+                    <<" faces "<< X2 <<" on the other."<< std::endl;
+          ok = false;
+          break;
+        }
+
+        fe1.h = fe2.h = ndim < 2 ? fe1.detJxW : sqrt(fe1.detJxW);
+
+        fe1.detJxW *= ndim < 2 ? 0.5*wg[g1] : 0.25*wg[g1]*wg[g2];
+        fe2.detJxW = fe1.detJxW;
+
+        if (!(ok = integrand.evalBouMx(*A,fe1,fe2,time,X,n1)))
+          std::cerr <<" *** SIMbase::assembleInterfaceTerms: The integrand"
+                    <<" says it has terms on the patch\n     interfaces but"
+                    <<" does not evaluate any."<< std::endl;
+      }
+
+      if (ok && !(ok = integrand.finalizeElementIfc(*A)))
+        std::cerr <<" *** SIMbase::assembleInterfaceTerms: Failed to"
+                  <<" finalize element "<< iel << std::endl;
+
+      if (ok && !(ok = glbInt.assemble(A->ref(),iel)))
+        std::cerr <<" *** SIMbase::assembleInterfaceTerms: Failed to"
+                  <<" assemble element "<< iel << std::endl;
+
+      A->destruct();
+      if (!ok) return false;
+    }
+  }
+
+  return true;
+}
+
+
 bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 			      bool newLHSmatrix, bool poorConvg)
 {
@@ -1494,6 +1736,10 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
               ok = false;
           }
         }
+
+    if (ok && (it->second->getIntegrandType() &
+               IntegrandBase::PATCH_INTERFACES))
+      ok = this->assembleInterfaceTerms(*it->second,sysQ,time,prevSol);
 
     if (ok) ok = this->assembleDiscreteItems(it->second,time,prevSol);
     if (ok && msgLevel > 1) IFEM::cout <<"\nDone."<< std::endl;

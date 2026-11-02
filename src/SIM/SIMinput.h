@@ -218,6 +218,9 @@ public:
                                 coordCheck);
   }
 
+  //! \brief Adds the elements spanning the interfaces between the patches.
+  virtual bool addInterfaceElms();
+
   //! \brief Obtain a const reference to model topology.
   const std::vector<ASM::Interface>& getInterfaces() const
   { return myInterfaces; }

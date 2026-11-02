@@ -689,6 +689,117 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
 }
 
 
+std::vector<size_t> ASMu2Dmx::getElementSizes (int iel) const
+{
+  const LR::LRSplineSurface* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+  if (!itg || iel < 1 || iel > itg->nElements())
+    return {};
+
+  // The bases are meshed each on their own, so which element of each of them
+  // holds this one is asked for rather than assumed to have the same number
+  std::vector<int> els;
+  std::vector<size_t> sizes;
+  this->getElementsAt(itg->getElement(iel-1)->midpoint(),els,&sizes);
+
+  return sizes;
+}
+
+
+double ASMu2Dmx::evalBoundaryPoint (int iel, short int lIndex,
+                                    double s, double,
+                                    MxFiniteElement& fe, Matrix& Xnod,
+                                    Matrix& Jac, Vec3& normal, Vec3& X,
+                                    int piola) const
+{
+  const LR::LRSplineSurface* itg = this->getBasis(ASM::INTEGRATION_BASIS);
+  if (!itg || iel < 1 || iel > itg->nElements())
+    return -1.0;
+
+  // A div-compatible pair has a geometry of its own, apart from the bases
+  // the fields are on, and it goes last of the ones the mapping is built
+  // from -- the Piola mapping reads it off the back of them, and needs its
+  // second derivatives where the others need only their first.
+  const LR::LRSplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  const bool separateGeometry = geo != itg;
+
+  // Find the parametric direction of the edge normal {-2,-1, 1, 2}
+  const int edgeDir = (lIndex%10+1)/((lIndex%2) ? -2 : 2);
+  const int t1 = abs(edgeDir);   // Tangent direction normal to the edge
+  const int t2 = 3-abs(edgeDir); // Tangent direction along the edge
+
+  // Where the point is in the parameters of this patch. The edge runs along
+  // t2, and the element lies against the patch boundary in t1.
+  const LR::Element* el = itg->getElement(iel-1);
+  const double p0 = t2 == 1 ? el->umin() : el->vmin();
+  const double p1 = t2 == 1 ? el->umax() : el->vmax();
+  const double par = p0 + s*(p1-p0);
+
+  fe.u = t1 == 1 ? (edgeDir < 0 ? el->umin() : el->umax()) : par;
+  fe.v = t1 == 1 ? par : (edgeDir < 0 ? el->vmin() : el->vmax());
+
+  if (!this->getElementCoordinates(Xnod,iel))
+    return -1.0;
+
+  // The point is on the edge of this element, so which of the elements
+  // meeting there each basis is taken from has to be said, and the midpoint
+  // of the one being integrated over is what says it
+  std::vector<int> els;
+  this->getElementsAt(el->midpoint(),els);
+
+  BasisValues bfs(m_basis.size() + separateGeometry);
+  for (size_t b = 0; b < m_basis.size(); b++)
+  {
+    Go::BasisDerivsSf spline;
+    this->computeBasis(fe.u,fe.v,spline,els[b]-1,this->getBasis(b+1));
+    SplineUtils::extractBasis(spline,fe.basis(b+1),bfs[b].dNdu);
+  }
+
+  if (separateGeometry)
+  {
+    if (piola)
+    {
+      Go::BasisDerivsSf2 spline;
+      this->computeBasis(fe.u,fe.v,spline,els.back()-1,geo);
+      SplineUtils::extractBasis(spline,bfs.back().N,
+                                bfs.back().dNdu,bfs.back().d2Ndu2);
+    }
+    else
+    {
+      Go::BasisDerivsSf spline;
+      this->computeBasis(fe.u,fe.v,spline,els.back()-1,geo);
+      SplineUtils::extractBasis(spline,bfs.back().N,bfs.back().dNdu);
+    }
+  }
+
+  const double detJ = fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2);
+  if (detJ < 0.0)
+    return detJ;
+
+  if (piola)
+  {
+    // detJxW is the edge dilation here, whereas piolaMapping needs the
+    // determinant of the geometry mapping. Swap it in for the call.
+    const double dS = fe.detJxW;
+    fe.detJxW = detJ;
+    fe.piolaMapping(Jac,Xnod,bfs,piola & Integrand::CONTRAVARIANT,
+                    piola & Integrand::COVARIANT);
+    fe.detJxW = dS;
+  }
+
+  if (edgeDir < 0)
+    normal *= -1.0;
+
+  // The coordinates go with the geometry, which is a basis of its own here
+  X = Xnod * (separateGeometry ? bfs.back().N : fe.basis(itgBasis));
+
+  // The Jacobian leaves the edge dilation behind, in the parameters of this
+  // patch. Against an arc parameter it is the length of the edge itself.
+  fe.detJxW *= p1-p0;
+
+  return fe.detJxW;
+}
+
+
 bool ASMu2Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time,

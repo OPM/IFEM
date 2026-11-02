@@ -214,6 +214,8 @@ public:
   //! \param[in] iChk Object checking if an element interface has contributions
   bool addInterfaceElms(const ASM::InterfaceChecker& iChk);
 
+  using ASMbase::addInterfaceElms; //!< The one coupling two patches
+
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
   //! \param[in] globalNum Global node number

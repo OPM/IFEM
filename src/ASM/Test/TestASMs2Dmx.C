@@ -13,7 +13,11 @@
 #include "ASMmxBase.h"
 #include "ASMSquare.h"
 
+#include "ASM2DmxTests.h"
+
 #include "Catch2Support.h"
+
+#include <numeric>
 
 
 namespace {
@@ -417,4 +421,10 @@ TEST_CASE("TestASMs2Dmx.ContinuousOverBoundary")
   for (int edge = 1; edge <= 4; edge++)
     for (size_t b = 1; b <= 2; b++)
       REQUIRE(pch2.isContinuousOverBoundary(edge,b));
+}
+
+
+TEST_CASE("TestASMs2Dmx.AddInterfaceElms")
+{
+  ASM2DmxTests<ASMmxSquare>::AddInterfaceElms();
 }

@@ -60,6 +60,7 @@ std::pair<double,double> FormWeights (WeakOperators::ConvectionForm form)
 }
 
 
+//! \brief Combines terms for interface integrals in a weak form.
 void interfaceCombination (Matrix& out,
                            const MxFiniteElement& fe1,
                            const MxFiniteElement& fe2,
@@ -93,8 +94,6 @@ void interfaceCombination (Matrix& out,
 
   out.multiply(PiolaOperators::TangentialProjection(normal,nsd),whole);
 }
-
-
 
 }
 

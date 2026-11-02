@@ -126,6 +126,28 @@ public:
                          const TimeDomain& time,
                          const ASM::InterfaceChecker& iChk);
 
+  //! \brief Evaluates the bases at a point on the boundary of an element.
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param[in] s Parametric coordinates of the point on the boundary
+  //! \param fe Element data to fill, sized for one element of this patch
+  //! \param[out] Xnod Nodal coordinates of the element
+  //! \param[out] Jac Inverse of the Jacobian of the coordinate mapping
+  //! \param[out] normal Outward unit normal of the boundary at the point
+  //! \param[out] X Cartesian coordinates of the point
+  //! \param[in] piola Which Piola mapping to compute as well, as the
+  //! contravariant and covariant flags of an integrand type
+  //! \return The length of that boundary of the element. Negative on error.
+  virtual double evalBoundaryPoint(int iel, short int lIndex,
+                                   double s, double,
+                                   MxFiniteElement& fe, Matrix& Xnod,
+                                   Matrix& Jac, Vec3& normal, Vec3& X,
+                                   int piola) const;
+
+  //! \brief Returns the number of nodes of an element, basis by basis.
+  //! \param[in] iel 1-based element index local to current patch
+  virtual std::vector<size_t> getElementSizes(int iel) const;
+
 
   // Post-processing methods
   // =======================

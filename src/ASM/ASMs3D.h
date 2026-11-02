@@ -733,6 +733,12 @@ protected:
   //! \param[in] dir Local face index of the boundary face
   double getParametricArea(int iel, int dir) const;
 
+  //! \brief Returns how the elements of a boundary are laid out.
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param[out] n1 Number of elements along the first direction of it
+  //! \param[out] n2 Number along the second, which an edge has none of
+  virtual bool getBoundaryElmSize(int lIndex, size_t& n1, size_t& n2) const;
+
   //! \brief Computes the element border parameters.
   //! \param[in] iel 1-based element index
   //! \param[out] u Parameter values of the element borders
