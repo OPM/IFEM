@@ -183,8 +183,17 @@ public:
                       LocalIntegral& elmInt) override;
 
   //! \brief Returns whether a basis has to be tied where two patches meet.
-  //! \param[in] basis 1-based basis index
-  virtual bool needsTiedBasis(size_t basis) const { return false; }
+  virtual bool needsTiedBasis(size_t) const { return false; }
+
+  //! \brief Initializes an element spanning an interface between two patches.
+  //! \param[in] vec1 Element solution vectors of the side the normal is out of
+  //! \param[in] vec2 Element solution vectors of the other side
+  //! \param elmInt Local integral for element
+  virtual bool initElementIfc(const Vectors& vec1, const Vectors& vec2,
+                              LocalIntegral& elmInt);
+
+  //! \brief Finalizes an element spanning a patch interface.
+  virtual bool finalizeElementIfc(LocalIntegral&) { return true; }
 
   //! \brief Returns whether this integrand has explicit interior contributions.
   virtual bool hasInteriorTerms() const { return true; }

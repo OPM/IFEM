@@ -217,6 +217,109 @@ bool ASMbase::addXElms (short int, short int, size_t, IntVec&)
 }
 
 
+std::vector<size_t> ASMbase::getElementSizes (int iel) const
+{
+  if (iel < 1 || iel > static_cast<int>(MNPC.size()))
+    return {};
+
+  return { MNPC[iel-1].size() };
+}
+
+
+bool ASMbase::addInterfaceElms (short int item,
+                                const std::vector<IntVec>& xnodes,
+                                const std::vector<std::vector<size_t>>& xsizes,
+                                int& nextId)
+{
+  IntVec elms;
+  this->getBoundaryElms(item,elms,-1,true);
+  if (elms.size() != xnodes.size() || elms.size() != xsizes.size())
+  {
+    std::cerr <<" *** ASMbase::addInterfaceElms: Boundary "<< item <<" has "
+              << elms.size() <<" elements and "<< xnodes.size()
+              <<" of them were\n     given a neighbour. They have to match."
+              << std::endl;
+    return false;
+  }
+
+  std::map<int,size_t> at;
+  for (const IntVec& nodes : xnodes)
+    for (int node : nodes)
+      if (at.find(node) == at.end())
+      {
+        size_t inod = this->getNodeIndex(node);
+        if (inod < 1)
+        {
+          myMLGN.push_back(node);
+          inod = MLGN.size();
+          myBorrowed.insert(inod); // the other side's, and said to be
+        }
+        at[node] = inod-1;
+      }
+
+  for (size_t e = 0; e < elms.size(); e++)
+  {
+    const std::vector<size_t> mysizes = this->getElementSizes(1+elms[e]);
+    const std::vector<size_t>& theirs = xsizes[e];
+    if (mysizes.size() != theirs.size())
+    {
+      std::cerr <<" *** ASMbase::addInterfaceElms: The element facing element "
+                << elms[e]+1 <<" has "<< theirs.size() <<" bases and it has "
+                << mysizes.size() <<".\n     They have to match."<< std::endl;
+      return false;
+    }
+
+    const size_t nXn = std::accumulate(theirs.begin(),theirs.end(),0u);
+    if (xnodes[e].size() != nXn)
+    {
+      std::cerr <<" *** ASMbase::addInterfaceElms: The element facing element "
+                << elms[e]+1 <<" has "<< xnodes[e].size() <<" nodes,\n     "
+                <<"against the "<< nXn <<" its bases add up to."<< std::endl;
+      return false;
+    }
+
+    const IntVec& mine = MNPC[elms[e]];
+    IntVec mnpc;
+    mnpc.reserve(mine.size() + nXn);
+    size_t mofs = 0, sofs = 0;
+    for (size_t b = 0; b < mysizes.size(); b++)
+    {
+      mnpc.insert(mnpc.end(),mine.begin()+mofs,mine.begin()+mofs+mysizes[b]);
+      for (size_t i = 0; i < theirs[b]; i++)
+        mnpc.push_back(at[xnodes[e][sofs+i]]);
+      mofs += mysizes[b];
+      sofs += theirs[b];
+    }
+
+    myMNPC.push_back(mnpc);
+    myMLGE.push_back(-(++nextId)); // Flag interface element by a negative
+  }
+
+  return true;
+}
+
+
+bool ASMbase::getBoundaryElmSize (int lIndex, size_t& n1, size_t& n2) const
+{
+  IntVec elms;
+  this->findBoundaryElms(elms,lIndex,-1);
+  n1 = elms.size();
+  n2 = 1;
+
+  return n1 > 0;
+}
+
+
+double ASMbase::evalBoundaryPoint (int, short int, double, double,
+                                   MxFiniteElement&,
+                                   Matrix&, Matrix&, Vec3&, Vec3&, int) const
+{
+  Aerror("evalBoundaryPoint(int,short int,double,double,MxFiniteElement&,"
+         "Matrix&,Matrix&,Vec3&,Vec3&,int)");
+  return -1.0;
+}
+
+
 bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
                                       unsigned char nnLag)
 {

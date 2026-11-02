@@ -2051,6 +2051,30 @@ void ASMs3D::getGaussPointParameters (RealArray& uGP, int dir,
 }
 
 
+bool ASMs3D::getBoundaryElmSize (int lIndex, size_t& n1, size_t& n2) const
+{
+  if (!svol) return false;
+
+  const size_t nel[3] = { static_cast<size_t>(svol->numCoefs(0) -
+                                              svol->order(0) + 1),
+                          static_cast<size_t>(svol->numCoefs(1) -
+                                              svol->order(1) + 1),
+                          static_cast<size_t>(svol->numCoefs(2) -
+                                              svol->order(2) + 1) };
+
+  // The face runs along the two directions it does not hold constant, in
+  // the order they are numbered, which is the order findBoundaryElms()
+  // walks them in
+  switch (lIndex%10) {
+  case 1: case 2: n1 = nel[1]; n2 = nel[2]; return true;
+  case 3: case 4: n1 = nel[0]; n2 = nel[2]; return true;
+  case 5: case 6: n1 = nel[0]; n2 = nel[1]; return true;
+  }
+
+  return false;
+}
+
+
 void ASMs3D::getElementBorders (int iel, double* ub) const
 {
   int p1 = svol->order(0);

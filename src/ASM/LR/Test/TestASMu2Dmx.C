@@ -13,6 +13,8 @@
 #include "ASMmxBase.h"
 #include "ASMuSquare.h"
 
+#include "Test/ASM2DmxTests.h"
+
 #include "Catch2Support.h"
 
 
@@ -384,4 +386,10 @@ TEST_CASE("TestASMu2Dmx.WriteTH")
     REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
     REQUIRE(str.str() == squareTH_2);
   }
+}
+
+
+TEST_CASE("TestASMu2Dmx.AddInterfaceElms")
+{
+  ASM2DmxTests<ASMmxuSquare>::AddInterfaceElms();
 }

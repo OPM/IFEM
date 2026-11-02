@@ -21,6 +21,7 @@
 #include "MatVec.h"
 #include <set>
 
+class GlobalIntegral;
 class IntegrandBase;
 class NormBase;
 class ForceBase;
@@ -628,6 +629,28 @@ protected:
   virtual bool preprocessA();
   //! \brief Specialized preprocessing performed before assembly initialization.
   virtual bool preprocessBeforeAsmInit(int&) { return true; }
+
+  //! \brief Adds the elements spanning the interfaces between the patches.
+  virtual bool addInterfaceElms() { return true; }
+
+  //! \brief Integrates the terms living on the interfaces between patches.
+  //! \param integrand The integrand to evaluate
+  //! \param glbInt The system quantity to assemble into
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] prevSol Previous primary solution vectors
+  bool assembleInterfaceTerms(IntegrandBase& integrand, GlobalIntegral& glbInt,
+                              const TimeDomain& time, const Vectors& prevSol);
+
+  //! \brief Reads the solution of the elements on one side of an interface.
+  //! \param integrand The integrand whose element vectors to fill
+  //! \param[in] prevSol Previous primary solution vectors
+  //! \param[in] patch Global index of the patch that side belongs to
+  //! \param[in] elms Zero-based indices of its elements on the interface
+  //! \param[out] evec Element solution vectors, one set per element
+  bool gatherInterfaceSolution(IntegrandBase& integrand,
+                               const Vectors& prevSol,
+                               int patch, const IntVec& elms,
+                               std::vector<Vectors>& evec) const;
   //! \brief Preprocessing performed after the system assembly initialization.
   virtual bool preprocessB() { return true; }
   //! \brief Preprocesses the result sampling points.
@@ -847,6 +870,19 @@ protected:
   //! \brief Property code to integrand map
   typedef std::multimap<int,IntegrandBase*> IntegrandMap;
 
+  //! \brief The elements built over one interface between two patches.
+  struct InterfaceElms
+  {
+    int       master = 0; //!< 1-based local index of the patch holding them
+    int       slave  = 0; //!< 1-based local index of the patch on the far side
+    short int midx   = 0; //!< Local index of the boundary on the master
+    short int sidx   = 0; //!< Local index of the boundary on the slave
+    int       orient = 0; //!< Whether the two sides run the same way
+    IntVec    melms;      //!< Elements of the master, local and zero-based
+    IntVec    selms;      //!< The element of the slave facing each of those
+    size_t    first  = 0; //!< Index of the first element built for this
+  };
+
   // Model attributes
   unsigned char  nsd;       //!< Number of spatial dimensions
   PatchVec       myModel;   //!< The actual NURBS/spline model
@@ -857,6 +893,8 @@ protected:
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
+  //! Elements built over the interfaces between the patches
+  std::vector<InterfaceElms> myIfcElms;
   FunctionBase*  dualField; //!< Dual solution field (extraction function)
 
   std::vector<FunctionBase*> extrFunc; //!< Extraction functions for VCP

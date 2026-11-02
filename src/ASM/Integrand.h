@@ -344,6 +344,22 @@ public:
     return this->evalBouMx(elmInt,fe,X,normal);
   }
 
+  //! \brief Evaluates the integrand at a point on an interface between patches.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe1 Mixed finite element data on one side of the interface
+  //! \param[in] fe2 Mixed finite element data on the other side of it
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Interface normal, out of the side \a fe1 is on
+  virtual bool evalBouMx(LocalIntegral& elmInt,
+                         const MxFiniteElement& fe1,
+                         const MxFiniteElement& fe2,
+                         const TimeDomain& time,
+                         const Vec3& X, const Vec3& normal) const
+  {
+    return this->evalBouMx(elmInt,fe1,fe2,X,normal);
+  }
+
 protected:
   //! \brief Evaluates the integrand at interior points for stationary problems.
   virtual bool evalInt(LocalIntegral&, const FiniteElement& fe,
@@ -364,6 +380,10 @@ protected:
   //! \brief Evaluates the integrand at boundary points for stationary problems.
   virtual bool evalBouMx(LocalIntegral&, const MxFiniteElement&,
 			 const Vec3&, const Vec3&) const { return false; }
+  //! \brief Evaluates the integrand on a patch interface, stationary problems.
+  virtual bool evalBouMx(LocalIntegral&, const MxFiniteElement&,
+                         const MxFiniteElement&,
+                         const Vec3&, const Vec3&) const { return false; }
 
   //! \brief Finalizes the element quantities after the numerical integration.
   //! \details Simplified interface for when finite element data is not needed.

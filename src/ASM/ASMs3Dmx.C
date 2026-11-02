@@ -895,6 +895,109 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 }
 
 
+double ASMs3Dmx::evalBoundaryPoint (int iel, short int lIndex,
+                                    double s, double t,
+                                    MxFiniteElement& fe, Matrix& Xnod,
+                                    Matrix& Jac, Vec3& normal, Vec3& X,
+                                    int piola) const
+{
+  // A div-compatible pair has a geometry of its own, apart from the bases
+  // the fields are on, and it goes last of the ones the mapping is built
+  // from -- the Piola mapping reads it off the back of them, and needs its
+  // second derivatives where the others need only their first.
+  const Go::SplineVolume* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  const bool separateGeometry = geo != svol.get();
+
+  // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
+  const int faceDir = (lIndex%10+1) / ((lIndex%2) ? -2 : 2);
+
+  const int t1 = 1 + abs(faceDir)%3; // first tangent direction
+  const int t2 = 1 + t1%3;           // second tangent direction
+
+  if (!this->getElementCoordinates(Xnod,iel))
+    return -1.0;
+
+  // Where the point is in the parameters of this patch. The face runs along
+  // the two directions it does not hold constant, taken in the order they
+  // are numbered in, which is the order its elements are counted in, and
+  // the element is flat against the patch boundary in the third.
+  double ub[6];
+  this->getElementBorders(iel,ub);
+
+  const int normalDir = abs(faceDir);
+  double par[3], dA = 1.0;
+  for (int d = 1, along = 0; d <= 3; d++)
+    if (d == normalDir)
+      par[d-1] = ub[2*d-2 + (faceDir < 0 ? 0 : 1)];
+    else
+    {
+      const double p0 = ub[2*d-2], p1 = ub[2*d-1];
+      par[d-1] = p0 + (along++ ? t : s)*(p1-p0);
+      dA *= p1-p0;
+    }
+
+  fe.u = par[0];
+  fe.v = par[1];
+  fe.w = par[2];
+
+  // The point is on an element face, so which of the elements meeting there
+  // the basis is taken from has to be said, and it is this one
+  const size_t nB = m_basis.size();
+  BasisValues bfs(nB + separateGeometry);
+  for (size_t b = 1; b <= nB; b++)
+  {
+    Go::BasisDerivs spline;
+    this->getBasis(b)->computeBasis(fe.u,fe.v,fe.w,spline,faceDir < 0);
+    SplineUtils::extractBasis(spline,fe.basis(b),bfs[b-1].dNdu);
+  }
+
+  if (separateGeometry)
+  {
+    if (piola)
+    {
+      Go::BasisDerivs2 spline;
+      geo->computeBasis(fe.u,fe.v,fe.w,spline,faceDir < 0);
+      SplineUtils::extractBasis(spline,bfs.back().N,
+                                bfs.back().dNdu,bfs.back().d2Ndu2);
+    }
+    else
+    {
+      Go::BasisDerivs spline;
+      geo->computeBasis(fe.u,fe.v,fe.w,spline,faceDir < 0);
+      SplineUtils::extractBasis(spline,bfs.back().N,bfs.back().dNdu);
+    }
+  }
+
+  const double detJ = fe.Jacobian(Jac,normal,Xnod,itgBasis,bfs,t1,t2);
+  if (detJ < 0.0)
+    return detJ;
+
+  if (piola)
+  {
+    // detJxW is the face dilation here, whereas piolaMapping needs the
+    // determinant of the geometry mapping. Swap it in for the call.
+    const double dS = fe.detJxW;
+    fe.detJxW = detJ;
+    fe.piolaMapping(Jac,Xnod,bfs,piola & Integrand::CONTRAVARIANT,
+                    piola & Integrand::COVARIANT);
+    fe.detJxW = dS;
+  }
+
+  if (faceDir < 0)
+    normal *= -1.0;
+
+  // The coordinates go with the geometry, which is a basis of its own here
+  X = Xnod * (separateGeometry ? bfs.back().N : fe.basis(itgBasis));
+
+  // The Jacobian leaves the face dilation behind, in the parameters of this
+  // patch. Against the two the point is taken in it is the area of the face
+  // of the element itself.
+  fe.detJxW *= dA;
+
+  return fe.detJxW;
+}
+
+
 bool ASMs3Dmx::integrate (Integrand& integrand,
                           GlobalIntegral& glInt,
                           const TimeDomain& time,

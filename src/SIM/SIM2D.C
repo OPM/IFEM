@@ -92,13 +92,10 @@ bool SIM2D::connectPatches (const ASM::Interface& ifc, bool coordCheck)
       std::set<int> bases;
       if (ifc.basis == 0)
       {
-        const bool penalized = myProblem &&
-          (myProblem->getIntegrandType() & IntegrandBase::PATCH_INTERFACES);
         for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
-          if (penalized
-              ? myModel[lslave-1]->isContinuousOverBoundary(ifc.sidx,b)
-              : myModel[lslave-1]->isContinuousBasis(b))
+          if (myModel[lslave-1]->isContinuousOverBoundary(ifc.sidx,b))
             bases.insert(b);
+
         if (myProblem)
           for (size_t b = 1; b <= myModel[lslave-1]->getNoBasis(); b++)
             if (myProblem->needsTiedBasis(b))

@@ -205,6 +205,28 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 }
 
 
+bool IntegrandBase::initElementIfc (const Vectors& vec1, const Vectors& vec2,
+                                    LocalIntegral& elmInt)
+{
+  // Each entry of the element vectors of an integrand goes with one basis,
+  // and one solution level, and the connectivity of the element counts the
+  // nodes of the two sides one basis at a time. Appending entry by entry is
+  // therefore all it takes, whether the integrand is mixed or not.
+  const size_t nvec = std::max(vec1.size(),vec2.size());
+  elmInt.vec.resize(nvec);
+  for (size_t i = 0; i < nvec; i++)
+  {
+    elmInt.vec[i].clear();
+    if (i < vec1.size())
+      elmInt.vec[i].push_back(vec1[i].begin(),vec1[i].end());
+    if (i < vec2.size())
+      elmInt.vec[i].push_back(vec2[i].begin(),vec2[i].end());
+  }
+
+  return true;
+}
+
+
 /*!
   The default implementation extracts the element-level vector only for the
   first (current) primary solution vector.

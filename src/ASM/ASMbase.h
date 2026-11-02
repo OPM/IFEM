@@ -45,6 +45,7 @@ class SystemVector;
 class FunctionBase;
 class RealFunc;
 class IntFunc;
+class MxFiniteElement;
 class VecFunc;
 class Vec3;
 class Tensor;
@@ -160,6 +161,46 @@ public:
   //! \param[out] nodes Global numbers assigned to the extraordinary nodes
   virtual bool addXElms(short int dim, short int item, size_t nXn,
                         IntVec& nodes);
+
+  //! \brief Returns the number of nodes of an element, basis by basis.
+  //! \param[in] iel 1-based element index local to current patch
+  virtual std::vector<size_t> getElementSizes(int iel) const;
+
+  //! \brief Adds elements coupling a boundary of this patch to a neighbour.
+  //! \param[in] item Local index of the boundary face/edge
+  //! \param[in] xnodes Global numbers of the nodes of the element on the
+  //! other side of each element of that boundary, in the order
+  //! getBoundaryElms() gives them
+  //! \param[in] xsizes Number of nodes of each basis of those elements
+  //! \param nextId Number to give the next element, incremented as they go
+  virtual bool addInterfaceElms(short int item,
+                                const std::vector<IntVec>& xnodes,
+                                const std::vector<std::vector<size_t>>& xsizes,
+                                int& nextId);
+
+  //! \brief Returns how the elements of a boundary are laid out.
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param[out] n1 Number of elements along the first direction of it
+  //! \param[out] n2 Number along the second, which an edge has none of
+  virtual bool getBoundaryElmSize(int lIndex, size_t& n1, size_t& n2) const;
+
+  //! \brief Evaluates the bases at a point on the boundary of an element.
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param[in] s Parametric coordinates of the point in first direction
+  //! \param[in] t Parametric coordinates of the point in second direction
+  //! \param fe Element data to fill, sized for one element of this patch
+  //! \param[out] Xnod Nodal coordinates of the element
+  //! \param[out] Jac Inverse of the Jacobian of the coordinate mapping
+  //! \param[out] normal Outward unit normal of the boundary at the point
+  //! \param[out] X Cartesian coordinates of the point
+  //! \param[in] piola Which Piola mapping to compute as well, as the
+  //! contravariant and covariant flags of an integrand type
+  virtual double evalBoundaryPoint(int iel, short int lIndex,
+                                   double s, double t,
+                                   MxFiniteElement& fe,
+                                   Matrix& Xnod, Matrix& Jac,
+                                   Vec3& normal, Vec3& X, int piola) const;
 
   //! \brief Adds a set of %Lagrange multipliers to the specified element.
   //! \param[in] iel 1-based element index local to current patch
@@ -444,6 +485,10 @@ public:
   bool isShared() const { return shareFE == 'F'; }
   //! \brief Returns \e true if this patch has additional (extraordinary) nodes.
   bool hasXNodes() const { return MLGN.size() > nnod; }
+  //! \brief Returns \e true if a node is held for a neighbouring patch.
+  //! \param[in] inod 1-based local node index
+  bool isBorrowedNode(size_t inod) const
+  { return myBorrowed.find(inod) != myBorrowed.end(); }
 
   //! \brief Returns parameter values and node numbers of the domain corners.
   //! \param[out] u Parameter values of the domain corners
@@ -1128,6 +1173,9 @@ protected:
   unsigned char nLag;   //!< Number of %Lagrange multipliers per node
   size_t        nel;    //!< Number of regular elements in this patch
   size_t        nnod;   //!< Number of regular nodes in this patch
+
+  //! 1-based local indices of the nodes held for a neighbouring patch
+  std::set<size_t> myBorrowed;
 
   const IntVec& MLGE; //!< Matrix of Local to Global Element numbers
   const IntVec& MLGN; //!< Matrix of Local to Global Node numbers
