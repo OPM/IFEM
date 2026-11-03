@@ -2641,6 +2641,8 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
 {
   if (step < 1 || psol.empty())
     return true;
+  else if (adm.dd.isPartitioned() && adm.getProcId() != 0)
+    return true; // only procId=0 dumps, the others would truncate its file
 
   int gCount = 0;
   bool first = true;
