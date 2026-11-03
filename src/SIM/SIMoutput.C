@@ -2641,6 +2641,8 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
 {
   if (step < 1 || psol.empty())
     return true;
+  else if (adm.dd.isPartitioned() && adm.getProcId() != 0)
+    return true;
 
   int gCount = 0;
   bool first = true;
