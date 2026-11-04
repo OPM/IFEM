@@ -744,7 +744,7 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
         // Multi-DOF Dirichlet expressions may define one expression per
         // constrained component, so parse as a vector function in that case.
         if (std::abs(bcComp) > 9) {
-          VecFunc* f = utl::parseExprVecFunc(dval->Value(),autodiff);
+          VecFunc* f = utl::parseVecFunc(dval->Value(),type,"",autodiff);
           if (!f)
             return false;
           myVectors[abs(code)] = f;

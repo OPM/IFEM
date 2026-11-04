@@ -233,7 +233,7 @@ TEST_CASE("TestExprAutoDiff.StaleErrorCounter")
     REQUIRE(f != nullptr);
     REQUIRE_THAT((*f)(Vec3(1.0,2.0,0.0)), WithinRel(4.0));
 
-    std::unique_ptr<VecFunc> v(utl::parseExprVecFunc("x|2.0*y",autodiff));
+    std::unique_ptr<VecFunc> v(utl::parseExprVecFunc("x|2.0*y","",autodiff));
     REQUIRE(v != nullptr);
     const Vec3 vv = (*v)(Vec3(1.0,2.0,0.0));
     REQUIRE_THAT(vv.x, WithinRel(1.0));
