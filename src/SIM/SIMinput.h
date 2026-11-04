@@ -187,8 +187,6 @@ public:
   bool refine(const LR::RefineData& prm, Vectors& sol);
 
   //! \brief Initializes the property containers of the model.
-  //! \details This method is overridden to also clear the
-  //!          \ref myInterfaces container of this class.
   virtual void clearProperties();
 
   //! \brief Refines the mesh based on a mesh density function.

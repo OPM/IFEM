@@ -91,49 +91,6 @@ bool SIMinput::readPatches (std::istream& isp, const char* whiteSpace)
 }
 
 
-namespace {
-
-/*!
-  \brief Maps a place in the grid of an interface onto the side facing it.
-  \param[in] ndim Number of directions the interface has
-  \param[in] orient Orientation flag of the interface
-  \param[in] i Index along its first direction, counted from zero
-  \param[in] j Index along its second, which an edge has none of
-  \param[in] n1 Number of places along the first direction
-  \param[in] n2 Number along the second
-  \param[out] k Index along the first direction of the other side
-  \param[out] l Index along its second
-
-  \details The grids of the two sides are the same grid counted two ways.
-  The orientation flag says how: for a face its lowest two bits reverse each
-  of the directions and the third says the two sides count them the other way
-  round, and for an edge it says whether the two run along it in opposite
-  directions.
-*/
-
-void facingIndex (int ndim, int orient, size_t i, size_t j,
-                  size_t n1, size_t n2, size_t& k, size_t& l)
-{
-  if (ndim < 2)
-  {
-    k = orient ? n1-1-i : i;
-    l = 0;
-    return;
-  }
-
-  if (orient & 4)
-  {
-    std::swap(i,j);
-    std::swap(n1,n2);
-  }
-
-  k = (orient & 2) ? n1-1-i : i;
-  l = (orient & 1) ? n2-1-j : j;
-}
-
-}
-
-
 bool SIMinput::addInterfaceElms ()
 {
   myIfcElms.clear();
@@ -188,25 +145,54 @@ bool SIMinput::addInterfaceElms ()
       return false;
     }
 
+    /*
+      Lambda function mapping grid locations of an interface onto opposite side.
+      i = Index along its first direction, counted from zero
+      j = Index along its second direction (for 3D only)
+      n1, n2 = Number of places along first and second direction, respectively
+      The indices of the point on the other side of the interface are returned.
+
+      The grids of the two sides are the same grid counted in two ways. The
+      orientation flag says how: For faces, its lowest two bits reverse each of
+      the directions, and the third says the two sides count them the other way
+      around. For edges it says whether the two run along in opposite direction.
+    */
+    auto facingIndex = [&ifc](size_t i, size_t j, size_t n1, size_t n2)
+    {
+      if (ifc.dim < 2)
+        return std::make_pair(ifc.orient ? n1-1-i : i,
+                              static_cast<size_t>(0));
+
+      if (ifc.orient & 4)
+      {
+        std::swap(i,j);
+        std::swap(n1,n2);
+      }
+
+      return std::make_pair((ifc.orient & 2) ? n1-1-i : i,
+                            (ifc.orient & 1) ? n2-1-j : j);
+    };
+
     // Put the far side in the order of the near one, so that what is walked
     // when the term is integrated is pairs
-    IntVec facing(melms.size());
-    for (size_t j = 0, at = 0; j < m2; j++)
-      for (size_t i = 0; i < m1; i++, at++)
+    IntVec facing;
+    facing.reserve(melms.size());
+    for (size_t j = 0; j < m2; j++)
+      for (size_t i = 0; i < m1; i++)
       {
         size_t k, l;
-        facingIndex(ifc.dim,ifc.orient,i,j,m1,m2,k,l);
+        std::tie(k,l) = facingIndex(i,j,m1,m2);
         if (k >= s1 || l >= s2)
         {
           std::cerr <<" *** SIMinput::addInterfaceElms: The interface between"
                     <<" patches "<< ifc.master <<" and "<< ifc.slave
-                    <<"\n     is "<< m1 <<" by "<< m2 <<" elements on the"
-                    <<" one side and "<< s1 <<" by "<< s2 <<" on the other,"
+                    <<"\n     is "<< m1 <<" by "<< m2 <<" elements on one side"
+                    <<" and "<< s1 <<" by "<< s2 <<" on the other side,"
                     <<"\n     which its orientation "<< ifc.orient
                     <<" cannot pair."<< std::endl;
           return false;
         }
-        facing[at] = selms[l*s1+k];
+        facing.push_back(selms[l*s1+k]);
       }
 
     selms.swap(facing);
@@ -1801,6 +1787,10 @@ bool SIMinput::refine (const LR::RefineData& prm, Vector& sol)
   return true;
 }
 
+
+/*!
+  This method is overridden to also clear the #myInterfaces member of this class.
+*/
 
 void SIMinput::clearProperties ()
 {
