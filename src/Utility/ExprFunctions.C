@@ -22,7 +22,7 @@
 
 
 namespace ExprEval {
-  //! The error counter is global, and is incremented by run-time evaluation errors.
+  //! Global error counter, incremented by run-time evaluation errors.
   int numError = 0;
 }
 
@@ -698,15 +698,16 @@ RealFunc* utl::parseExprRealFunc (const std::string& function, bool autodiff)
 }
 
 
-VecFunc* utl::parseExprVecFunc (const std::string& function, bool autodiff)
+VecFunc* utl::parseExprVecFunc (const std::string& function,
+                                const std::string& variables, bool autodiff)
 {
   ExprEval::numError = 0;
 
   VecFunc* f;
   if (autodiff)
-    f = new EvalMultiFunction<VecFunc,Vec3,autodiff::var>(function, "");
+    f = new EvalMultiFunction<VecFunc,Vec3,autodiff::var>(function,variables);
   else
-    f = new EvalMultiFunction<VecFunc,Vec3,Real>(function, "");
+    f = new EvalMultiFunction<VecFunc,Vec3,Real>(function,variables);
 
   if (ExprEval::numError == 0)
     return f;

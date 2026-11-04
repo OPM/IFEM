@@ -723,9 +723,10 @@ namespace utl
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type %Function definition type flag
   //! \param[in] print If \e true, print function definition
+  //! \param[in] autodiff If \e true, auto-differentiation is enabled
   RealFunc* parseRealFunc(const std::string& func,
                           const std::string& type = "expression",
-                          bool print = true);
+                          bool print = true, bool autodiff = false);
 
   //! \brief Creates a scalar-valued function by parsing a character string.
   //! \param[in] function %Function expression
@@ -735,21 +736,25 @@ namespace utl
   //! for encapsulation of the autodiff package.
   RealFunc* parseExprRealFunc(const std::string& function, bool autodiff);
 
-  //! \brief Creates a Vector-valued function by parsing a character string.
-  //! \param[in] function %Function expression
-  //! \param[in] autodiff If \e true, auto-differentiation is enabled
-  //!
-  //! \details The implementation of this method is in the file ExprFunctions.C
-  //! for encapsulation of the autodiff package.
-  VecFunc* parseExprVecFunc(const std::string& function, bool autodiff);
-
   //! \brief Creates a vector-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type %Function definition type flag
   //! \param[in] variables Optional variable definition for expression functions
+  //! \param[in] autodiff If \e true, auto-differentiation is enabled
   VecFunc* parseVecFunc(const std::string& func,
                         const std::string& type = "expression",
-                        const std::string& variables = "");
+                        const std::string& variables = "",
+                        bool autodiff = false);
+
+  //! \brief Creates a Vector-valued function by parsing a character string.
+  //! \param[in] function %Function expression
+  //! \param[in] variables Optional variable definition for expression functions
+  //! \param[in] autodiff If \e true, auto-differentiation is enabled
+  //!
+  //! \details The implementation of this method is in the file ExprFunctions.C
+  //! for encapsulation of the autodiff package.
+  VecFunc* parseExprVecFunc(const std::string& function,
+                            const std::string& variables, bool autodiff);
 
   //! \brief Creates a tensor-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from

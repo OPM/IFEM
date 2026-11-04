@@ -167,6 +167,28 @@ namespace
     }
     return true;
   }
+
+  //! \brief Nicely prints an expression over several lines.
+  void printExpression (const std::string& func, char sep = ';')
+  {
+    IFEM::cout <<":";
+    if (func.find_first_of(sep) == std::string::npos)
+    {
+      IFEM::cout <<"\n\t\t"<< func;
+      return;
+    }
+
+    char* tmp = strdup(func.c_str());
+    const char ssep[2] = { sep, '\0' };
+    for (char* s = strtok(tmp,ssep); s; s = strtok(NULL,ssep))
+    {
+      while (*s && isspace(*s)) ++s;
+      IFEM::cout <<"\n\t\t"<< s;
+      if (sep == ';')
+        IFEM::cout << sep;
+    }
+    free(tmp);
+  }
 }
 
 
@@ -959,49 +981,48 @@ VecTimeFunc* utl::parseVecTimeFunc (const char* func, const std::string& type)
 
 
 RealFunc* utl::parseRealFunc (const std::string& func,
-                              const std::string& type, bool print)
+                              const std::string& type,
+                              bool print, bool autodiff)
 {
   Real p = Real(0);
   if (func.empty())
     return new ConstFunc(p);
 
-  if (print)
-    IFEM::cout <<": ";
-
   const RealFunc* f = nullptr;
   if (type == "expression")
   {
     if (print)
-      IFEM::cout << func;
-    ExprEval::numError = 0;
-    f = new EvalFunction(func.c_str());
-    if (ExprEval::numError > 0)
     {
-      delete f;
-      f = nullptr;
+      if (func.size() > 75)
+        printExpression(func);
+      else
+        IFEM::cout <<": "<< func;
     }
+    f = utl::parseExprRealFunc(func,autodiff);
   }
   else if (type == "linear")
   {
     p = atof(func.c_str());
     if (print)
-      IFEM::cout << p <<"*t";
+      IFEM::cout <<": "<< p <<"*t";
     f = new ConstTimeFunc(new LinearFunc(p));
   }
   else if (type == "chebyshev")
   {
     if (print)
-      IFEM::cout << func;
+      IFEM::cout <<": "<< func;
     f = new ChebyshevFunc(func, true);
   }
   else if (isConstant(func,type,p))
   {
     if (print)
-      IFEM::cout << p;
+      IFEM::cout <<": "<< p;
     f = new ConstFunc(p);
   }
   else
   {
+    if (print)
+      IFEM::cout <<": ";
     char* funcType = strdup(type.c_str());
     char* funcBody = strdup(func.c_str());
     p = atof(strtok(funcBody," "));
@@ -1015,7 +1036,7 @@ RealFunc* utl::parseRealFunc (const std::string& func,
 
 
 VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
-                            const std::string& variables)
+                            const std::string& variables, bool autodiff)
 {
   VecFunc* f = nullptr;
 
@@ -1024,14 +1045,11 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
 
   else if (type == "expression")
   {
-    IFEM::cout <<": "<< func;
-    ExprEval::numError = 0;
-    f = new VecFuncExpr(func,variables);
-    if (ExprEval::numError > 0)
-    {
-      delete f;
-      f = nullptr;
-    }
+    if (func.size() > 50)
+      printExpression(func,'|');
+    else
+      IFEM::cout <<": "<< func;
+    f = utl::parseExprVecFunc(func,variables,autodiff);
   }
   else if (type == "constant")
   {
@@ -1048,9 +1066,7 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     f = new ChebyshevVecFunc(splitString(func),true);
 
   else if (type.substr(0,5) == "field")
-  {
-    std::vector<std::string> prms = splitString(func);
-    if (prms.size() > 2)
+    if (std::vector<std::string> prms = splitString(func); prms.size() > 2)
     {
       int level = 0;
       if (prms.size() > 3)
@@ -1067,7 +1083,6 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
       else
         f = new VecFieldFunction(prms[0],prms[1],prms[2],level);
     }
-  }
 
   return f;
 }

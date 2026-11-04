@@ -581,14 +581,14 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"propertycodes"))
-  {
-    const tinyxml2::XMLElement* code = elem->FirstChildElement("code");
-    for (; code; code = code->NextSiblingElement("code"))
+
+    for (const tinyxml2::XMLElement* code = elem->FirstChildElement("code");
+         code; code = code->NextSiblingElement("code"))
     {
       int icode = 0;
       utl::getAttribute(code,"value",icode);
-      const tinyxml2::XMLElement* patch = code->FirstChildElement("patch");
-      for (; patch; patch = patch->NextSiblingElement("patch"))
+      for (const tinyxml2::XMLElement* patch = code->FirstChildElement("patch");
+           patch; patch = patch->NextSiblingElement("patch"))
       {
         Property p;
         int ival = 0;
@@ -606,7 +606,6 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
             myProps.push_back(p);
       }
     }
-  }
 
   else if (!strcasecmp(elem->Value(),"neumann"))
   {
@@ -649,11 +648,10 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
     else if (type == "distributed")
     {
       IFEM::cout <<" (distributed force)";
-      TractionFunc* f = utl::parseTracFunc(elem);
-      if (!f)
-        return false;
-      else
+      if (TractionFunc* f = utl::parseTracFunc(elem); f)
         myTracs[code] = f;
+      else
+        return false;
       this->setPropertyType(code,Property::NEUMANN);
     }
     else if (nval)
@@ -671,7 +669,7 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
 
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet)
   {
-    const tinyxml2::XMLNode* dval = nullptr;
+    const char* dval = nullptr;
     int comp = 0, symm = 0, basis = 1, direction = -1;
     bool override = false, autodiff = false;
     std::string set, type, axes;
@@ -680,7 +678,7 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
     utl::getAttribute(elem,"basis",basis);
     utl::getAttribute(elem,"override",override);
     utl::getAttribute(elem,"autodiff",autodiff);
-    // Handle some predefined property codes for symmtry-conditions (C1-patches)
+    // Handle predefined property codes for symmetry-conditions (C1-patches)
     if (type == "symmxy" || type == "symmyx")
       comp = symm = 12000;
     else if (type == "symmyz" || type == "symmzy")
@@ -691,12 +689,16 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
       comp = 123123;
     else
     {
-      dval = elem->FirstChild();
+      for (const tinyxml2::XMLNode* child = elem->FirstChild();
+           child && !dval; child = child->NextSibling())
+        if (child->ToText()) // ignore potential XML comments
+          dval = child->Value();
+
       utl::getAttribute(elem,"axes",axes,true);
       utl::getAttribute(elem,"component",comp);
       utl::getAttribute(elem,"comp",comp);
-      // As for tractions, direction 0 denotes the normal direction. For a
-      // div-compatible basis the normal component is carried by one basis
+      // As for tractions, direction 0 denotes the normal direction.
+      // For a div-compatible basis the normal component is carried by one basis
       // alone, namely the one whose parameter is constant on the boundary,
       // so which basis that is depends on the boundary itself.
       // Flag it with a negative basis index and let setPropertyType resolve
@@ -730,46 +732,46 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
       IFEM::cout <<": (analytic)";
       this->setPropertyType(code,Property::DIRICHLET_ANASOL,-1,basis);
     }
-    else if (dval && (type == "expression" || type == "field" ||
-                      atof(dval->Value()) != 0.0))
+    else if (!dval)
     {
-      if (!type.empty())
-        IFEM::cout <<" ("<< type <<")";
+      // Homogeneous Dirichlet condition imposed through fixation codes
+      IFEM::cout <<": (fixed)";
+      this->setPropertyType(code,Property::DIRICHLET,comp,basis);
+    }
+    else
+    {
       if (override)
         this->setPropertyType(code,Property::DIRICHLET_OVERRIDE,comp,basis);
       else
         this->setPropertyType(code,Property::DIRICHLET_INHOM,comp,basis);
-      if (type == "expression")
+
+      if (strcmp(dval,"0.0") == 0 || strcmp(dval,"0") == 0)
       {
-        // Multi-DOF Dirichlet expressions may define one expression per
-        // constrained component, so parse as a vector function in that case.
-        if (std::abs(bcComp) > 9) {
-          VecFunc* f = utl::parseExprVecFunc(dval->Value(),autodiff);
-          if (!f)
+        // Homogeneous Dirichlet condition imposed through constraint equations
+        IFEM::cout <<": (constrained to zero)";
+        // TODO: This should not be necessary?
+        myScalars[abs(code)] = new ConstFunc(0.0);
+      }
+      else // inhomogeneous Dirichlet condition
+      {
+        if (!type.empty())
+          IFEM::cout <<" ("<< type <<")";
+        if (type == "expression" && std::abs(bcComp) > 9)
+        {
+          // Multi-DOF Dirichlet expressions may define one expression per
+          // constrained component, so parse as a vector function in that case.
+          if (VecFunc* f = utl::parseVecFunc(dval,type,"",autodiff); f)
+            myVectors[abs(code)] = f;
+          else
             return false;
-          myVectors[abs(code)] = f;
         }
-        else {
-          RealFunc* f = utl::parseExprRealFunc(dval->Value(),autodiff);
-          if (!f)
-            return false;
+        else if (RealFunc* f = utl::parseRealFunc(dval,type,true,autodiff); f)
           myScalars[abs(code)] = f;
-        }
-      }
-      else
-      {
-        RealFunc* f = utl::parseRealFunc(dval->Value(),type);
-        if (!f)
+        else
           return false;
-        myScalars[abs(code)] = f;
       }
-      IFEM::cout << ": " << dval->Value();
     }
-    else
-    {
-      IFEM::cout <<": (fixed)";
-      this->setPropertyType(code,Property::DIRICHLET,comp,basis);
-    }
+
     if (symm)
     {
       code = this->getUniquePropertyCode(set,1+(1+symm/10000)%3);
