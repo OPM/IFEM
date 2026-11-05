@@ -35,7 +35,7 @@ ElementSteps::ElementSteps (const char* input, const SIMbase& sim,
     if (cpy[i] == '\\' || cpy[i] == '|')
       cpy[i] = '\n';
 
-  IFEM::cout <<" ElementSteps\n";
+  IFEM::cout <<": ElementSteps\n";
   std::stringstream str(cpy);
   char temp[512];
   while (str.getline(temp,512))
