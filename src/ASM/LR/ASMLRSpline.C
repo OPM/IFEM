@@ -29,7 +29,8 @@
 #endif
 
 
-int LR::extendControlPoints (LRSpline* basis, const Vector& v, int nf, int ofs)
+int LR::extendControlPoints (LRSpline* basis, const Vector& v, int nf, int ofs,
+                             bool rational)
 {
   if (v.empty())
     return 0;
@@ -47,7 +48,10 @@ int LR::extendControlPoints (LRSpline* basis, const Vector& v, int nf, int ofs)
     int istart = ofs + b->getId()*nf;
     b->getControlPoint(cpp);
     cpts.insert(cpts.end(), cpp.begin(), cpp.end());
-    cpts.insert(cpts.end(), v.begin()+istart, v.begin()+istart+nf);
+    // The appended coefficients of a rational basis are homogeneous too
+    const double w = rational ? cpp.back() : 1.0;
+    for (int i = 0; i < nf; i++)
+      cpts.push_back(v[istart+i]*w);
   }
   basis->rebuildDimension(basis->dimension()+nf);
   basis->setControlPoints(cpts);
@@ -55,14 +59,16 @@ int LR::extendControlPoints (LRSpline* basis, const Vector& v, int nf, int ofs)
 }
 
 
-void LR::contractControlPoints (LRSpline* basis, Vector& v, int nf, int ofs)
+void LR::contractControlPoints (LRSpline* basis, Vector& v, int nf, int ofs,
+                                bool rational)
 {
   RealArray cpts, cpp;
   for (LR::Basisfunction* b : basis->getAllBasisfunctions()) {
     int istart = ofs + b->getId()*nf;
     b->getControlPoint(cpp);
+    const double w = rational ? cpp[basis->dimension()-nf-1] : 1.0;
     for (int i = 0; i < nf; i++)
-      v[istart+i] = cpp[basis->dimension()-nf+i];
+      v[istart+i] = cpp[basis->dimension()-nf+i]/w;
     cpts.insert(cpts.end(), cpp.begin(), cpp.end()-nf);
   }
   basis->rebuildDimension(basis->dimension()-nf);
@@ -238,7 +244,8 @@ bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
 
   IntVec nf(sol.size());
   for (size_t j = 0; j < sol.size(); j++)
-    if ((nf[j] = LR::extendControlPoints(geomB.get(),sol[j],this->getNoFields(1))) < 0)
+    if ((nf[j] = LR::extendControlPoints(geomB.get(),sol[j],this->getNoFields(1),
+                                         0,this->rational())) < 0)
       return false;
 
   if (!this->doRefine(prm,geomB.get()))
@@ -251,7 +258,7 @@ bool ASMLRSpline::refine (const LR::RefineData& prm, Vectors& sol)
   for (int i = sol.size()-1; i >= 0; i--)
     if (nf[i] > 0) {
       sol[i].resize(nf[i]*nnod);
-      LR::contractControlPoints(geomB.get(),sol[i],nf[i]);
+      LR::contractControlPoints(geomB.get(),sol[i],nf[i],0,this->rational());
     }
 
   bool linIndepTest = prm.options.size() > 3 ? prm.options[3] != 0 : false;

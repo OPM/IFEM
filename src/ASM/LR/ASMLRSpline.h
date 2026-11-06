@@ -31,16 +31,20 @@ namespace LR //! Utilities for LR-splines.
   //! \param[in] v The vector to append to the basis coefficients
   //! \param[in] nf Number of fields in the given vector
   //! \param[in] ofs Offset in vector
+  //! \param[in] rational If \e true, the basis coefficients are homogeneous,
+  //! with the weight last, and so are the appended coefficients
   int extendControlPoints(LRSpline* basis, const Vector& v,
-                          int nf, int ofs = 0);
+                          int nf, int ofs = 0, bool rational = false);
 
   //! \brief Contracts the basis coefficients of an LR-spline object.
   //! \param basis The spline object to contact
   //! \param[out] v Vector containing the extracted basis coefficients
   //! \param[in] nf Number of fields in the given vector
   //! \param[in] ofs Offset in vector
+  //! \param[in] rational If \e true, the basis coefficients are homogeneous,
+  //! with the weight last before the extracted ones
   void contractControlPoints(LRSpline* basis, Vector& v,
-                             int nf, int ofs = 0);
+                             int nf, int ofs = 0, bool rational = false);
 
   //! \brief Extracts parameter values of the Gauss points in one direction.
   //! \param[in] spline The LR-spline object to get parameter values for
@@ -91,6 +95,10 @@ public:
 
   //! \brief Checks if the patch is empty.
   virtual bool empty() const { return geomB == nullptr; }
+  //! \brief Returns \e true if the basis is rational.
+  //! \details The coefficients of a rational basis are then the homogeneous
+  //! ones, with the weight last.
+  virtual bool rational() const { return false; }
 
   //! \brief Returns parameter values and node numbers of the domain corners.
   virtual bool getParameterDomain(Real2DMat&, IntVec*) const;
