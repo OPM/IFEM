@@ -78,6 +78,16 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Returns local 1-based index of the node with given global number.
+  //! \details If the given node number is not present, 0 is returned.
+  //! \param[in] globalNum Global node number
+  //! \param[in] noAddedNodes If \e true, use \a xnMap to find the real node
+  virtual size_t getNodeIndex(int globalNum, bool noAddedNodes = false) const;
+  //! \brief Returns the global node number for the given node.
+  //! \param[in] inod 1-based node index local to current patch
+  //! \param[in] noAddedNodes If \e true, use \a nxMap to find the real node
+  virtual int getNodeID(size_t inod, bool noAddedNodes = false) const;
+
   //! \brief Returns the current rotation tensor for the given node.
   //! \param[in] inod 1-based node index local to current patch
   const Tensor& getRotation(size_t inod) const;
