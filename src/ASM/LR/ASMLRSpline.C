@@ -416,15 +416,16 @@ void ASMLRSpline::Sort (int u, int v, int orient,
   std::sort(functions.begin(), functions.end(),
             [u,v,orient](const LR::Basisfunction* a, const LR::Basisfunction* b)
             {
-              int i,p = a->getOrder(orient < 4 ? v : u);
+              // Each key compares all knots in its direction
               int idx = (orient & 4) ? v : u;
+              int i,p = a->getOrder(idx);
               for (i = 0; i <= p; i++)
                 if ((*a)[idx][i] != (*b)[idx][i])
                   return (orient & 2) ? (*a)[idx][i] > (*b)[idx][i]
                                       : (*a)[idx][i] < (*b)[idx][i];
 
-              p   = a->getOrder(orient < 4 ? u : v);
               idx = (orient & 4) ? u : v;
+              p   = a->getOrder(idx);
               for (i = 0; i <= p; i++)
                 if ((*a)[idx][i] != (*b)[idx][i])
                   return (orient & 1) ? (*a)[idx][i] > (*b)[idx][i]
