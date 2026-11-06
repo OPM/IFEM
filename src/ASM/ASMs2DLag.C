@@ -199,6 +199,24 @@ Vec3 ASMs2DLag::getCoord (size_t inod) const
 }
 
 
+double ASMs2DLag::getElementCorners (int iel, Vec3Vec& XC, RealArray* uC) const
+{
+  XC.clear();
+  if (uC) uC->clear();
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size() ||
+      MNPC[iel-1].size() < static_cast<size_t>(p1*p2))
+    return -1.0;
+
+  const IntVec& mnpc = MNPC[iel-1];
+  XC.reserve(4);
+  for (int j : {0, p2-1})
+    for (int i : {0, p1-1})
+      XC.push_back(coord[mnpc[j*p1+i]]);
+
+  return ASM2D::getElementSize(XC);
+}
+
+
 void ASMs2DLag::setCoord (size_t inod, const Vec3& Xnod)
 {
   if (inod < 1)
