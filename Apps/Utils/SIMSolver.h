@@ -188,7 +188,7 @@ public:
       return; // Restart output on processor 0 only
 
     restartAdm = new HDF5Restart(hdf5file+"_restart", *adm, restartInterval,
-                                 startRstLevel);
+                                 startRstLevel, tp.step);
   }
 
   //! \brief Serialize internal state for restarting purposes.
