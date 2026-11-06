@@ -1706,11 +1706,14 @@ double ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC,
   RealArray u(2), v(2);
   this->getElementBorders(i1,i2,u.data(),v.data());
 
-  // Evaluate the spline surface at the corners to find physical coordinates
-  int dim = surf->dimension();
+  // Evaluate the geometry at the corners to find physical coordinates,
+  // which for mixed patches may be another basis than the integration basis
+  const Go::SplineSurface* geo = this->getBasis(ASM::GEOMETRY_BASIS);
+  if (!geo) geo = surf.get();
+  int dim = geo->dimension();
   RealArray XYZ(dim*4);
 #pragma omp critical
-  surf->gridEvaluator(XYZ,u,v);
+  geo->gridEvaluator(XYZ,u,v);
 
   XC.clear();
   XC.reserve(4);
