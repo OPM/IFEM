@@ -891,7 +891,8 @@ bool SIMinput::parseLinSolTag (const tinyxml2::XMLElement* elem)
   if (!strcasecmp(elem->Value(),"class"))
   {
     if (elem->FirstChild())
-      opt.setLinearSolver(elem->FirstChild()->Value());
+      if (!opt.setLinearSolver(elem->FirstChild()->Value()))
+        return false;
     utl::getAttribute(elem,"fixzeros",fixZeros);
   }
 
@@ -1061,7 +1062,8 @@ bool SIMinput::parse (const tinyxml2::XMLElement* elem)
   {
     std::string solver;
     if (utl::getAttribute(elem,"class",solver,true))
-      opt.setLinearSolver(solver);
+      if (!opt.setLinearSolver(solver))
+        return false;
     utl::getAttribute(elem,"fixzeros",fixZeros);
     if (utl::getAttribute(elem,"l2class",solver,true))
     {
@@ -1069,6 +1071,13 @@ bool SIMinput::parse (const tinyxml2::XMLElement* elem)
         GlbL2::MatrixType = LinAlg::PETSC;
       else if (solver == "umfpack")
         GlbL2::MatrixType = LinAlg::UMFPACK;
+      else
+      {
+        std::cerr <<" *** SIMinput::parse: \""<< solver <<"\" is not a matrix"
+                  <<" the global L2 projection is solved with. The ones there"
+                  <<" are: superlu, petsc, umfpack."<< std::endl;
+        return false;
+      }
     }
   }
   else if (!strcasecmp(elem->Value(),"eigensolver"))
@@ -1975,9 +1984,39 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
             << it.file_field <<"/"<< i+1;
         hdf5reader.readVector(str.str(), loc);
         basisVec[p-1]->copyParameterDomain(pch);
-        if (pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
+        if (!pch->evaluate(basisVec[p-1], loc, newloc, it.basis))
+          continue;
+
+        const size_t nnod = pch->getNoNodes(it.basis);
+        const size_t ncmp = nnod > 0 ? newloc.size()/nnod : 0;
+        const size_t ntot = this->getNoNodes(it.basis);
+        const size_t nndof = ntot > 0 && field->size()%ntot == 0
+                           ? field->size()/ntot : 0;
+        if (nndof <= ncmp)
           pch->injectNodeVec(newloc, *field,
-                             newloc.size()/pch->getNoNodes(it.basis), it.basis);
+                             static_cast<unsigned char>(ncmp), it.basis);
+        else
+        {
+          const size_t ofs = it.component > 0 ? it.component-1 : 0;
+          if (ncmp < 1 || ofs + ncmp > nndof)
+          {
+            std::cerr <<" *** SIMinput::setInitialCondition: \""<< it.file_field
+                      <<"\" has "<< ncmp <<" component(s), which do not fit in"
+                      <<" the\n     "<< static_cast<int>(nndof) <<" of basis "
+                      << static_cast<int>(it.basis) <<" from component "
+                      << ofs+1 <<" on."<< std::endl;
+            return false;
+          }
+
+          Vector nodal;
+          pch->extractNodeVec(*field, nodal,
+                              static_cast<unsigned char>(nndof), it.basis);
+          for (size_t n = 0; n < nnod; n++)
+            for (size_t c = 0; c < ncmp; c++)
+              nodal[n*nndof+ofs+c] = newloc[n*ncmp+c];
+          pch->injectNodeVec(nodal, *field,
+                             static_cast<unsigned char>(nndof), it.basis);
+        }
       }
     }
 
@@ -2005,15 +2044,33 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
       result &= this->setInitialCondition(fieldHolder,it.first,it.second);
     else for (const ICInfo& ic : it.second)
     {
-      // Do we have this field?
       RealArray* field = fieldHolder->getField(ic.sim_field);
-      if (!field) continue;
+      if (!field)
+      {
+        std::cerr <<" *** SIMinput::setInitialConditions: There is no field"
+                  <<" \""<< ic.sim_field <<"\" to apply an initial condition"
+                  <<" to.\n     The fields there are:";
+        for (const std::string& name : fieldHolder->getFieldNames())
+          std::cerr <<" "<< name;
+        std::cerr << std::endl;
+        result = false;
+        continue;
+      }
 
       IFEM::cout <<"\nLoading initial condition for \""<< ic.sim_field
                  <<"\" component "<< (int)ic.component
                  <<"\nfrom "<< ic.file_field <<" function";
       RealFunc* fn = utl::parseRealFunc(ic.function,ic.file_field);
       IFEM::cout << std::endl;
+      if (!fn)
+      {
+        std::cerr <<" *** SIMinput::setInitialConditions: The initial"
+                  <<" condition for \""<< ic.sim_field <<"\" is not a"
+                  <<" function that could be parsed."<< std::endl;
+        result = false;
+        continue;
+      }
+
       result &= this->project(*field,fn,ic.basis,ic.component-1,
                               this->getNoFields(ic.basis));
       delete fn;
