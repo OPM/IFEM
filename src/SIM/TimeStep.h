@@ -62,6 +62,9 @@ public:
   //! \brief Returns \e true if the end of the simulation has been reached.
   bool finished() const;
 
+  //! \brief Returns configured stopping tolerance.
+  double stopTolerance() const { return stop_tol; }
+
   //! \brief Serialize internal state for restarting purposes.
   //! \param data Container for serialized data
   bool serialize(std::map<std::string,std::string>& data) const;
@@ -86,6 +89,8 @@ private:
   double dtMax;  //!< Maximun time increment size
   double f1;     //!< Scale factor for increased time step size
   double f2;     //!< Scale factor for reduced time step size
+
+  double stop_tol; //!< Stop time step loop if incNorm < stop_tol
 
   typedef std::pair<std::vector<double>,double> Step; //!< Time step definition
   typedef std::vector<Step> TimeSteps;                //!< Time step container
