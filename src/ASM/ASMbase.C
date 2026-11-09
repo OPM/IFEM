@@ -28,14 +28,12 @@
 #include <numeric>
 
 
-bool ASMbase::fixHomogeneousDirichlet = true;
-int  ASMbase::dbgElm = 0;
-
 //! This quantity is used to scale the characteristic element sizes which are
 //! used by residual error estimates, etc., such that they always are in the
 //! range [0,1.0]. Applications have to set an appropriate value, when needed.
 double ASMbase::modelSize = 1.0;
 
+int ASMbase::dbgElm = 0;
 int ASMbase::gEl = 0;
 int ASMbase::gNod = 0;
 IntMap ASMbase::xNode;
@@ -1034,17 +1032,18 @@ bool ASMbase::constrainXnode (int node, int dof, int code)
 
 int ASMbase::prescribe (size_t inod, int dirs, int code, bool overrideD)
 {
-  if (code == 0 && fixHomogeneousDirichlet)
+  if (code == 0)
     return this->fix(inod,dirs);
 
   int node = this->getNodeID(inod);
-  if (node < 1 || dirs < 1) return dirs;
+  if (node < 1 || dirs < 1)
+    return dirs;
 
   int ignoredDirs = 0;
   for (int dof : utl::getDigits(dirs))
     if (dof <= nf)
     {
-      MPC* mpc = new MPC(node,dof,1.0);
+      MPC* mpc = new MPC(node, dof, code == 0 ? 0.0 : 1.0);
       if (!this->addMPC(mpc,code,true,overrideD))
         ignoredDirs = 10*ignoredDirs + dof;
     }
@@ -1114,7 +1113,8 @@ int ASMbase::BC::fix (int dof)
 int ASMbase::fix (size_t inod, int dirs)
 {
   int node = this->getNodeID(inod);
-  if (node < 1 || dirs < 1) return dirs;
+  if (node < 1 || dirs < 1)
+    return dirs;
 
   BCVec::iterator bit = std::find(BCode.begin(),BCode.end(),node);
   if (bit == BCode.end())

@@ -1157,8 +1157,6 @@ protected:
   bool writeLagBasis(std::ostream& os, const char* type) const;
 
 public:
-  static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
-
   static int dbgElm; //!< One-based element index to print debugging info for
 
   static double modelSize; //!< Characteristic model size
