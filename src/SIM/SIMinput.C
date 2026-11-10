@@ -552,6 +552,16 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
+  // Lambda function returning the first text value of the XML tag.
+  auto getTextValue = [elem]() -> const char*
+  {
+    for (const tinyxml2::XMLNode* child = elem->FirstChild();
+         child; child = child->NextSibling())
+      if (child->ToText()) // ignore potential XML comments
+        return child->Value();
+    return nullptr;
+  };
+
   if (!strcasecmp(elem->Value(),"propertyfile") && elem->FirstChild())
   {
     const char* file = elem->FirstChild()->Value();
@@ -581,14 +591,14 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"propertycodes"))
-  {
-    const tinyxml2::XMLElement* code = elem->FirstChildElement("code");
-    for (; code; code = code->NextSiblingElement("code"))
+
+    for (const tinyxml2::XMLElement* code = elem->FirstChildElement("code");
+         code; code = code->NextSiblingElement("code"))
     {
       int icode = 0;
       utl::getAttribute(code,"value",icode);
-      const tinyxml2::XMLElement* patch = code->FirstChildElement("patch");
-      for (; patch; patch = patch->NextSiblingElement("patch"))
+      for (const tinyxml2::XMLElement* patch = code->FirstChildElement("patch");
+           patch; patch = patch->NextSiblingElement("patch"))
       {
         Property p;
         int ival = 0;
@@ -606,12 +616,9 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
             myProps.push_back(p);
       }
     }
-  }
 
   else if (!strcasecmp(elem->Value(),"neumann"))
   {
-    const tinyxml2::XMLNode* nval = elem->FirstChild();
-
     std::string set, type;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
@@ -649,38 +656,35 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
     else if (type == "distributed")
     {
       IFEM::cout <<" (distributed force)";
-      TractionFunc* f = utl::parseTracFunc(elem);
-      if (!f)
-        return false;
-      else
+      if (TractionFunc* f = utl::parseTracFunc(elem); f)
         myTracs[code] = f;
+      else
+        return false;
       this->setPropertyType(code,Property::NEUMANN);
     }
-    else if (nval)
+    else if (const char* nval = getTextValue(); nval)
     {
       IFEM::cout <<" direction "<< ndir;
       if (!type.empty())
         IFEM::cout <<" ("<< type <<")";
-      this->setNeumann(nval->Value(),type,ndir,code);
+      this->setNeumann(nval,type,ndir,code);
     }
     else
-      this->setNeumann(std::string(),type,ndir,code);
+      this->setNeumann("",type,ndir,code);
 
     IFEM::cout << std::endl;
   }
 
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet)
   {
-    const tinyxml2::XMLNode* dval = nullptr;
+    const char* dval = nullptr;
     int comp = 0, symm = 0, basis = 1, direction = -1;
     bool override = false, autodiff = false;
     std::string set, type, axes;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
     utl::getAttribute(elem,"basis",basis);
-    utl::getAttribute(elem,"override",override);
-    utl::getAttribute(elem,"autodiff",autodiff);
-    // Handle some predefined property codes for symmtry-conditions (C1-patches)
+    // Handle predefined property codes for symmetry-conditions (C1-patches)
     if (type == "symmxy" || type == "symmyx")
       comp = symm = 12000;
     else if (type == "symmyz" || type == "symmzy")
@@ -691,16 +695,18 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
       comp = 123123;
     else
     {
-      dval = elem->FirstChild();
+      dval = getTextValue();
+      utl::getAttribute(elem,"override",override);
+      utl::getAttribute(elem,"autodiff",autodiff);
       utl::getAttribute(elem,"axes",axes,true);
       utl::getAttribute(elem,"component",comp);
       utl::getAttribute(elem,"comp",comp);
-      // As for tractions, direction 0 denotes the normal direction. For a
-      // div-compatible basis the normal component is carried by one basis
+      // As for tractions, direction 0 denotes the normal direction.
+      // For a div-compatible basis the normal component is carried by one basis
       // alone, namely the one whose parameter is constant on the boundary,
       // so which basis that is depends on the boundary itself.
-      // Flag it with a negative basis index and let setPropertyType resolve
-      // it for each boundary the property set expands into.
+      // Flag it with a negative basis index and let setPropertyType()
+      // resolve it for each boundary the property set expands into.
       if (utl::getAttribute(elem,"direction",direction) && direction == 0)
       {
         basis = -1;
@@ -727,62 +733,52 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
     IFEM::cout <<"\tDirichlet code "<< code;
     if (type == "anasol")
     {
+      // Inhomogeneous Dirichlet condition derived from analytical solution
       IFEM::cout <<": (analytic)";
       this->setPropertyType(code,Property::DIRICHLET_ANASOL,-1,basis);
     }
-    else if (dval && (type == "expression" || type == "field" ||
-                      atof(dval->Value()) != 0.0))
+    else if (!dval || strcmp(dval,"0.0") == 0 || strcmp(dval,"0") == 0)
     {
+      // Homogeneous Dirichlet condition
+      IFEM::cout <<": (fixed)";
+      this->setPropertyType(code,Property::DIRICHLET,comp,basis);
+      if (symm)
+      {
+        code = this->getUniquePropertyCode(set,1+(1+symm/10000)%3);
+        IFEM::cout <<"\n\tDirichlet code "<< code <<": (fixed)";
+        this->setPropertyType(code,Property::DIRICHLET,comp,basis);
+      }
+    }
+    else
+    {
+      // Inhomogeneous Dirichlet condition imposed through constraint equations
       if (!type.empty())
         IFEM::cout <<" ("<< type <<")";
       if (override)
         this->setPropertyType(code,Property::DIRICHLET_OVERRIDE,comp,basis);
       else
         this->setPropertyType(code,Property::DIRICHLET_INHOM,comp,basis);
-      if (type == "expression")
+
+      if (type == "expression" && std::abs(bcComp) > 9)
       {
         // Multi-DOF Dirichlet expressions may define one expression per
-        // constrained component, so parse as a vector function in that case.
-        if (std::abs(bcComp) > 9) {
-          VecFunc* f = utl::parseVecFunc(dval->Value(),type,"",autodiff);
-          if (!f)
-            return false;
+        // constrained component, so parse as a vector function in that case
+        if (VecFunc* f = utl::parseVecFunc(dval,type,"",autodiff); f)
           myVectors[abs(code)] = f;
-        }
-        else {
-          RealFunc* f = utl::parseExprRealFunc(dval->Value(),autodiff);
-          if (!f)
-            return false;
-          myScalars[abs(code)] = f;
-        }
-      }
-      else
-      {
-        RealFunc* f = utl::parseRealFunc(dval->Value(),type);
-        if (!f)
+        else
           return false;
-        myScalars[abs(code)] = f;
       }
-      IFEM::cout << ": " << dval->Value();
+      else if (RealFunc* f = utl::parseRealFunc(dval,type,true,autodiff); f)
+        myScalars[abs(code)] = f;
+      else
+        return false;
     }
-    else
-    {
-      IFEM::cout <<": (fixed)";
-      this->setPropertyType(code,Property::DIRICHLET,comp,basis);
-    }
-    if (symm)
-    {
-      code = this->getUniquePropertyCode(set,1+(1+symm/10000)%3);
-      IFEM::cout <<"\n\tDirichlet code "<< code <<": (fixed)";
-      this->setPropertyType(code,Property::DIRICHLET,comp,basis);
-    }
+
     IFEM::cout << std::endl;
   }
 
   else if (!strcasecmp(elem->Value(),"robin"))
   {
-    const tinyxml2::XMLNode* rval = elem->FirstChild();
-
     std::string set, type;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
@@ -804,8 +800,12 @@ bool SIMinput::parseBCTag (const tinyxml2::XMLElement* elem)
       if (!type.empty())
         IFEM::cout <<" ("<< type <<")";
       this->setPropertyType(code,Property::ROBIN);
-      this->setNeumann(rval ? rval->Value() : "",type,direction,code);
+      if (const char* rval = getTextValue(); rval)
+        this->setNeumann(rval,type,direction,code);
+      else
+        this->setNeumann("",type,direction,code);
     }
+
     IFEM::cout << std::endl;
   }
 
