@@ -589,7 +589,7 @@ TEST_CASE("TestASMu3Dmx.WriteSG")
 }
 
 
-TEST_CASE("TestASMu3Dm.xWriteTH")
+TEST_CASE("TestASMu3Dmx.WriteTH")
 {
   const ASMmxBase::MixedType param = GENERATE(
     ASMmxBase::REDUCED_CONT_RAISE_BASIS1,
