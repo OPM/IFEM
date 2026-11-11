@@ -54,24 +54,35 @@ void CompatibleOperators::Weak::Convection(std::vector<Matrix>& EM,
     for (size_t l = 1; l <= nsd; ++l) {
       switch (form) {
         case WeakOperators::CONVECTIVE:
-          EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.basis(l), true, scale*fe.detJxW*dUdX(k,l));
+          EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.basis(l),
+                                          true, scale*fe.detJxW*dUdX(k,l));
           if(k == l)
             for (size_t m = 1; m <= nsd; ++m)
-              EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.grad(l).getColumn(m), true, scale*fe.detJxW*U[m-1]);
+              EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.grad(l).getColumn(m),
+                                              true, scale*fe.detJxW*U[m-1]);
           break;
         case WeakOperators::CONSERVATIVE:
-          EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(l), fe.basis(l), true, -U[k-1]*scale*fe.detJxW);
+          EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(l), fe.basis(l),
+                                          true, -U[k-1]*scale*fe.detJxW);
           if (k == l)
             for (size_t m = 1; m <= nsd; ++m)
-              EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.grad(l).getColumn(m), true, -U[m-1]*scale*fe.detJxW);
+              EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(m),
+                                              fe.basis(l), true,
+                                              -U[m-1]*scale*fe.detJxW);
           break;
         case WeakOperators::SKEWSYMMETRIC:
-          EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.basis(l), true, 0.5*scale*fe.detJxW*dUdX(k,l));
-          EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(l), fe.basis(l), true, -0.5*U[k-1]*scale*fe.detJxW);
+          EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.basis(l),
+                                          true, 0.5*scale*fe.detJxW*dUdX(k,l));
+          EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(l), fe.basis(l),
+                                          true, -0.5*U[k-1]*scale*fe.detJxW);
           if (k == l)
             for (size_t m = 1; m <= nsd; ++m) {
-              EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.grad(l).getColumn(m), true, 0.5*scale*fe.detJxW*U[m-1]);
-              EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.grad(l).getColumn(m), true, -0.5*U[m-1]*scale*fe.detJxW);
+              EM[idx[k-1][l-1]].outer_product(fe.basis(k),
+                                              fe.grad(l).getColumn(m),
+                                              true, 0.5*scale*fe.detJxW*U[m-1]);
+              EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(m),
+                                              fe.basis(l), true,
+                                              -0.5*U[m-1]*scale*fe.detJxW);
             }
       }
     }
