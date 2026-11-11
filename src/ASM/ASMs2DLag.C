@@ -259,7 +259,7 @@ bool ASMs2DLag::updateCoords (const Vector& displ)
 }
 
 
-bool ASMs2DLag::getOrder (int& pu, int& pv, int& pw) const
+bool ASMs2DLag::getOrder (int& pu, int& pv, int& pw, int) const
 {
   pu = p1;
   pv = p2;
@@ -1247,7 +1247,7 @@ BasisFunctionVals ASMs2DLag::BasisFunctionCache::calculatePt (size_t, size_t gp,
   const size_t j = gpIdx[1];
 
   int p1, p2, p3;
-  patch.getOrder(p1,p2,p3);
+  patch.getOrder(p1,p2,p3,ASM::INTEGRATION_BASIS);
 
   BasisFunctionVals result;
   if (integrand->getIntegrandType() & Integrand::NO_DERIVATIVES)
@@ -1262,7 +1262,7 @@ BasisFunctionVals ASMs2DLag::BasisFunctionCache::calculatePt (size_t, size_t gp,
 void ASMs2DLag::BasisFunctionCache::calculateAll ()
 {
   int i, j, p1, p2;
-  patch.getOrder(p1,p2,i);
+  patch.getOrder(p1,p2,i,ASM::INTEGRATION_BASIS);
   bool noDerivs = integrand->getIntegrandType() & Integrand::NO_DERIVATIVES;
 
   // Evaluate basis function values and derivatives at all integration points.

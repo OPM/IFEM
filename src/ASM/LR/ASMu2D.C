@@ -2428,10 +2428,16 @@ void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 }
 
 
-bool ASMu2D::getOrder (int& p1, int& p2, int& p3) const
+bool ASMu2D::getOrder (int& p1, int& p2, int& p3, int basis) const
 {
-  p1 = lrspline->order(0);
-  p2 = lrspline->order(1);
+  const LR::LRSplineSurface* s = this->getBasis(basis);
+  if (!s) {
+    p1 = p2 = p3 = 0;
+    return false;
+  }
+
+  p1 = s->order(0);
+  p2 = s->order(1);
   p3 = 0;
 
   return true;

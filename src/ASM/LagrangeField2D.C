@@ -27,7 +27,7 @@ LagrangeField2D::LagrangeField2D (const ASMs2DLag* patch,
 {
   patch->getNodalCoordinates(coord);
   int nf;
-  patch->getOrder(p1,p2,nf);
+  patch->getOrder(p1,p2,nf,ASM::INTEGRATION_BASIS);
 
   nelm = patch->getNoElms();
   nno = patch->getNoNodes();

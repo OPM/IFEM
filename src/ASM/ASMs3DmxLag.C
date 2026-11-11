@@ -31,7 +31,8 @@ ASMs3DmxLag::ASMs3DmxLag (const CharVec& n_f)
 
 ASMs3DmxLag::ASMs3DmxLag (const ASMs3DmxLag& patch, const CharVec& n_f)
   : ASMs3DLag(patch), ASMmxBase(n_f),
-    nxx(patch.nxx), nyx(patch.nyx), nzx(patch.nzx)
+    nxx(patch.nxx), nyx(patch.nyx), nzx(patch.nzx),
+    elem_sizes(patch.elem_sizes)
 {
 }
 
@@ -42,6 +43,22 @@ void ASMs3DmxLag::clear (bool retainGeometry)
   nyx.clear();
   nzx.clear();
   this->ASMs3DLag::clear(retainGeometry);
+}
+
+
+bool ASMs3DmxLag::getOrder (int& pu, int& pv, int& pw, int basis) const
+{
+  // Each basis of this patch carries its own element size, which is the
+  // order it is in; anything but one of them is the integration basis,
+  // which the single-field patch answers for.
+  if (basis < 1 || basis > static_cast<int>(elem_sizes.size()))
+    return this->ASMs3DLag::getOrder(pu,pv,pw,basis);
+
+  pu = elem_sizes[basis-1][0];
+  pv = elem_sizes[basis-1][1];
+  pw = elem_sizes[basis-1][2];
+
+  return true;
 }
 
 

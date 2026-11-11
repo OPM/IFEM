@@ -1905,11 +1905,17 @@ void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 }
 
 
-bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
+bool ASMu3D::getOrder (int& p1, int& p2, int& p3, int basis) const
 {
-  p1 = lrspline->order(0);
-  p2 = lrspline->order(1);
-  p3 = lrspline->order(2);
+  const LR::LRSplineVolume* v = this->getBasis(basis);
+  if (!v) {
+    p1 = p2 = p3 = 0;
+    return false;
+  }
+
+  p1 = v->order(0);
+  p2 = v->order(1);
+  p3 = v->order(2);
 
   return true;
 }
@@ -1942,7 +1948,7 @@ void ASMu3D::getNoBouPoints (size_t& nPt, char ldim, char lindx)
   {
     // Use polynomial order to define number of quadrature points
     int p[3] = { 0, 0, 0 };
-    this->getOrder(p[0],p[1],p[2]);
+    this->getOrder(p[0],p[1],p[2],ASM::INTEGRATION_BASIS);
     p[(lindx-1)/2] = 1;
     int nG = std::max(std::max(p[0],p[1]),p[2]);
     nGp = nG*nG;

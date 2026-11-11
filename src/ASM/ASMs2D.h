@@ -733,18 +733,12 @@ public:
   static void scatterInd(int n1, int n2, int p1, int p2,
 			 const int* start, IntVec& index);
 
-private:
-  //! \brief Returns the polynomial order in each parameter direction.
-  //! \param[out] p1 Order in first (u) direction
-  //! \param[out] p2 Order in second (v) direction
-  bool getOrder(int& p1, int& p2) const;
-
-public:
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction
   //! \param[out] p3 Order in third (w) direction (always zero)
-  virtual bool getOrder(int& p1, int& p2, int& p3) const;
+  //! \param[in] basis Which basis to return the order of
+  virtual bool getOrder(int& p1, int& p2, int& p3, int basis) const;
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction

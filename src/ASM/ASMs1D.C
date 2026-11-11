@@ -902,12 +902,14 @@ std::pair<int,double> ASMs1D::findElement (const Vec3& X) const
 }
 
 
-bool ASMs1D::getOrder (int& p1, int& p2, int& p3) const
+bool ASMs1D::getOrder (int& p1, int& p2, int& p3, int basis) const
 {
+  const Go::SplineCurve* c = basis == ASM::PROJECTION_BASIS ? proj.get()
+                                                            : curv.get();
   p2 = p3 = 0;
-  if (!curv) return false;
+  if (!c) return false;
 
-  p1 = curv->order();
+  p1 = c->order();
   return true;
 }
 
