@@ -253,7 +253,8 @@ public:
   unsigned char getNoLagPerNode() const { return nLag; }
 
   //! \brief Returns the polynomial order in each parameter direction.
-  virtual bool getOrder(int&, int&, int&) const { return false; }
+  virtual bool getOrder(int&, int&, int&,
+                        int = ASM::INTEGRATION_BASIS) const { return false; }
 
   //! \brief Returns local 1-based index of the node with given global number.
   //! \param[in] globalNum Global node number

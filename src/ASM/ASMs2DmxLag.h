@@ -83,6 +83,12 @@ public:
   virtual size_t getNoNodes(int basis) const;
   //! \brief Returns the number of solution fields.
   virtual unsigned char getNoFields(int basis) const;
+  //! \brief Returns the polynomial order in each parameter direction.
+  //! \param[out] pu Order in first (u) direction
+  //! \param[out] pv Order in second (v) direction
+  //! \param[out] pw Order in third (w) direction (always zero)
+  //! \param[in] basis Which basis to return the order of
+  virtual bool getOrder(int& pu, int& pv, int& pw, int basis) const;
   //! \brief Returns the number of DOFs per node.
   //! \param[in] inod 1-based node index local to current patch
   virtual unsigned char getNodalDOFs(size_t inod) const;

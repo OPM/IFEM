@@ -267,7 +267,7 @@ public:
   //! \param[out] pu Order in first (u) direction
   //! \param[out] pv Order in second (v) direction
   //! \param[out] pw Order in third (w) direction (always zero)
-  virtual bool getOrder(int& pu, int& pv, int& pw) const;
+  virtual bool getOrder(int& pu, int& pv, int& pw, int) const;
 
   using ASMs2D::getSize;
   //! \brief Returns the number of nodal points in each parameter direction.

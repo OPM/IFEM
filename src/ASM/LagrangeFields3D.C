@@ -24,7 +24,7 @@ LagrangeFields3D::LagrangeFields3D (const ASMs3DLag* patch,
   : Fields(name), mnpc(patch->getElmNodes(1))
 {
   patch->getNodalCoordinates(coord);
-  patch->getOrder(p1,p2,p3);
+  patch->getOrder(p1,p2,p3,ASM::INTEGRATION_BASIS);
   nno = patch->getNoNodes();
   nelm = patch->getNoElms();
   nf = v.size()/nno;

@@ -52,7 +52,7 @@ public:
      std::vector<Vec3> XC;
 
      int p1, p2, n1, n2, dummy;
-     this->getOrder(p1,p2,dummy);
+     this->getOrder(p1,p2,dummy,ASM::INTEGRATION_BASIS);
      this->getSize(n1,n2,dummy);
      const int nel1 = n1 - p1 + 1;
 

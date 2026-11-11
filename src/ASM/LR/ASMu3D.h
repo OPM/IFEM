@@ -199,7 +199,8 @@ public:
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction
   //! \param[out] p3 Order in third (w) direction
-  virtual bool getOrder(int& p1, int& p2, int& p3) const;
+  //! \param[in] basis Which basis to return the order of
+  virtual bool getOrder(int& p1, int& p2, int& p3, int basis) const;
 
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;

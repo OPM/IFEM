@@ -1960,16 +1960,17 @@ void ASMs3D::getBoundary1Nodes (int lEdge, IntVec& nodes,
 }
 
 
-bool ASMs3D::getOrder (int& p1, int& p2, int& p3) const
+bool ASMs3D::getOrder (int& p1, int& p2, int& p3, int basis) const
 {
-  if (!svol) {
+  const Go::SplineVolume* v = this->getBasis(basis);
+  if (!v) {
     p1 = p2 = p3 = 0;
     return false;
   }
 
-  p1 = svol->order(0);
-  p2 = svol->order(1);
-  p3 = svol->order(2);
+  p1 = v->order(0);
+  p2 = v->order(1);
+  p3 = v->order(2);
   return true;
 }
 
@@ -4136,7 +4137,7 @@ bool ASMs3D::BasisFunctionCache::internalInit ()
 void ASMs3D::BasisFunctionCache::noGaussPts (std::array<int,3>& ng) const
 {
   int p[3];
-  patch.getOrder(p[0],p[1],p[2]);
+  patch.getOrder(p[0],p[1],p[2],ASM::INTEGRATION_BASIS);
   for (int i = 0; i < 3; i++)
     ng[i] = patch.getNoGaussPt(p[i]);
 }

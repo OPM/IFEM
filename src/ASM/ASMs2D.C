@@ -1587,23 +1587,18 @@ void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 }
 
 
-bool ASMs2D::getOrder (int& p1, int& p2) const
+bool ASMs2D::getOrder (int& p1, int& p2, int& p3, int basis) const
 {
-  if (!surf) {
+  const Go::SplineSurface* s = this->getBasis(basis);
+  p3 = 0;
+  if (!s) {
     p1 = p2 = 0;
     return false;
   }
 
-  p1 = surf->order_u();
-  p2 = surf->order_v();
+  p1 = s->order_u();
+  p2 = s->order_v();
   return true;
-}
-
-
-bool ASMs2D::getOrder (int& p1, int& p2, int& p3) const
-{
-  p3 = 0;
-  return this->getOrder(p1,p2);
 }
 
 
@@ -3581,7 +3576,7 @@ bool ASMs2D::BasisFunctionCache::internalInit ()
 void ASMs2D::BasisFunctionCache::noGaussPts (std::array<int,2>& ng) const
 {
   int p[3];
-  patch.getOrder(p[0],p[1],p[2]);
+  patch.getOrder(p[0],p[1],p[2],ASM::INTEGRATION_BASIS);
   for (int i = 0; i < 2; i++)
     ng[i] = patch.getNoGaussPt(p[i]);
 }

@@ -59,7 +59,7 @@ public:
 
      int n1, n2, n3;
      int p1,p2,p3;
-     this->getOrder(p1,p2,p3);
+     this->getOrder(p1,p2,p3,ASM::INTEGRATION_BASIS);
      this->getSize(n1,n2,n3);
      const int nel1 = n1 - p1 + 1;
      const int nel2 = n2 - p2 + 1;
