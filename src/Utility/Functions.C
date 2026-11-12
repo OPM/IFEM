@@ -1063,8 +1063,10 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     f = new ConstVecFunc(v);
   }
   else if (type == "chebyshev")
+  {
+    IFEM::cout <<": "<< func;
     f = new ChebyshevVecFunc(splitString(func),true);
-
+  }
   else if (type.substr(0,5) == "field")
     if (std::vector<std::string> prms = splitString(func); prms.size() > 2)
     {
@@ -1076,6 +1078,10 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
         else
           level = atoi(prms[3].c_str());
       }
+      IFEM::cout <<":";
+      for (int i = 0; i < 3; i++)
+        IFEM::cout <<" "<< prms[i];
+      IFEM::cout <<" level="<< level;
       if (type == "fieldgrad")
         f = new ScalarGradFieldFunction(prms[0],prms[1],prms[2],level);
       else if (type == "fieldlaplacian")
