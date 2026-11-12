@@ -49,41 +49,35 @@ void CompatibleOperators::Weak::Convection(std::vector<Matrix>& EM,
                                            double scale,
                                            WeakOperators::ConvectionForm form)
 {
-  size_t nsd = fe.grad(1).cols();
+  const size_t nsd = fe.grad(1).cols();
+  const double coef = scale*fe.detJxW;
+
+  // The term is made of the piece which advects the trial function and the
+  // piece which advects the test function
+  const auto [cw, tw] = WeakOperators::FormConvectionWeights(form);
+
+  // The advected function is of the component it belongs to, so unlike on an
+  // equal order pair there is one such derivative for each of them
+  std::vector<Vector> DU(nsd);
+  for (size_t k = 1; k <= nsd; ++k) {
+    DU[k-1].resize(fe.basis(k).size());
+    for (size_t m = 1; m <= nsd; ++m)
+      DU[k-1].add(fe.grad(k).getColumn(m), U[m-1]);
+  }
+
   for (size_t k = 1; k <= nsd; ++k)
     for (size_t l = 1; l <= nsd; ++l) {
-      switch (form) {
-        case WeakOperators::CONVECTIVE:
-          EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.basis(l),
-                                          true, scale*fe.detJxW*dUdX(k,l));
-          if(k == l)
-            for (size_t m = 1; m <= nsd; ++m)
-              EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.grad(l).getColumn(m),
-                                              true, scale*fe.detJxW*U[m-1]);
-          break;
-        case WeakOperators::CONSERVATIVE:
-          EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(l), fe.basis(l),
-                                          true, -U[k-1]*scale*fe.detJxW);
-          if (k == l)
-            for (size_t m = 1; m <= nsd; ++m)
-              EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(m),
-                                              fe.basis(l), true,
-                                              -U[m-1]*scale*fe.detJxW);
-          break;
-        case WeakOperators::SKEWSYMMETRIC:
-          EM[idx[k-1][l-1]].outer_product(fe.basis(k), fe.basis(l),
-                                          true, 0.5*scale*fe.detJxW*dUdX(k,l));
-          EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(l), fe.basis(l),
-                                          true, -0.5*U[k-1]*scale*fe.detJxW);
-          if (k == l)
-            for (size_t m = 1; m <= nsd; ++m) {
-              EM[idx[k-1][l-1]].outer_product(fe.basis(k),
-                                              fe.grad(l).getColumn(m),
-                                              true, 0.5*scale*fe.detJxW*U[m-1]);
-              EM[idx[k-1][l-1]].outer_product(fe.grad(k).getColumn(m),
-                                              fe.basis(l), true,
-                                              -0.5*U[m-1]*scale*fe.detJxW);
-            }
+      Matrix& C = EM[idx[k-1][l-1]];
+      if (cw != 0.0)
+        C.outer_product(fe.basis(k), fe.basis(l), true, cw*coef*dUdX(k,l));
+      if (tw != 0.0)
+        C.outer_product(fe.grad(k).getColumn(l), fe.basis(l), true,
+                        tw*coef*U[k-1]);
+      if (k == l) {
+        if (cw != 0.0)
+          C.outer_product(fe.basis(k), DU[l-1], true, cw*coef);
+        if (tw != 0.0)
+          C.outer_product(DU[k-1], fe.basis(l), true, tw*coef);
       }
     }
 }
@@ -198,35 +192,23 @@ void CompatibleOperators::Residual::Convection (Vectors& EV, const FiniteElement
                                                 const Vec3& UC, const std::array<int, 3>& idx,
                                                 double scale, WeakOperators::ConvectionForm form)
 {
-  size_t nsd = fe.grad(1).cols();
+  const size_t nsd = fe.grad(1).cols();
+  const double coef = scale*fe.detJxW;
+
+  // The term is made of the piece which advects the velocity and the piece
+  // which advects the test function
+  const auto [cw, tw] = WeakOperators::FormConvectionWeights(form);
+
   for (size_t k = 1; k <= nsd; ++k) {
-    double conv = 0.0;
-    switch (form) {
-      case WeakOperators::CONVECTIVE:
-        for (size_t l = 1; l <= nsd; ++l)
-          conv += -UC[l-1]*dUdX(k,l);
-        EV[idx[k-1]].add(fe.basis(k), scale*conv*fe.detJxW);
-        break;
-     case WeakOperators::CONSERVATIVE:
-        for (size_t i = 1; i <= fe.basis(k).size(); ++i) {
-          conv = 0.0;
-          for (size_t l = 1; l <= nsd; ++l)
-            conv += U[k-1]*UC[l-1]*fe.grad(k)(i,l);
-          EV[idx[k-1]](i) += conv*scale*fe.detJxW;
-        }
-        break;
-     case WeakOperators::SKEWSYMMETRIC:
-        for (size_t l = 1; l <= nsd; ++l)
-          conv += -UC[l-1]*dUdX(k,l);
-        EV[idx[k-1]].add(fe.basis(k), 0.5*scale*conv*fe.detJxW);
-        for (size_t i = 1; i <= fe.basis(k).size(); ++i) {
-          conv = 0.0;
-          for (size_t l = 1; l <= nsd; ++l)
-            conv += U[k-1]*UC[l-1]*fe.grad(k)(i,l);
-          EV[idx[k-1]](i) += 0.5*scale*conv*fe.detJxW;
-        }
-        break;
-    }
+    const Vector& N = fe.basis(k);
+    const Matrix& D = fe.grad(k);
+    for (size_t i = 1; i <= N.size(); ++i)
+      for (size_t l = 1; l <= nsd; ++l) {
+        double conv = 0.0;
+        if (cw != 0.0) conv -= cw*UC[l-1]*dUdX(k,l)*N(i);
+        if (tw != 0.0) conv -= tw*U[k-1]*UC[l-1]*D(i,l);
+        EV[idx[k-1]](i) += coef*conv;
+      }
   }
 }
 
