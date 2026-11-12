@@ -15,6 +15,10 @@
 
 #include "Catch2Support.h"
 
+#include <array>
+#include <cmath>
+#include <vector>
+
 
 namespace
 {
@@ -258,4 +262,117 @@ TEST_CASE("TestEqualOrderOperators.GradDiv")
   for (size_t i = 1; i <= 4; ++i)
     for (size_t j = 1; j <= 4; ++j)
       REQUIRE_THAT(EM_scaled(i,j), WithinRel(2.0*EM(i,j)));
+}
+
+
+namespace {
+
+constexpr size_t nsdFD = 2; //!< Dimensions the tangent is differenced over
+constexpr size_t nenFD = 4; //!< Functions the basis carries
+
+//! \brief An element whose basis is of no particular shape.
+class FDElement : public FiniteElement
+{
+public:
+  //! \brief The constructor fills the basis and its derivatives.
+  FDElement() : FiniteElement(nenFD)
+  {
+    dNdX.resize(nenFD,nsdFD);
+    for (size_t i = 1; i <= nenFD; ++i) {
+      N(i) = 0.3 + 0.2*i - 0.01*i*i;
+      for (size_t l = 1; l <= nsdFD; ++l)
+        dNdX(i,l) = 0.5 - 0.17*i + 0.31*l + 0.05*i*l;
+    }
+    detJxW = 1.0;
+  }
+};
+
+
+//! \brief Evaluates the advected field and its gradient at a nodal state.
+void stateFD (const FiniteElement& fe, const std::vector<double>& u,
+              Vec3& U, Tensor& dUdX)
+{
+  for (size_t k = 1; k <= nsdFD; ++k) {
+    U[k-1] = 0.0;
+    for (size_t i = 1; i <= nenFD; ++i)
+      U[k-1] += fe.N(i) * u[(i-1)*nsdFD + k-1];
+    for (size_t l = 1; l <= nsdFD; ++l) {
+      dUdX(k,l) = 0.0;
+      for (size_t i = 1; i <= nenFD; ++i)
+        dUdX(k,l) += fe.dNdX(i,l) * u[(i-1)*nsdFD + k-1];
+    }
+  }
+}
+
+
+//! \brief Returns the element residual of the convection at a nodal state.
+Vector residualFD (const FiniteElement& fe, const std::vector<double>& u,
+                   WeakOperators::ConvectionForm form, double scale)
+{
+  Vec3 U;
+  Tensor dUdX(nsdFD);
+  stateFD(fe,u,U,dUdX);
+
+  Vector EV(nsdFD*nenFD);
+  EqualOrderOperators::Residual::Convection(EV,fe,U,dUdX,U,scale,form);
+
+  return EV;
+}
+
+}
+
+
+/*!
+  The tangent of the convection is what the Newton iteration converges by, and
+  nothing in the answer it converges to depends on it being right: a wrong one
+  costs iterations, or the iteration itself, and says nothing while it does.
+  So it is differenced against the residual it is supposed to be the tangent
+  of, in every nodal degree of freedom, for each form of the term.
+*/
+
+TEST_CASE("TestEqualOrderOperators.ConvectionTangent")
+{
+  FDElement fe;
+
+  const double scale = 0.75;
+
+  // A state with nothing special about it, so that no term of the tangent
+  // can come out right by cancelling against another
+  std::vector<double> u(nsdFD*nenFD);
+  for (size_t i = 0; i < u.size(); ++i)
+    u[i] = 0.1 + 0.03*i - 0.002*i*i;
+
+  const std::array forms = {WeakOperators::CONVECTIVE,
+                            WeakOperators::CONSERVATIVE,
+                            WeakOperators::SKEWSYMMETRIC};
+
+  for (const auto form : forms) {
+    Vec3 U;
+    Tensor dUdX(nsdFD);
+    stateFD(fe,u,U,dUdX);
+
+    Matrix EM(nsdFD*nenFD, nsdFD*nenFD);
+    EqualOrderOperators::Weak::Convection(EM,fe,U,dUdX,scale,form);
+
+    // The residual is the negative of what the tangent is taken of, so the
+    // difference of the one is the negative of a column of the other. It is
+    // quadratic in the state, so a central difference of it is exact at any
+    // step, and the step is taken large to keep the round-off of the
+    // subtraction, which grows as the step shrinks, well under the check.
+    const double eps = 1.0e-3;
+    for (size_t j = 1; j <= nenFD; ++j)
+      for (size_t l = 1; l <= nsdFD; ++l) {
+        std::vector<double> up(u), um(u);
+        up[(j-1)*nsdFD + l-1] += eps;
+        um[(j-1)*nsdFD + l-1] -= eps;
+        const Vector Rp = residualFD(fe,up,form,scale);
+        const Vector Rm = residualFD(fe,um,form,scale);
+        for (size_t i = 1; i <= nenFD; ++i)
+          for (size_t k = 1; k <= nsdFD; ++k) {
+            const double fd = (Rp((i-1)*nsdFD+k) - Rm((i-1)*nsdFD+k))/(2.0*eps);
+            REQUIRE_THAT(-EM((i-1)*nsdFD+k,(j-1)*nsdFD+l),
+                         WithinAbs(fd, 1.0e-8*std::max(1.0,std::fabs(fd))));
+          }
+      }
+  }
 }
