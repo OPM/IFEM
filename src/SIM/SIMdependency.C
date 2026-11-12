@@ -126,6 +126,17 @@ void SIMdependency::registerField (const std::string& name,
 }
 
 
+std::vector<std::string> SIMdependency::getFieldNames () const
+{
+  std::vector<std::string> names;
+  names.reserve(myFields.size());
+  for (const std::pair<const std::string,const std::vector<double>*>& f : myFields)
+    names.push_back(f.first);
+
+  return names;
+}
+
+
 bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
                                               const PatchVec& model,
                                               size_t pindx) const

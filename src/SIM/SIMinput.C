@@ -878,7 +878,8 @@ bool SIMinput::parseLinSolTag (const tinyxml2::XMLElement* elem)
   if (!strcasecmp(elem->Value(),"class"))
   {
     if (elem->FirstChild())
-      opt.setLinearSolver(elem->FirstChild()->Value());
+      if (!opt.setLinearSolver(elem->FirstChild()->Value()))
+        return false;
     utl::getAttribute(elem,"fixzeros",fixZeros);
   }
 
@@ -1048,7 +1049,8 @@ bool SIMinput::parse (const tinyxml2::XMLElement* elem)
   {
     std::string solver;
     if (utl::getAttribute(elem,"class",solver,true))
-      opt.setLinearSolver(solver);
+      if (!opt.setLinearSolver(solver))
+        return false;
     utl::getAttribute(elem,"fixzeros",fixZeros);
     if (utl::getAttribute(elem,"l2class",solver,true))
     {
@@ -1056,6 +1058,13 @@ bool SIMinput::parse (const tinyxml2::XMLElement* elem)
         GlbL2::MatrixType = LinAlg::PETSC;
       else if (solver == "umfpack")
         GlbL2::MatrixType = LinAlg::UMFPACK;
+      else
+      {
+        std::cerr <<" *** SIMinput::parse: \""<< solver <<"\" is not a matrix"
+                  <<" the global L2 projection is solved with. The ones there"
+                  <<" are: superlu, petsc, umfpack."<< std::endl;
+        return false;
+      }
     }
   }
   else if (!strcasecmp(elem->Value(),"eigensolver"))
@@ -2104,15 +2113,33 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
       result &= this->setInitialCondition(fieldHolder,it.first,it.second);
     else for (const ICInfo& ic : it.second)
     {
-      // Do we have this field?
       RealArray* field = fieldHolder->getField(ic.sim_field);
-      if (!field) continue;
+      if (!field)
+      {
+        std::cerr <<" *** SIMinput::setInitialConditions: There is no field"
+                  <<" \""<< ic.sim_field <<"\" to apply an initial condition"
+                  <<" to.\n     The fields there are:";
+        for (const std::string& name : fieldHolder->getFieldNames())
+          std::cerr <<" "<< name;
+        std::cerr << std::endl;
+        result = false;
+        continue;
+      }
 
       IFEM::cout <<"\nLoading initial condition for \""<< ic.sim_field
                  <<"\" component "<< (int)ic.component
                  <<"\nfrom "<< ic.file_field <<" function";
       RealFunc* fn = utl::parseRealFunc(ic.function,ic.file_field);
       IFEM::cout << std::endl;
+      if (!fn)
+      {
+        std::cerr <<" *** SIMinput::setInitialConditions: The initial"
+                  <<" condition for \""<< ic.sim_field <<"\" is not a"
+                  <<" function that could be parsed."<< std::endl;
+        result = false;
+        continue;
+      }
+
       result &= this->project(*field,fn,ic.basis,ic.component-1,
                               this->getNoFields(ic.basis));
       delete fn;

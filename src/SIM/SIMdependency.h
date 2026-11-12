@@ -106,6 +106,8 @@ public:
   ASMbase* getDependentPatch(const std::string& name, int pindx) const;
   //! \brief Registers a named field with associated nodal vector in this SIM.
   void registerField(const std::string& name, const std::vector<double>& vec);
+  //! \brief Returns the names of the fields registered in this SIM.
+  std::vector<std::string> getFieldNames() const;
   //! \brief Checks whether a named initial condition is present.
   virtual bool hasIC(const std::string&) const { return false; }
 
