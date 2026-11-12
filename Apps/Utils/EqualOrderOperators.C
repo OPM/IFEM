@@ -402,26 +402,19 @@ void EqualOrderOperators::Residual::Convection (Vector& EV,
   const size_t cmp = EV.size() / fe.basis(basis).size();
   const double coef = scale * fe.detJxW;
 
-  double conv = 0.0;
-  for (size_t i = 1;i <= fe.basis(basis).size();i++)
-    for (size_t k = 1;k <= cmp;k++)
-      for (size_t l = 1;l <= cmp;l++) {
-        switch (form) {
-          case WeakOperators::CONVECTIVE:
-            conv = -UC[l-1]*dUdX(k,l)*fe.basis(basis)(i);
-            break;
-          case WeakOperators::CONSERVATIVE:
-            conv = U[k-1]*UC[l-1]*fe.grad(basis)(i,l);
-            break;
-          case WeakOperators::SKEWSYMMETRIC:
-            conv = U[k-1]*UC[l-1]*fe.grad(basis)(i,l)
-                 - UC[l-1]*dUdX(k,l)*fe.basis(basis)(i);
-            conv *= 0.5;
-            break;
-          default:
-            std::cerr << "EqualOrderOperators::Residual::Convection: "
-                      << "Unknown form " << form << std::endl;
-        }
+  const Vector& N = fe.basis(basis);
+  const Matrix& D = fe.grad(basis);
+
+  // The term is made of the piece which advects the velocity and the piece
+  // which advects the test function
+  const auto [cw, tw] = WeakOperators::FormConvectionWeights(form);
+
+  for (size_t i = 1; i <= N.size(); i++)
+    for (size_t k = 1; k <= cmp; k++)
+      for (size_t l = 1; l <= cmp; l++) {
+        double conv = 0.0;
+        if (cw != 0.0) conv -= cw*UC[l-1]*dUdX(k,l)*N(i);
+        if (tw != 0.0) conv -= tw*U[k-1]*UC[l-1]*D(i,l);
         EV((i-1)*cmp+k) += coef*conv;
       }
 }
