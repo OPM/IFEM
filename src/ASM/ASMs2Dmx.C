@@ -1275,8 +1275,8 @@ bool ASMs2Dmx::evalSolutionPiola (Matrix& sField, const Vector& locSol,
     P->multiply(coefs.front(), Ytmp);
     if (includeUnmapped)
       for (size_t b = 2; b < nfx.size(); ++b)
-        for (size_t i = 0; i < nfx[b]; ++i)
-          Ytmp.push_back(coefs[b].dot(splinex[b][i].basisValues, i, nfx[b]));
+        for (size_t k = 0; k < nfx[b]; ++k)
+          Ytmp.push_back(coefs[b].dot(splinex[b][i].basisValues, k, nfx[b]));
     sField.fillColumn(1+i,Ytmp);
   }
 

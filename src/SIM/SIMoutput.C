@@ -2414,7 +2414,10 @@ bool SIMoutput::evalResults (const Vectors& psol, const ResPointVec& gPoints,
 
   bool ok = false;
   Matrix tmp;
-  if (opt.discretization >= ASM::Spline)
+  if (opt.discretization >= ASM::Spline && this->usesPiolaTransform())
+    // Evaluate the Piola mapped primary solution variables
+    ok = patch->evalSolutionPiola(tmp,patchSol,params.data(),false,true);
+  else if (opt.discretization >= ASM::Spline)
     // Evaluate the primary solution variables
     ok = patch->evalSolution(tmp,patchSol,params.data(),false);
   else if (!elms.empty())
