@@ -166,7 +166,19 @@ TEST_CASE("TestCompatibleOperators.Laplacian")
   EM_stress[6].resize(6,6);
 
   CompatibleOperators::Weak::Laplacian(EM_stress, fe, idx, 1.0, true);
-  std::cout << EM_stress[1] << std::endl;
+
+  // The term coupling two velocity components is carried by both of the
+  // blocks that couple them, where the layout holds the two apart, each the
+  // transpose of the other
+  REQUIRE(EM_stress[idx[0][1]].norm2() > 0.0);
+  REQUIRE(EM_stress[idx[1][0]].norm2() > 0.0);
+  for (size_t i = 1; i <= EM_stress[idx[0][1]].rows(); ++i)
+    for (size_t j = 1; j <= EM_stress[idx[0][1]].cols(); ++j)
+      REQUIRE_THAT(EM_stress[idx[1][0]](j,i),
+                   WithinAbs(EM_stress[idx[0][1]](i,j), 1e-13));
+
+  // and the diagonal blocks carry the stress terms on top of the laplacian
+  REQUIRE(EM_stress[idx[0][0]](1,1) > EM[idx[0][0]](1,1));
 
 /*
   const DoubleVec EM_stress_ref = {{11.0,  3.0, 16.0,  6.0},
