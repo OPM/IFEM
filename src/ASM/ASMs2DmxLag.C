@@ -301,7 +301,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
         int i2 = iel / nelx;
 
         if (useElmVtx)
-          fe.h = this->getElementCorners(p1+i1-1,p2+i2-1,fe.XC);
+          fe.h = this->getElementCorners(1+iel,fe.XC);
 
 
         // --- Integration loop over all Gauss points in each direction --------

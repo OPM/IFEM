@@ -214,6 +214,25 @@ Vec3 ASMs3DLag::getCoord (size_t inod) const
 }
 
 
+double ASMs3DLag::getElementCorners (int iel, Vec3Vec& XC, RealArray* uC) const
+{
+  XC.clear();
+  if (uC) uC->clear();
+  if (iel < 1 || static_cast<size_t>(iel) > MNPC.size() ||
+      MNPC[iel-1].size() < static_cast<size_t>(p1*p2*p3))
+    return -1.0;
+
+  const IntVec& mnpc = MNPC[iel-1];
+  XC.reserve(8);
+  for (int k : {0, p3-1})
+    for (int j : {0, p2-1})
+      for (int i : {0, p1-1})
+        XC.push_back(coord[mnpc[(k*p2+j)*p1+i]]);
+
+  return ASM3D::getElementSize(XC);
+}
+
+
 void ASMs3DLag::setCoord (size_t inod, const Vec3& Xnod)
 {
   if (inod < 1)
