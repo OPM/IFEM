@@ -591,6 +591,7 @@ IFEM_add_test_app(
       src/Utility/Test/TestCoordinateMapping.C
       src/Utility/Test/TestElementBlock.C
       src/Utility/Test/TestExprAutoDiff.C
+      src/Utility/Test/TestFuncAutoDiff.C
       src/Utility/Test/TestFunctions.C
       src/Utility/Test/TestGaussQuadrature.C
       src/Utility/Test/TestHDF5Writer.C
