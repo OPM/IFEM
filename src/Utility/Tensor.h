@@ -175,6 +175,19 @@ public:
 };
 
 
+//! \brief Adding two tensors.
+inline Tensor operator+(const Tensor& A, const Tensor& B)
+{
+  Tensor C(A); C += B; return C;
+}
+
+//! \brief Subtracting two tensors.
+inline Tensor operator-(const Tensor& A, const Tensor& B)
+{
+  Tensor C(A); C -= B; return C;
+}
+
+
 /*!
   \brief Simple class for representing a symmetric second-order tensor.
 */
