@@ -37,6 +37,10 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   bool isZero() const override { return fval == Real(0); }
 
+  using ScalarFunc::integrate;
+  //! \brief Returns the integral of the function between \a x0 and \a x1.
+  Real integrate(Real x0, Real x1, Real) const override { return fval*(x1-x0); }
+
 protected:
   //! \brief Evaluates the constant function.
   Real evaluate(const Real&) const override { return fval; }
@@ -49,7 +53,7 @@ protected:
 
 class LinearFunc : public ScalarFunc
 {
-  using Point = std::pair<Real,Real>; //!< Convenience type
+  using Point = std::pair<Real,Real>; //!< Convenience type alias
 
   std::vector<Point> fvals; //!< Values for piece-wise linear function
   Real               scale; //!< Scaling factor
@@ -67,7 +71,7 @@ public:
   //! \brief Constructor initializing piece-wise linear function values.
   //! \param[in] x List of function argument values
   //! \param[in] y List of function values associated with the \a x values
-  LinearFunc(const std::vector<Real>& x, const std::vector<Real>& y);
+  LinearFunc(const utl::RealVec& x, const utl::RealVec& y);
 
   //! \brief Returns whether the function is identically zero or not.
   bool isZero() const override;
@@ -77,13 +81,19 @@ public:
   //! \brief Returns the first-derivative of the function.
   Real deriv(Real x) const override;
 
+  using ScalarFunc::integrate;
+  //! \brief Returns the integral of the function between \a x0 and \a x1.
+  Real integrate(Real x0, Real x1, Real) const override;
+
 protected:
   //! \brief Evaluates the function at \a x.
   Real evaluate(const Real& x) const override;
 
 private:
-  //! \brief Retuns the index of the first point after \a x.
+  //! \brief Returns the index of the first point after \a x.
   size_t locate(Real x) const;
+  //! \brief Evaluate the function value from specified line segment.
+  Real interpolate(Real x, size_t i1) const;
 };
 
 
@@ -93,7 +103,7 @@ private:
 
 class LinVecFunc : public VecTimeFunc
 {
-  using Point = std::pair<Real,Vec3>; //!< Convenience type
+  using Point = std::pair<Real,Vec3>; //!< Convenience type alias
 
   std::vector<Point> fvals; //!< Values for piece-wise linear function
 
@@ -135,6 +145,10 @@ public:
   //! \brief Returns the first-derivative of the function.
   Real deriv(Real x) const override;
 
+  using ScalarFunc::integrate;
+  //! \brief Returns the integral of the function between \a x0 and \a x1.
+  Real integrate(Real x0, Real x1, Real) const override;
+
 protected:
   //! \brief Evaluates the function at \a x.
   Real evaluate(const Real& x) const override;
@@ -157,6 +171,10 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   bool isZero() const override { return amp == Real(0); }
 
+  using ScalarFunc::integrate;
+  //! \brief The integral of a dirac function is always zero.
+  Real integrate(Real, Real, Real) const override { return Real(0); }
+
 protected:
   //! \brief Evaluates the function at \a x.
   Real evaluate(const Real& x) const override;
@@ -178,6 +196,53 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   bool isZero() const override { return amp == Real(0); }
+
+  using ScalarFunc::integrate;
+  //! \brief Returns the integral of the function between \a x0 and \a x1.
+  Real integrate(Real x0, Real x1, Real) const override;
+
+protected:
+  //! \brief Evaluates the function at \a x.
+  Real evaluate(const Real& x) const override;
+};
+
+
+/*!
+  \brief A scalar-valued pulse function.
+*/
+
+class PulseFunc : public ScalarFunc
+{
+  Real         amp;   //!< The amplitude of each pulse
+  utl::RealVec delta; //!< The width of each pulse
+  utl::RealVec xloc;  //!< The start position of each pulse
+
+public:
+  //! \brief Constructor initializing the pulses with constant width.
+  explicit PulseFunc(Real a, Real w, const utl::RealVec& x)
+    : amp(a), xloc(x)
+  {
+    delta.resize(xloc.size(),w);
+  }
+
+  //! \brief Constructor initializing the pulses with varying width.
+  explicit PulseFunc(Real a, const utl::RealVec& w, const utl::RealVec& x)
+    : amp(a), delta(w), xloc(x)
+  {
+    if (delta.empty())
+      xloc.clear();
+    else if (delta.size() < xloc.size())
+      delta.resize(xloc.size(),delta.back());
+  }
+
+  //! \brief Returns whether the function is identically zero or not.
+  bool isZero() const override { return amp == Real(0) || delta.empty(); }
+  //! \brief Returns whether the function is time-independent or not.
+  bool isConstant() const override { return amp == Real(0) || delta.empty(); }
+
+  using ScalarFunc::integrate;
+  //! \brief Returns the integral of the function between \a x0 and \a x1.
+  Real integrate(Real x0, Real x1, Real) const override;
 
 protected:
   //! \brief Evaluates the function at \a x.
@@ -207,6 +272,10 @@ public:
 
   //! \brief Returns the first-derivative of the function.
   Real deriv(Real x) const override;
+
+  using ScalarFunc::integrate;
+  //! \brief Returns the integral of the function between \a x0 and \a x1.
+  Real integrate(Real x0, Real x1, Real) const override;
 
 protected:
   //! \brief Evaluates the function at \a x.
@@ -247,7 +316,7 @@ public:
   //! \brief Constructor initializing the function value.
   explicit ConstTimeFunc(ScalarFunc* f) : tfunc(f) {}
   //! \brief The destructor frees the time function.
-  virtual ~ConstTimeFunc() { delete tfunc; }
+  ~ConstTimeFunc() override { delete tfunc; }
 
   //! \brief Returns whether the function is identically zero or not.
   bool isZero() const override { return tfunc->isZero(); }
@@ -284,7 +353,7 @@ public:
   //! \brief Constructor initializing the function terms.
   SpaceTimeFunc(RealFunc* s, ScalarFunc* t) : sfunc(s), tfunc(t) {}
   //! \brief The destructor frees the space and time functions.
-  virtual ~SpaceTimeFunc() { delete sfunc; delete tfunc; }
+  ~SpaceTimeFunc() override { delete sfunc; delete tfunc; }
 
   //! \brief Returns whether the function is identically zero or not.
   bool isZero() const override { return sfunc->isZero() || tfunc->isZero(); }
@@ -637,7 +706,7 @@ public:
   //! \param[in] yVal List of function values
   //! \param[in] dir_ Coordinate direction of the spatial variation
   //! \param[in] ramp Ramp-up time
-  Interpolate1D(const std::vector<Real>& xVal, const std::vector<Real>& yVal,
+  Interpolate1D(const utl::RealVec& xVal, const utl::RealVec& yVal,
                 int dir_ = 1, Real ramp = Real(0))
     : lfunc(xVal,yVal), dir(dir_), time(ramp) {}
 

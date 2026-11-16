@@ -23,6 +23,8 @@
 
 namespace utl
 {
+  using RealVec = std::vector<Real>; //!< Convenience type alias
+
   /*!
     \brief Base class for unary functions of arbitrary result and argument type.
   */
@@ -109,11 +111,11 @@ namespace utl
 
   protected:
     //! \brief Returns the gradient of the function as a 1D array.
-    virtual std::vector<Real> evalGradient(const Vec3&) const { return {}; }
+    virtual RealVec evalGradient(const Vec3&) const { return {}; }
     //! \brief Returns the hessian of the function as a 1D array.
-    virtual std::vector<Real> evalHessian(const Vec3&) const { return {}; }
+    virtual RealVec evalHessian(const Vec3&) const { return {}; }
     //! \brief Returns the time derivatives of the function as a 1D array.
-    virtual std::vector<Real> evalTimeDerivative(const Vec3&) const { return {}; }
+    virtual RealVec evalTimeDerivative(const Vec3&) const { return {}; }
 
     Result zero; //!< Return value for default implementations of derivatives
   };
@@ -135,6 +137,11 @@ public:
   Real eval(Real x) const { return this->evaluate(x); }
   //! \brief Returns the first-derivative of the function.
   virtual Real deriv(Real) const { return Real(0); }
+
+  //! \brief Returns the integral of the function between 0 and \a x.
+  Real integrate(Real x) const { return this->integrate(Real(0),x); }
+  //! \brief Returns the integral of the function between \a x0 and \a x1.
+  virtual Real integrate(Real x0, Real x1, Real dx = Real(0.001)) const;
 
   //! \brief Sets an additional parameter in the function.
   virtual void setParam(const std::string&, Real) {}
@@ -161,7 +168,7 @@ public:
   virtual unsigned char getType() const = 0;
 
   //! \brief Returns the function value as an array.
-  virtual std::vector<Real> getValue(const Vec3&) const = 0;
+  virtual utl::RealVec getValue(const Vec3&) const = 0;
   //! \brief Returns a representative scalar equivalent of the function value.
   virtual Real getScalarValue(const Vec3&) const = 0;
 
@@ -205,9 +212,15 @@ public:
   unsigned char getType() const override { return 1; }
 
   //! \brief Returns the function value as an array.
-  std::vector<Real> getValue(const Vec3& X) const override
+  utl::RealVec getValue(const Vec3& X) const override
   {
-    return std::vector<Real>(1,this->evaluate(X));
+    return { this->evaluate(X) };
+  }
+
+  //! \brief Returns a representative scalar equivalent of the function value.
+  Real getScalarValue(const Vec3& X) const override
+  {
+    return this->evaluate(X);
   }
 
   //! \brief Evaluates first derivatives of the function.
@@ -230,9 +243,6 @@ public:
 
     return result;
   }
-
-  //! \brief Returns a representative scalar equivalent of the function value.
-  Real getScalarValue(const Vec3& X) const override { return this->evaluate(X); }
 
   //! \brief Returns the time derivative of the function.
   Real timeDerivative(const Vec3& X) const { return this->deriv(X,4); }
@@ -258,7 +268,7 @@ public:
   unsigned char getType() const override { return 2; }
 
   //! \brief Returns the function value as an array.
-  std::vector<Real> getValue(const Vec3& X) const override
+  utl::RealVec getValue(const Vec3& X) const override
   {
     return this->evaluate(X).vec(ncmp);
   }
@@ -286,7 +296,10 @@ public:
   }
 
   //! \brief Evaluates time derivatives of the function.
-  Vec3 timeDerivative(const Vec3& X) const { return this->evalTimeDerivative(X); }
+  Vec3 timeDerivative(const Vec3& X) const
+  {
+    return this->evalTimeDerivative(X);
+  }
 };
 
 

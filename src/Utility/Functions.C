@@ -26,11 +26,12 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <iterator>
 
 
 namespace
 {
-  const Real zTol = Real(1.0e-12); //!< Zero tolerance on function values
+  constexpr Real zTol = Real(1.0e-12); //!< Zero tolerance on function values
 
   //! \brief Creates a scalar function by parsing a character string.
   ScalarFunc* parseFunction (const char* type, char* cline, Real C = Real(1),
@@ -49,6 +50,8 @@ namespace
         {
           delete sf;
           sf = nullptr;
+          if (print)
+            IFEM::cout << std::endl;
         }
       }
 
@@ -95,6 +98,68 @@ namespace
         IFEM::cout <<"Step(t,"<< xmax <<")";
       return new StepFunc(Cval,xmax);
     }
+    else if (strncasecmp(type,"Pulse",5) == 0)
+    {
+      // Get the pulse amplitude
+      Real Cval = C;
+      char* tmp = cline;
+      if (parseConstant)
+      {
+        if ((cline = strtok(cline," ")))
+          Cval = atof(cline);
+        tmp = nullptr;
+      }
+
+      // Get pulse location (x) and width (w).
+      // "Pulse" (same width): w x1 x2 x3 ...
+      // "Pulses" (different widths): x1 w1 x2 w2  ...
+      utl::RealVec x;
+      for (cline = strtok(tmp," "); cline; cline = strtok(nullptr," "))
+        x.push_back(atof(cline));
+      if (x.size() < 2)
+      {
+        if (print)
+          IFEM::cout << std::endl;
+        std::cerr <<"\n *** A pulse function needs at least two values"
+                  <<" in addition to "<< Cval <<": "<< x.size() << std::endl;
+        return nullptr;
+      }
+
+      if (Cval != Real(1) && print)
+        IFEM::cout << Cval <<"*";
+      if (strncasecmp(type,"Pulses",6) == 0)
+      {
+        utl::RealVec w(x.size()/2);
+        for (size_t i = 0; i < x.size(); i++)
+          if (i%2 > 0)
+            w[i/2] = x[i];
+          else if (i > 0)
+            x[i/2] = x[i];
+        x.resize(w.size()+x.size()%2);
+        if (print)
+        {
+          IFEM::cout <<"Pulse(t";
+          for (size_t i = 0; i < x.size(); i++)
+            IFEM::cout <<",("<< x[i] <<","
+                       << (i < w.size() ? w[i] : w.back()) <<")";
+          IFEM::cout <<")";
+        }
+        return new PulseFunc(Cval,w,x);
+      }
+      else
+      {
+        Real w = x.front();
+        x.erase(x.begin());
+        if (print)
+        {
+          IFEM::cout <<"Pulse(t,"<< w <<",("<< x.front();
+          for (size_t i = 1; i < x.size(); i++)
+            IFEM::cout <<","<< x[i];
+          IFEM::cout <<"))";
+        }
+        return new PulseFunc(Cval,w,x);
+      }
+    }
     else if (strcasecmp(type,"sin") == 0)
     {
       Real freq = (cline = strtok(cline," ")) ? atof(cline) : Real(1);
@@ -139,17 +204,19 @@ namespace
         IFEM::cout << value;
       return new ConstantFunc(C*value);
     }
-    else // linear in time
+    else if (cline) // linear in time
     {
-      Real scale;
-      if (cline)
-        scale = atof(strncasecmp(type,"Lin",3) == 0 ? cline : type);
-      else
-        scale = Real(1);
+      Real scale = atof(strncasecmp(type,"Lin",3) == 0 ? cline : type);
 
       if (print)
         IFEM::cout << scale <<"*t";
       return new LinearFunc(C*scale);
+    }
+    else // linear in time
+    {
+      if (print)
+        IFEM::cout <<"t";
+      return new LinearFunc(C);
     }
   }
 
@@ -180,7 +247,7 @@ namespace
 
     char* tmp = strdup(func.c_str());
     const char ssep[2] = { sep, '\0' };
-    for (char* s = strtok(tmp,ssep); s; s = strtok(NULL,ssep))
+    for (char* s = strtok(tmp,ssep); s; s = strtok(nullptr,ssep))
     {
       while (*s && isspace(*s)) ++s;
       IFEM::cout <<"\n\t\t"<< s;
@@ -188,6 +255,16 @@ namespace
         IFEM::cout << sep;
     }
     free(tmp);
+  }
+
+  //! \brief Helper swapping the domain range if reversed.
+  bool reversed (Real& x0, Real& x1)
+  {
+    if (x1 >= x0)
+      return false;
+
+    std::swap(x0,x1);
+    return true;
   }
 }
 
@@ -244,22 +321,12 @@ LinearFunc::LinearFunc (const char* file, int c, Real s) : scale(s)
 }
 
 
-LinearFunc::LinearFunc (const std::vector<Real>& x, const std::vector<Real>& y)
+LinearFunc::LinearFunc (const utl::RealVec& x, const utl::RealVec& y)
 {
   scale = Real(1);
   fvals.reserve(x.size());
   for (size_t i = 0; i < x.size() && i < y.size(); i++)
-    fvals.push_back({x[i],y[i]});
-}
-
-
-size_t LinearFunc::locate (Real x) const
-{
-  if (fvals.size() < 2)
-    return 0;
-
-  auto&& compArgs = [](const Point& a, Real b) { return a.first < b; };
-  return std::lower_bound(fvals.begin(),fvals.end(),x,compArgs) - fvals.begin();
+    fvals.emplace_back(x[i],y[i]);
 }
 
 
@@ -273,21 +340,26 @@ bool LinearFunc::isZero () const
 }
 
 
-Real LinearFunc::deriv (Real x) const
+size_t LinearFunc::locate (Real x) const
 {
-  if (fvals.empty())
-    return scale;
+  if (fvals.size() < 2)
+    return 0;
 
-  size_t ix = this->locate(x);
-  if (ix == 0 || ix >= fvals.size())
-    return Real(0);
+  return std::distance(fvals.begin(),
+                       std::lower_bound(fvals.begin(), fvals.end(), x,
+                                        [](const Point& a, Real b)
+                                        { return a.first < b; }));
+}
 
-  // Need to interpolate
-  Real x1 = fvals[ix-1].first;
-  Real x2 = fvals[ix  ].first;
-  Real f1 = fvals[ix-1].second;
-  Real f2 = fvals[ix  ].second;
-  return scale*(f2-f1)/(x2-x1);
+
+Real LinearFunc::interpolate (Real x, size_t i1) const
+{
+  const size_t i2 = i1 + 1;
+  const Real x1 = fvals[i1].first;
+  const Real x2 = fvals[i2].first;
+  const Real f1 = fvals[i1].second;
+  const Real f2 = fvals[i2].second;
+  return f1 + (f2-f1)*(x-x1)/(x2-x1);
 }
 
 
@@ -297,17 +369,73 @@ Real LinearFunc::evaluate (const Real& x) const
     return scale*x;
 
   size_t ix = this->locate(x);
-  if (ix == 0)
+  if (ix == 0) // flat extrapolation before the first segment
     return scale*fvals.front().second;
-  else if (ix >= fvals.size())
+  else if (ix >= fvals.size()) // flat extrapolation after the last segment
     return scale*fvals.back().second;
+  else // need to interpolate between points ix-1 and ix
+    return scale*this->interpolate(x,ix-1);
+}
+
+
+Real LinearFunc::deriv (Real x) const
+{
+  if (fvals.empty())
+    return scale;
+
+  size_t ix = this->locate(x);
+  if (ix == 0 || ix >= fvals.size())
+    return Real(0); // zero derivative outside the line segments
 
   // Need to interpolate
-  Real x1 = fvals[ix-1].first;
-  Real x2 = fvals[ix  ].first;
-  Real f1 = fvals[ix-1].second;
-  Real f2 = fvals[ix  ].second;
-  return scale*(f1 + (f2-f1)*(x-x1)/(x2-x1));
+  const size_t i0 = ix - 1;
+  const Real x1 = fvals[i0].first;
+  const Real x2 = fvals[ix].first;
+  const Real f1 = fvals[i0].second;
+  const Real f2 = fvals[ix].second;
+  return scale*(f2-f1)/(x2-x1);
+}
+
+
+Real LinearFunc::integrate (Real x0, Real x1, Real) const
+{
+  if (fvals.empty())
+    return (x1-x0)*scale*(x0+x1)/Real(2);
+
+  const bool negative = reversed(x0,x1);
+
+  Real res = Real(0);
+  if (fvals.front().first > x0) // flat section before the first segment
+    res += fvals.front().second * (std::min(fvals.front().first,x1)-x0);
+  if (fvals.back().first < x1) // flat section after the last segment
+    res += fvals.back().second * (x1-std::max(fvals.back().first,x0));
+
+  size_t i0 = this->locate(x0);
+  size_t i1 = this->locate(x1);
+  for (size_t i = i0; i+1 < i1; i++)
+  {
+    // Integrate the whole segment
+    Real fVal = (fvals[i].second + fvals[i+1].second)/Real(2);
+    res += fVal*(fvals[i+1].first - fvals[i].first);
+  }
+
+  if (i0 > 0 && i0 < fvals.size() && fvals[i0].first > x0)
+  {
+    // Integrate the first boundary segment
+    Real x2 = std::min(x1,fvals[i0].first);
+    Real f2 = x2 < x1 ? fvals[i0].second : this->interpolate(x1,i0-1);
+    res += (this->interpolate(x0,i0-1) + f2)*(x2-x0)/Real(2);
+  }
+
+  if (i1 > i0 && i1 < fvals.size() && fvals[i1--].first >= x1)
+  {
+    // Integrate the last boundary segment
+    Real x2 = std::max(x0,fvals[i1].first);
+    Real f2 = x2 > x0 ? fvals[i1].second : this->interpolate(x0,i1);
+    res += (f2 + this->interpolate(x1,i1))*(x1-x2)/Real(2);
+  }
+
+  return scale*(negative ? -res : res);
 }
 
 
@@ -379,10 +507,10 @@ Vec3 LinVecFunc::evaluate (const Real& x) const
 
   size_t ix = 0;
   if (fvals.size() > 1)
-  {
-    auto&& compArgs = [](const Point& a, Real b) { return a.first < b; };
-    ix = std::lower_bound(fvals.begin(),fvals.end(),x,compArgs) - fvals.begin();
-  }
+    ix = std::distance(fvals.begin(),
+                       std::lower_bound(fvals.begin(), fvals.end(), x,
+                                        [](const Point& a, Real b)
+                                        { return a.first < b; }));
 
   if (ix == 0)
     return fvals.front().second;
@@ -400,13 +528,29 @@ Vec3 LinVecFunc::evaluate (const Real& x) const
 
 Real RampFunc::evaluate (const Real& x) const
 {
-  return x < xmax ? fval*x/xmax : fval;
+  return x < xmax && xmax > Real(0) ? fval*x/xmax : fval;
 }
 
 
 Real RampFunc::deriv (Real x) const
 {
-  return x < xmax ? fval/xmax : Real(0);
+  return x < xmax && xmax > Real(0) ? fval/xmax : Real(0);
+}
+
+
+Real RampFunc::integrate (Real x0, Real x1, Real) const
+{
+  if (xmax <= Real(0))
+    return fval*(x1-x0);
+
+  const Real A = reversed(x0,x1) ? -fval : fval;
+
+  if (x1 <= xmax)
+    return A*(x0+x1)*(x1-x0)/(xmax*Real(2));
+  else if (x0 >= xmax)
+    return A*(x1-x0);
+
+  return A*(x1-xmax + (x0+xmax)*(xmax-x0)/(xmax*Real(2)));
 }
 
 
@@ -424,6 +568,47 @@ Real StepFunc::evaluate (const Real& x) const
 }
 
 
+Real StepFunc::integrate (Real x0, Real x1, Real) const
+{
+  const Real A = reversed(x0,x1) ? -amp : amp;
+
+  if (x0 >= xmax)
+    return A*(x1-x0);
+  else if (x1 <= xmax)
+    return Real(0);
+
+  return A*(x1-xmax);
+}
+
+
+Real PulseFunc::evaluate (const Real& x) const
+{
+  Real res = Real(0);
+  for (size_t i = 0; i < xloc.size(); i++)
+    if (x >= xloc[i] && x <= xloc[i]+delta[i])
+      res += amp;
+    else if (x < xloc[i])
+      break;
+
+  return res;
+}
+
+
+Real PulseFunc::integrate (Real x0, Real x1, Real) const
+{
+  const bool negative = reversed(x0,x1);
+
+  Real res = Real(0);
+  for (size_t i = 0; i < xloc.size() && xloc[i] < x1; i++)
+    if (Real x2 = xloc[i]+delta[i]; x2 > x1)
+      res += x1 - std::max(x0,xloc[i]);
+    else if (x2 > x0)
+      res += x2 - std::max(x0,xloc[i]);
+
+  return amp*(negative ? -res : res);
+}
+
+
 Real SineFunc::evaluate (const Real& x) const
 {
   return scale*sin(freq*x+phase);
@@ -433,6 +618,41 @@ Real SineFunc::evaluate (const Real& x) const
 Real SineFunc::deriv (Real x) const
 {
   return freq*scale*cos(freq*x+phase);
+}
+
+
+Real SineFunc::integrate (Real x0, Real x1, Real) const
+{
+  constexpr double zero = Real(1.0e-16);
+
+  if (freq >= -zero && freq <= zero)
+    return scale*sin(phase)*(x1-x0);
+
+  const Real freq2 = freq/Real(2);
+  // Use identity cos(a) - cos(b) = -2*sin((a+b)/2)*sin(a-b)/2)
+  // to avoid round-off cancellation for small frequencies
+  return (scale/freq2)*sin(freq2*(x0+x1)+phase)*sin(freq2*(x1-x0));
+}
+
+
+Real ScalarFunc::integrate (Real x0, Real x1, Real dx) const
+{
+  const bool negative = reversed(x0,x1);
+  constexpr double ex = Real(1.0e-8);
+  if (dx < ex) dx = ex;
+
+  Real res = Real(0);
+  Real dx2 = dx/Real(2);
+  Real x   = x0;
+  while (x+dx <= x1)
+  {
+    res += this->evaluate(x+dx2)*dx;
+    x += dx;
+  }
+  if (x < x1)
+    res += this->evaluate((x+x1)/Real(2))*(x1-x);
+
+  return negative ? -res : res;
 }
 
 
@@ -928,17 +1148,18 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A, bool print)
       f = new ConstFunc(C);
   }
 
-  // Check for time variation
-  if (!cline) return f; // constant in time
+  if (cline) // check for time variation
+  {
+    if (print)
+      IFEM::cout <<" * ";
+    ScalarFunc* s = parseFunction(cline,nullptr,C,print,false);
+    if (f && s)
+      return new SpaceTimeFunc(f,s);
+    else if (s)
+      return new ConstTimeFunc(s);
+  }
 
-  if (print)
-    IFEM::cout <<" * ";
-  ScalarFunc* s = parseFunction(cline,nullptr,C,print,false);
-
-  if (f)
-    return new SpaceTimeFunc(f,s);
-  else
-    return new ConstTimeFunc(s);
+  return f; // constant in time
 }
 
 
@@ -954,7 +1175,7 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type,
   }
   else
     sf = parseFunction(type.c_str(),cstr);
-  IFEM::cout << std::endl;
+  if (sf) IFEM::cout << std::endl;
   if (cstr) free(cstr);
 
   return const_cast<ScalarFunc*>(sf);
