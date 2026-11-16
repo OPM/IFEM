@@ -49,6 +49,29 @@ TEST_CASE("TestTensor.Multiply")
 }
 
 
+TEST_CASE("TestTensor.AddSubtract")
+{
+  const double data[9] = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 };
+
+  const Tensor A(std::vector<double>(data,data+9));
+  const Tensor B = 2.0*A;
+
+  const Tensor S = A + B;
+  const Tensor D = A - B;
+  REQUIRE(S.dim() == 3);
+  REQUIRE(D.dim() == 3);
+  for (int i = 1; i <= 3; ++i)
+    for (int j = 1; j <= 3; ++j) {
+      REQUIRE_THAT(S(i,j), WithinRel(3.0*A(i,j)));
+      REQUIRE_THAT(D(i,j), WithinRel(-A(i,j)));
+    }
+
+  // The operands are left alone
+  REQUIRE_THAT(A(1,1), WithinRel(1.0));
+  REQUIRE_THAT(B(1,1), WithinRel(2.0));
+}
+
+
 TEST_CASE("TestTensor.Shift")
 {
   const double data[9] = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 };

@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "BDF.h"
+#include "Tensor.h"
 
 #include "Catch2Support.h"
 
@@ -125,6 +126,19 @@ TEST_CASE("TestBDF.BDF_2_Variable")
   auto lin = [](double x) { return 1.0 + 3.0*x; };
   REQUIRE_THAT(bdf.extrapolate(std::vector<double>{lin(t[1]), lin(t[2])}),
                WithinRel(lin(t[0]), 1e-12));
+
+  // And over a tensor, component by component
+  auto linT = [&lin](double x) {
+    Tensor T(2);
+    T(1,1) = lin(x);  T(1,2) = 2.0*lin(x);
+    T(2,1) = -lin(x); T(2,2) = 0.5*lin(x);
+    return T;
+  };
+  const Tensor Tex = bdf.extrapolate(std::vector<Tensor>{linT(t[1]), linT(t[2])});
+  const Tensor Tref = linT(t[0]);
+  for (int i = 1; i <= 2; ++i)
+    for (int j = 1; j <= 2; ++j)
+      REQUIRE_THAT(Tex(i,j), WithinRel(Tref(i,j), 1e-12));
 
   // And again on the next step with yet another step size
   bdf.advanceStep(dt3, dt2);
