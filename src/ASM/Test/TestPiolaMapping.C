@@ -17,8 +17,18 @@
 #include "ASMs3Dmx.h"
 #include "CoordinateMapping.h"
 #include "FiniteElement.h"
+#include "Function.h"
+#include "IntegrandBase.h"
 #include "SplineUtils.h"
 #include "Vec3.h"
+#include "Test/ASMTrap.h"
+#include "Test/ASMTrap3.h"
+#ifdef HAS_LRSPLINE
+#include "LR/ASMu2Dmx.h"
+#include "LR/ASMu3Dmx.h"
+#include "LR/Test/ASMuTrap.h"
+#include "LR/Test/ASMuTrap3.h"
+#endif
 
 #include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/trivariate/SplineVolume.h"
@@ -27,6 +37,7 @@
 
 #include <array>
 #include <functional>
+#include <type_traits>
 #include <sstream>
 
 using Catch::Matchers::WithinAbs;
@@ -1093,4 +1104,202 @@ TEST_CASE("TestPiolaMapping.Covariant3D")
                                  RealArray{0.3, 0.8, 0.5},
                                  RealArray{0.7, 0.4, 0.9});
   checkCovariant(eval, par);
+}
+
+
+//! \brief A bicubic geometry with all its third derivatives non-zero.
+static const char* spline2D_cubic = R"(200 1 0 0
+2 0
+4 4
+0 0 0 0 1 1 1 1
+4 4
+0 0 0 0 1 1 1 1
+0 0
+0.35 -0.05
+0.7 0.1
+1.1 0
+-0.05 0.3
+0.42 0.37
+0.61 0.28
+1.05 0.4
+0.1 0.7
+0.3 0.62
+0.75 0.78
+0.95 0.66
+0 1
+0.38 1.1
+0.64 0.95
+1.05 1.08
+)";
+
+
+namespace {
+
+/*!
+  \brief The Piola mapped field of given coefficients of the reference
+  functions, at the parameters of a point of the integration loop.
+*/
+
+class MappedField : public VecFunc
+{
+public:
+  //! \brief The constructor sets the patch and the coefficients.
+  MappedField(const ASMbase& patch, const Vector& coefs)
+    : VecFunc(patch.getNoSpaceDim()), pch(patch), c(coefs) {}
+
+protected:
+  //! \brief Evaluates the mapped field, NaN where it cannot.
+  Vec3 evaluate(const Vec3& X) const override
+  {
+    Vec3 result(NAN,NAN,NAN);
+    const Vec4* X4 = dynamic_cast<const Vec4*>(&X);
+    if (!X4 || !X4->u)
+      return result;
+
+    const size_t nsd = pch.getNoSpaceDim();
+    std::array<RealArray,3> gpar;
+    for (size_t d = 0; d < nsd; d++)
+      gpar[d] = { X4->u[d] };
+    Matrix s;
+    if (!pch.evalSolutionPiola(s, c, gpar.data(), true, false))
+      return result;
+
+    for (size_t k = 0; k < nsd; k++)
+      result[k] = s(k+1,1);
+    return result;
+  }
+
+private:
+  const ASMbase& pch; //!< The patch of the mapped bases
+  const Vector& c;    //!< The coefficients of the reference functions
+};
+
+
+//! \brief Checks that the L2-projection reproduces a field of the space.
+//! \param pch The patch of the mapped bases
+//! \param[in] covariant If \e true, the covariant mapping, else contravariant
+void checkL2Projection (ASMbase& pch, bool covariant)
+{
+  const size_t nsd = pch.getNoSpaceDim();
+  size_t n = 0;
+  for (size_t b = 1; b <= nsd; b++)
+    n += pch.getNoNodes(b);
+
+  Vector c(n);
+  for (size_t i = 1; i <= n; i++)
+    c(i) = 1.0 + 0.5*sin(1.3*i);
+
+  // The quadrature and the element groups of the integration loop, which a
+  // simulator has set up
+  pch.setGauss(4);
+  struct Groups : public IntegrandBase { Groups() : IntegrandBase(3) {} } itg;
+  pch.generateThreadGroups(itg,true,false);
+
+  MappedField f(pch, c);
+  Vector coefs;
+  REQUIRE(pch.L2projectionPiola(coefs, f, covariant ? Integrand::COVARIANT
+                                                    : Integrand::CONTRAVARIANT));
+  REQUIRE(coefs.size() == n);
+  for (size_t i = 1; i <= n; i++)
+    REQUIRE_THAT(coefs(i), WithinAbs(c(i), 1.0e-10));
+}
+
+}
+
+
+//! \brief Checks the projection on a patch, raised from linear if a trapezoid.
+//! \param pch The patch, with its geometry read
+//! \param[in] trap If \e true, the linear trapezoid, raised to quadratic
+//! \param[in] covariant If \e true, the covariant mapping, else contravariant
+template<class Patch>
+void checkL2Projection (Patch& pch, bool trap, bool covariant)
+{
+  if (trap) {
+    if constexpr (std::is_base_of_v<ASM2D,Patch>)
+      REQUIRE(pch.raiseOrder(1,1));
+    else
+      REQUIRE(pch.raiseOrder(1,1,1,false));
+  }
+  REQUIRE(pch.generateFEMTopology());
+  checkL2Projection(static_cast<ASMbase&>(pch), covariant);
+}
+
+
+TEST_CASE("TestPiolaMapping.L2Projection2D")
+{
+  // A field of the mapped space is its own projection, on the trapezoid,
+  // whose mapping is bilinear, raised to quadratic, and on the bicubic
+  // geometry, of the tensor product and the LR patches
+  const bool covariant = GENERATE(false, true);
+  const bool lr = GENERATE(false, true);
+  const bool trap = GENERATE(true, false);
+  CAPTURE(covariant, lr, trap);
+  ASMmxBase::Type = covariant ? ASMmxBase::CURL_COMPATIBLE
+                              : ASMmxBase::DIV_COMPATIBLE;
+  ASMbase::resetNumbering();
+  const std::vector<unsigned char> nf{1,1,1};
+
+  if (lr) {
+#ifdef HAS_LRSPLINE
+    if (trap) {
+      ASMuTrap<ASMu2Dmx> pch(2, nf);
+      checkL2Projection(pch, true, covariant);
+    }
+    else {
+      ASMu2Dmx pch(2, nf);
+      std::stringstream g2(spline2D_cubic);
+      REQUIRE(pch.read(g2));
+      checkL2Projection(pch, false, covariant);
+    }
+#endif
+  }
+  else if (trap) {
+    ASMTrap<ASMs2Dmx> pch(2, nf);
+    checkL2Projection(pch, true, covariant);
+  }
+  else {
+    ASMs2Dmx pch(2, nf);
+    std::stringstream g2(spline2D_cubic);
+    REQUIRE(pch.read(g2));
+    checkL2Projection(pch, false, covariant);
+  }
+}
+
+
+TEST_CASE("TestPiolaMapping.L2Projection3D")
+{
+  // The same on the trilinear trapezoid and the tricubic geometry
+  const bool covariant = GENERATE(false, true);
+  const bool lr = GENERATE(false, true);
+  const bool trap = GENERATE(true, false);
+  CAPTURE(covariant, lr, trap);
+  ASMmxBase::Type = covariant ? ASMmxBase::CURL_COMPATIBLE
+                              : ASMmxBase::DIV_COMPATIBLE;
+  ASMbase::resetNumbering();
+  const std::vector<unsigned char> nf{1,1,1};
+
+  if (lr) {
+#ifdef HAS_LRSPLINE
+    if (trap) {
+      ASMuTrap3<ASMu3Dmx> pch(nf);
+      checkL2Projection(pch, true, covariant);
+    }
+    else {
+      ASMu3Dmx pch(nf);
+      std::stringstream g3(spline3D);
+      REQUIRE(pch.read(g3));
+      checkL2Projection(pch, false, covariant);
+    }
+#endif
+  }
+  else if (trap) {
+    ASMTrap3<ASMs3Dmx> pch(nf);
+    checkL2Projection(pch, true, covariant);
+  }
+  else {
+    ASMs3Dmx pch(nf);
+    std::stringstream g3(spline3D);
+    REQUIRE(pch.read(g3));
+    checkL2Projection(pch, false, covariant);
+  }
 }

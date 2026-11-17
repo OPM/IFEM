@@ -537,6 +537,186 @@ namespace
     SparseMatrix& A; //!< Reference to left-hand-side matrix
     StdVector&    B; //!< Reference to right-hand-side vector
   };
+
+
+  /*!
+    \brief Local integral container class for the L2-projection of a function
+    onto the Piola mapped bases.
+  */
+
+  class PiolaL2Mats : public ElmMats
+  {
+  public:
+    //! \brief The constructor sizes the element matrix and vector.
+    //! \param[in] nen Number of element nodes of the Piola mapped bases
+    explicit PiolaL2Mats(size_t nen)
+    {
+      this->resize(1,1);
+      this->redim(nen);
+    }
+
+    IntVec mnpc; //!< Element nodes of the Piola mapped bases
+  };
+
+
+  /*!
+    \brief Integrand for the L2-projection of a vector function onto the
+    Piola mapped bases of a mixed patch.
+  */
+
+  class PiolaL2 : public Integrand
+  {
+  public:
+    //! \brief The constructor initializes the projection matrices.
+    //! \param[in] func The vector function to project
+    //! \param[in] mapping The Piola mapping, contravariant or covariant
+    //! \param[in] nsd Number of spatial dimensions, and mapped bases
+    //! \param[in] n Number of nodes of the mapped bases of the patch
+    PiolaL2(const FunctionBase& func, int mapping, size_t nsd, size_t n)
+      : f(func), piola(mapping), nsd(nsd), A(SparseMatrix::SUPERLU)
+    {
+      A.redim(n,n);
+      B.redim(n);
+    }
+
+    //! \brief Returns current solution mode.
+    SIM::SolutionMode getMode(bool) const override { return SIM::RECOVERY; }
+
+    //! \brief Defines which FE quantities are needed by the integrand.
+    int getIntegrandType() const override { return piola; }
+
+    using Integrand::getLocalIntegral;
+    //! \brief Returns a local integral object for the given element.
+    //! \param[in] nen Number of nodes on element for each basis
+    LocalIntegral* getLocalIntegral(const std::vector<size_t>& nen,
+                                    size_t, bool) const override
+    {
+      return new PiolaL2Mats(std::accumulate(nen.begin(),nen.begin()+nsd,
+                                             size_t(0)));
+    }
+
+    //! \brief Returns a local integral object for the given element.
+    LocalIntegral* getLocalIntegral(size_t, size_t, bool) const override
+    {
+      return nullptr; // only mixed patches have Piola mapped bases
+    }
+
+    using Integrand::initElement;
+    //! \brief Initializes current element for numerical integration (mixed).
+    //! \param[in] MNPC1 Matrix of nodal point correspondance for the element
+    //! \param[in] elem_sizes Size of each basis on the element
+    //! \param elmInt Local integral for element
+    bool initElement(const IntVec& MNPC1, const MxFiniteElement&,
+                     const uIntVec& elem_sizes, const uIntVec&,
+                     LocalIntegral& elmInt) override
+    {
+      PiolaL2Mats& pl2 = static_cast<PiolaL2Mats&>(elmInt);
+      const size_t nen = std::accumulate(elem_sizes.begin(),
+                                         elem_sizes.begin()+nsd, size_t(0));
+      pl2.mnpc.assign(MNPC1.begin(),MNPC1.begin()+nen);
+      return true;
+    }
+
+    //! \brief Dummy implementation.
+    bool initElement(const IntVec&, const FiniteElement&, const Vec3&, size_t,
+                     LocalIntegral&) override { return false; }
+    //! \brief Dummy implementation.
+    bool initElement(const IntVec&, LocalIntegral&) override { return false; }
+    //! \brief Dummy implementation.
+    bool initElement(const IntVec&, const uIntVec&, const uIntVec&,
+                     LocalIntegral&) override { return false; }
+    //! \brief Dummy implementation.
+    bool initElementBou(const IntVec&,
+                        LocalIntegral&) override { return false; }
+    //! \brief Dummy implementation.
+    bool initElementBou(const IntVec&, const uIntVec&, const uIntVec&,
+                        LocalIntegral&) override { return false; }
+
+    using Integrand::evalIntMx;
+    //! \brief Evaluates the integrand at an interior point.
+    //! \param elmInt The local integral object to receive the contributions
+    //! \param[in] fe Mixed finite element data of current integration point
+    //! \param[in] X Cartesian coordinates of current integration point
+    bool evalIntMx(LocalIntegral& elmInt, const MxFiniteElement& fe,
+                   const Vec3& X) const override
+    {
+      PiolaL2Mats& pl2 = static_cast<PiolaL2Mats&>(elmInt);
+      const Matrix& P = (piola & CONTRAVARIANT) ? fe.P_contra.N : fe.P_co.N;
+      const RealArray u = f.getValue(X);
+      if (u.size() < nsd)
+        return false;
+
+      pl2.A.front().multiply(P,P,true,false,true,fe.detJxW);
+      for (size_t i = 1; i <= P.cols(); i++)
+        for (size_t k = 1; k <= nsd; k++)
+          pl2.b.front()(i) += P(k,i)*u[k-1]*fe.detJxW;
+
+      return true;
+    }
+
+    //! \brief Pre-computes the sparsity pattern of the projection matrix.
+    //! \param[in] MMNPC Element nodes of the mapped bases
+    //! \param[in] nel Number of elements
+    void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel)
+    {
+      A.preAssemble(MMNPC,nel);
+    }
+
+    //! \brief Solves the projection equation system.
+    //! \param[out] coefs The coefficients of the reference functions
+    bool solve(Vector& coefs)
+    {
+      for (size_t i = 1; i <= A.dim(); i++)
+        if (A(i,i) == 0.0) A(i,i) = 1.0;
+
+      if (!A.solve(B))
+        return false;
+
+      coefs = B;
+      return true;
+    }
+
+  private:
+    const FunctionBase& f; //!< The vector function to project
+    int  piola; //!< The Piola mapping
+    size_t nsd; //!< Number of spatial dimensions
+
+    SparseMatrix A; //!< Left-hand-side matrix of the L2-projection
+    StdVector    B; //!< Right-hand-side vector of the L2-projection
+
+    friend class PiolaL2GlobalInt;
+  };
+
+
+  /*!
+    \brief Global integral container class for the L2-projection onto the
+    Piola mapped bases.
+  */
+
+  class PiolaL2GlobalInt : public GlobalIntegral
+  {
+  public:
+    //! \brief The constructor initializes the system matrix references.
+    explicit PiolaL2GlobalInt(PiolaL2& pl2) : A(pl2.A), B(pl2.B) {}
+
+    //! \brief Adds a LocalIntegral object into a corresponding global object.
+    bool assemble(const LocalIntegral* elmObj, int) override
+    {
+      const PiolaL2Mats* elm = static_cast<const PiolaL2Mats*>(elmObj);
+      for (size_t i = 0; i < elm->mnpc.size(); i++)
+      {
+        const int inod = elm->mnpc[i]+1;
+        for (size_t j = 0; j < elm->mnpc.size(); j++)
+          A(inod,elm->mnpc[j]+1) += elm->A.front()(i+1,j+1);
+        B(inod) += elm->b.front()[i];
+      }
+      return true;
+    }
+
+  private:
+    SparseMatrix& A; //!< Reference to left-hand-side matrix
+    StdVector&    B; //!< Reference to right-hand-side vector
+  };
 }
 
 
@@ -591,6 +771,44 @@ bool ASMbase::L2projection (const std::vector<Matrix*>& fVals,
 
   gl2.preAssemble(MNPC,this->getNoElms(true),this->getElementActivator());
   return this->integrate(gl2,dummy,TimeDomain(t)) && gl2.solve(fVals);
+}
+
+
+bool ASMbase::L2projectionPiola (Vector& coefs, const FunctionBase& func,
+                                 int mapping, double t)
+{
+  PROFILE2("ASMbase::L2projectionPiola");
+
+  const size_t nsd = this->getNoSpaceDim();
+  size_t n = 0;
+  for (size_t b = 1; b <= nsd; b++)
+    n += this->getNoNodes(b);
+
+  for (size_t inod = 1; inod <= nnod; inod++)
+  {
+    const char type = this->getNodeType(inod);
+    const bool isMapped = type == 'D' || (type > 'O' && type < 'O'+int(nsd));
+    if (isMapped != (inod <= n))
+    {
+      std::cerr <<" *** ASMbase::L2projectionPiola: Node "<< inod
+                <<" (type "<< type <<") is "<< (isMapped ? "" : "not ")
+                <<"of a mapped basis, but the first "<< n
+                <<" nodes are to be those of the mapped bases."<< std::endl;
+      return false;
+    }
+  }
+
+  // The element nodes of the mapped bases
+  std::vector<IntVec> mnpc(MNPC.size());
+  for (size_t e = 0; e < MNPC.size(); e++)
+    for (int node : MNPC[e])
+      if (node >= 0 && static_cast<size_t>(node) < n)
+        mnpc[e].push_back(node);
+
+  PiolaL2 pl2(func,mapping & Integrand::PIOLA_MAPPING,nsd,n);
+  PiolaL2GlobalInt glb(pl2);
+  pl2.preAssemble(mnpc,this->getNoElms(true));
+  return this->integrate(pl2,glb,TimeDomain(t)) && pl2.solve(coefs);
 }
 
 
