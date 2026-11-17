@@ -18,6 +18,8 @@
 
 #include <sstream>
 #include <cstring>
+#include <cstdlib>
+#include <cctype>
 
 
 FunctionSum::~FunctionSum ()
@@ -82,7 +84,7 @@ bool FunctionSum::initPatch (size_t idx)
 }
 
 
-std::vector<double> FunctionSum::getValue (const Vec3& X) const
+utl::RealVec FunctionSum::getValue (const Vec3& X) const
 {
   utl::vector<double> sum(ncmp);
   for (size_t i = 0; i < comps.size(); i++)
@@ -93,7 +95,7 @@ std::vector<double> FunctionSum::getValue (const Vec3& X) const
     else
     {
       // Find the max value
-      std::vector<double> val = comps[i].first->getValue(X);
+      utl::RealVec val = comps[i].first->getValue(X);
       for (size_t j = 0; j < val.size(); j++)
         if (val[j] > sum[j]) sum[j] = val[j];
     }
@@ -130,10 +132,30 @@ void RealFuncSum::addFuncComp (const char* ampl, RealFunc* f)
 {
   if (ampl)
   {
-    if (ScalarFunc* tf = utl::parseTimeFunc(ampl); tf)
+    std::string type("expression");
+    const char* func = ampl;
+    while (strlen(func) > 0 && isspace(func[0])) ++func;
+    for (size_t i = 0; i < strlen(func); i++)
+      if (i > 2 && isspace(func[i]))
+      {
+        // Check that the next non-whitespace character is a digit
+        char c = func[i];
+        for (size_t j = i+1; j < strlen(func) && isspace(c); j++)
+          c = func[j];
+        if (isdigit(c) || c == '-' || c == '+' || c == '.')
+        {
+          // A function type name was found
+          type = std::string(func,i);
+          func += i;
+        }
+        break;
+      }
+      else if (!isalpha(func[i]))
+        break; // probably an expression
+    if (ScalarFunc* tf = utl::parseTimeFunc(func,type); tf)
       f = new SpaceTimeFunc(f,tf);
     else
-      IFEM::cout <<"  ** Malformed time expression \""<< ampl <<"\","
+      IFEM::cout <<"  ** Malformed time function \""<< ampl <<"\","
                  <<" the function component will remain constant."<< std::endl;
   }
 
@@ -155,33 +177,32 @@ DiracSum::DiracSum (const char* input, double tol, int nsd)
 
   IFEM::cout <<": DiracSum\n";
   std::stringstream str(cpy);
-  char temp[512];
+  char temp[512], value[512];
   while (str.getline(temp,512))
     if (temp[0] != '#' && temp[0] != 0)
     {
-      std::stringstream sline(temp);
       Vec3 X;
-      std::string value;
+      std::stringstream sline(temp);
       for (int i = 0; i < nsd; i++)
         sline >> X[i];
-      sline >> value;
+      sline.getline(value,512);
 
       IFEM::cout <<"\t\tDirac("<< X.x;
       for (int i = 1; i < nsd; i++)
         IFEM::cout <<", "<< X[i];
       IFEM::cout <<") = ";
 
+      const char* ampFunc = value;
       char* endPtr = nullptr;
-      const char* ampExpr = value.c_str();
-      double ampConst = strtod(ampExpr,&endPtr);
+      double ampConst = strtod(ampFunc,&endPtr);
       if (strlen(endPtr) == 0)
       {
-        ampExpr = nullptr;
+        ampFunc = nullptr;
         IFEM::cout << ampConst << std::endl;
       }
       else
-        ampConst = 1.0; // An expression was specified
-      this->addFuncComp(ampExpr, new DiracSpaceFunc(ampConst,X,tol,nsd));
+        ampConst = 1.0; // A function was specified
+      this->addFuncComp(ampFunc, new DiracSpaceFunc(ampConst,X,tol,nsd));
     }
 
   free(cpy);

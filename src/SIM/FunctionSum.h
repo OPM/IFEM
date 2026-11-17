@@ -53,7 +53,7 @@ public:
   bool initPatch(size_t idx) override;
 
   //! \brief Returns the function value as an array.
-  std::vector<double> getValue(const Vec3& X) const override;
+  utl::RealVec getValue(const Vec3& X) const override;
   //! \brief Returns a representative scalar equivalent of the function value.
   double getScalarValue(const Vec3& X) const override;
 
@@ -98,7 +98,7 @@ public:
   }
 
   //! \copydoc FunctionSum::getValue()
-  std::vector<double> getValue(const Vec3& X) const override
+  utl::RealVec getValue(const Vec3& X) const override
   {
     return this->FunctionSum::getValue(X);
   }
