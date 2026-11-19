@@ -38,8 +38,9 @@ public:
   //! \param[in] adm The process administrator
   //! \param[in] stride Restart data output stride
   //! \param[in] level0 Time level to start output at (in case of new restart)
+  //! \param[in] step0 Time step to start output after (in case of restart)
   HDF5Restart(const std::string& name, const ProcessAdm& adm,
-              int stride = 1, int level0 = 0);
+              int stride = 1, int level0 = 0, int step0 = 0);
 
   //! \brief Returns whether or not restart data should be output.
   //! \param[in] tp Time stepping information
@@ -62,7 +63,7 @@ public:
 private:
   int m_stride; //!< Time step stride between outputs
   int m_level;  //!< Current time level for restart output
-  int m_last;   //!< Last time step that was written
+  int m_last;   //!< Last time step written, or the one started from
 };
 
 #endif
