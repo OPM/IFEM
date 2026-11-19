@@ -240,7 +240,6 @@ short int ASMs2DIB::Intersected::hasContribution (int, int I, int J, int) const
   const ASMs2DIB& patch = static_cast<const ASMs2DIB&>(myPatch);
 
   const int n1 = patch.surf->numCoefs_u();
-  const int n2 = patch.surf->numCoefs_v();
   const int p1 = patch.surf->order_u();
   const int p2 = patch.surf->order_v();
 
@@ -248,11 +247,10 @@ short int ASMs2DIB::Intersected::hasContribution (int, int I, int J, int) const
   if (patch.quadPoints[iel].empty())
     return 0; // This element is completely outside the domain
 
+  // The west, east, south and north neighbors
   int jel[4];
-  jel[0] = I > p1 ? iel - 1         : 0; // West neighbor
-  jel[1] = I < n1 ? iel + 1         : 0; // East neighbor
-  jel[2] = J > p2 ? iel - (n1-p1+1) : 0; // South neighbor
-  jel[3] = J < n2 ? iel + (n1-p1+1) : 0; // North neighbor
+  for (int i = 0; i < 4; i++)
+    jel[i] = patch.getElmNeighbour(iel,1+i);
 
   // Check if the element itself is intersected
   bool isCut = myAll || patch.isIntersected(iel);
@@ -262,7 +260,7 @@ short int ASMs2DIB::Intersected::hasContribution (int, int I, int J, int) const
   short int status = 0, s = 1;
   for (short int i = 0; i < 4; i++, s *= 2)
     if (alsoSW || i%2 == 1)
-      if (jel[i] && patch.isIntersected(jel[i],isCut))
+      if (jel[i] >= 0 && patch.isIntersected(jel[i],isCut))
         status += s;
 
   return status;

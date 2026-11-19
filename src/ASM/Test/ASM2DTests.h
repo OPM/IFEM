@@ -11,12 +11,18 @@
 //==============================================================================
 
 #include "ASMbase.h"
+#include "ElmMats.h"
+#include "FiniteElement.h"
+#include "GlobalIntegral.h"
+#include "IntegrandBase.h"
 #include "MPCLess.h"
 #include "SIM2D.h"
+#include "TimeDomain.h"
 #include "Vec3Oper.h"
 
 #include "Catch2Support.h"
 
+#include <map>
 #include <sstream>
 
 
@@ -30,6 +36,74 @@ private:
     int edgeIdx;
     std::array<int,2> c1;
     std::array<int,2> c2;
+  };
+
+  //! \brief Integrates the normal derivative jumps over element interfaces.
+  class JumpIntegrand : public IntegrandBase
+  {
+  public:
+    //! \brief The constructor sets the number of space dimensions.
+    JumpIntegrand() : IntegrandBase(2) {}
+
+    //! \brief Returns the integrand type.
+    int getIntegrandType() const override
+    {
+      return INTERFACE_TERMS | NORMAL_DERIVS;
+    }
+
+    using IntegrandBase::evalInt;
+    //! \brief Integrates the jumps at an interface point.
+    bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
+                 const Vec3&, const Vec3&) const override
+    {
+      static_cast<ElmMats&>(elmInt).b.front().add(fe.N,fe.detJxW);
+      return true;
+    }
+  };
+
+  /*!
+    \brief Applies the integrated jumps of each element to the nodal
+    coordinates.
+    \details The geometry is reproduced by the basis, so the jumps of its
+    normal derivatives over the element interfaces vanish.
+  */
+
+  class JumpChecker : public GlobalIntegral
+  {
+  public:
+    //! \brief The constructor initializes the reference to the patch.
+    explicit JumpChecker(const ASMbase& pch) : myPatch(pch) {}
+
+    //! \brief Applies the element jumps to the nodal coordinates.
+    bool assemble(const LocalIntegral* elmInt, int elmId) override
+    {
+      const Vector& b = static_cast<const ElmMats*>(elmInt)->b.front();
+      const IntVec& mnpc = myPatch.getElementNodes(myPatch.getElmIndex(-elmId));
+      REQUIRE(b.size() == mnpc.size());
+      Vec3 jump;
+      for (size_t a = 0; a < mnpc.size(); a++)
+        jump += b[a]*myPatch.getCoord(1+mnpc[a]);
+      jumps[elmId] = jump;
+      return true;
+    }
+
+    std::map<int,Vec3> jumps; //!< Jump of the geometry for each element
+
+  private:
+    const ASMbase& myPatch; //!< The patch of the elements
+  };
+
+  //! \brief Interface contributions on the upper element edges with neighbors.
+  class UpperEdges : public Patch::InterfaceChecker
+  {
+  public:
+    //! \brief The constructor initializes the reference to the patch.
+    explicit UpperEdges(const Patch& pch) : Patch::InterfaceChecker(pch) {}
+    //! \brief Returns the east and north edges with a neighbor.
+    short int hasContribution(int iel, int I, int J, int K) const override
+    {
+      return Patch::InterfaceChecker::hasContribution(iel,I,J,K) & 10;
+    }
   };
 
 public:
@@ -251,6 +325,35 @@ public:
       REQUIRE(XC.size() == param.XC.size());
       for (size_t i = 0; i < XC.size(); ++i)
         REQUIRE(XC[i] == param.XC[i]);
+    }
+  }
+
+  static void InterfaceJumps()
+  {
+    // The jumps of the normal derivatives of the geometry vanish, for each
+    // interface element on its own, also with repeated knots when the order
+    // is raised after the refinement
+    const int raise = GENERATE(0,1,2); // none, before or after refinement
+    INFO("order raised " << (raise == 0 ? "not" : (raise == 1 ? "before" : "after")));
+    ASMbase::resetNumbering();
+    Patch pch;
+    if (raise == 1)
+      REQUIRE(pch.raiseOrder(1,1));
+    REQUIRE(pch.uniformRefine(0,2));
+    REQUIRE(pch.uniformRefine(1,2));
+    if (raise == 2)
+      REQUIRE(pch.raiseOrder(1,1));
+    REQUIRE(pch.generateFEMTopology());
+    REQUIRE(pch.addInterfaceElms(UpperEdges(pch)));
+
+    JumpIntegrand integrand;
+    JumpChecker checker(pch);
+    REQUIRE(pch.integrate(integrand,checker,TimeDomain(),UpperEdges(pch)));
+    REQUIRE(checker.jumps.size() == 12);
+    for (const std::pair<const int,Vec3>& jump : checker.jumps)
+    {
+      INFO("interface element " << jump.first);
+      CHECK(jump.second.length() < 1.0e-12);
     }
   }
 
