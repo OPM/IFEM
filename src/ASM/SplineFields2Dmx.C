@@ -64,7 +64,7 @@ bool SplineFields2Dmx::valueCoor (const Vec4& x, Vector& vals) const
   // Use with caution, very slow!
   Go::Point pt(x.x,x.y,x.z), clopt(3);
   double clo_u, clo_v, dist;
-  const Go::SplineSurface* geo = surf->getBasis(ASMmxBase::itgBasis);
+  const Go::SplineSurface* geo = surf->getBasis(ASM::GEOMETRY_BASIS);
   if (!geo)
     geo = surf->getBasis(1);
 #pragma omp critical
@@ -127,7 +127,7 @@ bool SplineFields2Dmx::gradFE (const ItgPoint& x, Matrix& grad) const
   // Evaluate the basis functions at the given point
   Matrix Xnod, Jac, dNdX;
   std::vector<int> ip;
-  const Go::SplineSurface* geo = surf->getBasis(ASMmxBase::itgBasis);
+  const Go::SplineSurface* geo = surf->getBasis(ASM::GEOMETRY_BASIS);
   if (!geo)
     geo = surf->getBasis(1);
   if (!SplineField::evalMapping(*geo,surf->getNoSpaceDim(),x,ip,Xnod,Jac,dNdX))
@@ -169,7 +169,7 @@ bool SplineFields2Dmx::hessianFE (const ItgPoint& x, Matrix3D& H) const
   Matrix Xnod, Jac, dNdX;
   Matrix3D d2NdX2, Hess;
   std::vector<int> ip;
-  const Go::SplineSurface* geo = surf->getBasis(ASMmxBase::itgBasis);
+  const Go::SplineSurface* geo = surf->getBasis(ASM::GEOMETRY_BASIS);
   if (!geo)
     geo = surf->getBasis(1);
   if (!SplineField::evalMapping(*geo,surf->getNoSpaceDim(),x,ip,Xnod,Jac,dNdX,&d2NdX2,&Hess))
