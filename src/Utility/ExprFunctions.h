@@ -200,16 +200,9 @@ public:
   Real dderiv(const Vec3& X, int i, int j) const override;
 
   //! \brief Evaluates first derivatives of the function.
-  Vec3 gradient(const Vec3& X) const override
-  {
-    return this->RealFunc::gradient(X);
-  }
-
-  //! \brief Evaluates first derivatives of the function.
-  SymmTensor hessian(const Vec3& X) const override
-  {
-    return this->RealFunc::hessian(X);
-  }
+  Vec3 gradient(const Vec3& X) const override;
+  //! \brief Evaluates second derivatives of the function.
+  SymmTensor hessian(const Vec3& X) const override;
 
 protected:
   //! \brief Evaluates the function expression.

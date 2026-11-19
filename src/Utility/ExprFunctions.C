@@ -420,6 +420,20 @@ Real EvalFuncSpatial<Scalar>::evaluate (const Vec3& X) const
 }
 
 
+template<class Scalar>
+Vec3 EvalFuncSpatial<Scalar>::gradient (const Vec3& X) const
+{
+  return this->RealFunc::gradient(X);
+}
+
+
+template<class Scalar>
+SymmTensor EvalFuncSpatial<Scalar>::hessian (const Vec3& X) const
+{
+  return this->RealFunc::hessian(X);
+}
+
+
 template<>
 Real EvalFuncSpatial<Real>::deriv (const Vec3& X, int dir) const
 {
