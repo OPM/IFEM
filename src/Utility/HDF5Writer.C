@@ -288,21 +288,43 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
                             sim->mixedProblem() &&
                             (piola || needProj);
 
-  const bool wantProj = (proj && sim->fieldProjections()) ||
-                        piola || fitSecondary;
+  const bool projField = (results & DataExporter::PROJECTED) &&
+                         sim->fieldProjections();
 
-  if (prefix.empty() && !usedescription &&
-      (level == 0 || geometryUpdated || (results & DataExporter::GRID)))
+  const bool wantProj = (proj && sim->fieldProjections()) ||
+                        piola || fitSecondary || projField;
+
+  if (results & DataExporter::PROJECTED)
+    if (!usedescription || entry.second.ncmps < 1)
+    {
+      std::cerr <<" *** HDF5Writer: A projected field needs a name of its own"
+                <<" and a component count ("<< entry.first <<")."<< std::endl;
+      return;
+    }
+
+  const bool writeGeom = prefix.empty() &&
+                        (level == 0 || geometryUpdated ||
+                         (results & DataExporter::GRID));
+
+  if (writeGeom && !usedescription)
   {
     // A Piola mapped basis is not written at all.
     std::string bName = sim->getName() + "-1";
     for (size_t b = 1; b <= sim->getNoBasis(); b++, ++bName.back())
       if (b > nmapped)
-        this->writeBasis(sim,bName,b,level,results & DataExporter::REDUNDANT,results & DataExporter::L2G_NODE);
-    if (wantProj)
-      this->writeBasis(sim, sim->getName() + "-proj",
-                       ASM::PROJECTION_BASIS, level);
+        this->writeBasis(sim,bName,b,level,
+                         results & DataExporter::REDUNDANT,
+                         results & DataExporter::L2G_NODE);
   }
+
+  if (writeGeom && (results & DataExporter::PROJECTED) && !projField)
+    this->writeBasis(sim, sim->getName() + "-1", 1, level,
+                     results & DataExporter::REDUNDANT,
+                     results & DataExporter::L2G_NODE);
+
+  if (writeGeom && wantProj)
+    this->writeBasis(sim, sim->getName() + "-proj",
+                     ASM::PROJECTION_BASIS, level);
 
   bool exportSol = results & (DataExporter::PRIMARY | DataExporter::SECONDARY);
   std::string str = std::to_string(level) + "/" + sim->getName();
@@ -338,7 +360,7 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
   }
 
   // Lambda function for extracting projected solution for a patch.
-  size_t projOfs = 0;
+  size_t projOfs = 0, descOfs = 0;
   auto&& extractProjection=[sim,&projOfs](ASMbase* pch, const Vector& glbVec,
                                           Matrix& field, bool lastProj = false)
   {
@@ -416,6 +438,41 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
     this->writeArray(gid,name,idx,rec.first,rec.second,H5T_NATIVE_DOUBLE);
   };
 
+  if (results & DataExporter::PROJECTED)
+  {
+    size_t want = 0;
+    for (int idx = 1; idx <= sim->getNoPatches(); idx++)
+    {
+      const int loc = sim->getLocalPatchIndex(idx);
+      if (!writing[idx-1] || loc < 1)
+        continue;
+      if (sim->getProcessAdm().getProcId() != 0 &&
+          sim->getProcessAdm().dd.isPartitioned() &&
+          (results & DataExporter::REDUNDANT))
+        continue;
+      if (const ASMbase* pch = sim->getPatch(loc); pch)
+        want += entry.second.ncmps * pch->getNoProjectionNodes();
+    }
+
+    int fits = want <= sol->size() ? 1 : 0;
+#ifdef HAVE_MPI
+    if (m_adm.isParallel() && !m_adm.dd.isPartitioned())
+      fits = m_adm.allReduce(fits, MPI_MIN);
+#endif
+    if (fits == 0)
+    {
+      std::cerr <<" *** HDF5Writer: A projected field is laid out over the"
+                <<" projection nodes of each patch in turn, and "<< entry.first
+                <<" is shorter than that."<< std::endl;
+      for (hid_t g : group)
+        if (g != -1)
+          H5Gclose(g);
+      for (hid_t g : egroup)
+        H5Gclose(g);
+      return;
+    }
+  }
+
   for (int idx = 1; idx <= sim->getNoPatches(); idx++)
   {
     const int loc = sim->getLocalPatchIndex(idx);
@@ -434,8 +491,19 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
       Vector psol;
       size_t ndof1 = 0;
       if (owned) {
-        ndof1 = sim->extractPatchSolution(*sol, psol, pch, entry.second.ncmps,
-                                          usedescription ? 1 : 0);
+        if (results & DataExporter::PROJECTED)
+        {
+          // The patches follow one another in the vector
+          ndof1 = entry.second.ncmps * pch->getNoProjectionNodes();
+          psol.resize(ndof1);
+          std::copy(sol->begin()+descOfs, sol->begin()+descOfs+ndof1,
+                    psol.begin());
+          descOfs += ndof1;
+        }
+        else
+          ndof1 = sim->extractPatchSolution(*sol, psol, pch,
+                                            entry.second.ncmps,
+                                            usedescription ? 1 : 0);
         if (dynamic_cast<ASMsupel*>(pch))
           // Hack for superelement patches: Expand to include the center node
           if (Matrix sField; pch->evalSolution(sField,psol,nullptr,0))
@@ -444,7 +512,7 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
             ndof1 = psol.size();
           }
 
-        if (entry.second.ncmps == 6)
+        if (entry.second.ncmps == 6 && !(results & DataExporter::PROJECTED))
         {
           // This is a model with rotational degrees of freedom.
           // We want the translations only.
@@ -457,8 +525,10 @@ void HDF5Writer::writeSIM (int level, double time, const DataEntry& entry,
 
       const double* data = psol.ptr();
       if (usedescription)
-        // Field assumed to be on basis 1 for now
-        writeField(group.front(), entry.second.description, idx,
+        // Field assumed to be on basis 1 for now, unless it is of the
+        // projection basis, which is the last of the groups
+        writeField(projField ? group.back() : group.front(),
+                   entry.second.description, idx,
                    [&]{ return std::pair{ndof1,data}; });
       else if (sim->mixedProblem())
         for (size_t b = 1; b <= sim->getNoBasis(); b++) {
@@ -655,7 +725,13 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
     MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
 #endif
 
-  hid_t group = this->getGroup("/" + std::to_string(level) + "/" + name);
+  const std::string here = "/" + std::to_string(level) + "/" + name;
+  const bool haveBasis = checkGroupExistence(m_file, (here + "/basis").c_str());
+  l2g = l2g && !checkGroupExistence(m_file, (here + "/l2g-node").c_str());
+  if (haveBasis && !l2g)
+    return;
+
+  hid_t group = this->getGroup(here);
 
   std::map<int, int> l2gNode;
   std::map<int, int> prevNode;
@@ -727,8 +803,9 @@ void HDF5Writer::writeBasis (const SIMbase* sim, const std::string& name,
       pch->write(str,basis);
       alen = str.str().size();
     }
-    this->writeArray(group, "basis", idx, alen , str.str().c_str(),
-                     H5T_NATIVE_CHAR);
+    if (!haveBasis)
+      this->writeArray(group, "basis", idx, alen , str.str().c_str(),
+                       H5T_NATIVE_CHAR);
 
     if (l2g) {
       std::vector<int> nodeNumsLoc;
