@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "ASMbase.h"
+#include "FieldValueIntegrand.h"
 #include "MPCLess.h"
 #include "SIM2D.h"
 #include "Vec3Oper.h"
@@ -283,5 +284,46 @@ public:
     str.str("");
     REQUIRE(pch1.write(str, ASM::INTEGRATION_BASIS));
     REQUIRE(str.str() == Patch::square);
+  }
+
+  static void EvalSecondary()
+  {
+    // A quadratic patch with several elements
+    Patch pch;
+    REQUIRE(pch.raiseOrder(1,1));
+    REQUIRE(pch.uniformRefine(0,2));
+    REQUIRE(pch.uniformRefine(1,1));
+    ASMbase::resetNumbering();
+    REQUIRE(pch.generateFEMTopology());
+
+    Vector field(pch.getNoNodes());
+    for (size_t i = 1; i <= field.size(); i++)
+      field(i) = std::sin(0.3 + 1.1*i);
+    FieldValueIntegrand integrand(2,field);
+
+    // The element of each point is given to the integrand
+    RealArray gpar[2] = {{0.1, 0.5, 0.74, 0.95}, {0.3, 0.2, 0.9, 0.55}};
+    Matrix sField;
+    REQUIRE(pch.evalSolution(sField,integrand,gpar,false));
+    REQUIRE(sField.cols() == gpar[0].size());
+    for (size_t i = 0; i < gpar[0].size(); i++)
+    {
+      double u[2] = {gpar[0][i], gpar[1][i]};
+      INFO("point " << i);
+      CHECK(sField(2,1+i) == pch.findElementContaining(u));
+    }
+
+    // The projected solution reproduces the solution at the visualization
+    // points, as it is in the spline space
+    const int npe[3] = { 3, 3, 3 };
+    Matrix direct, projected;
+    REQUIRE(pch.evalSolution(direct,integrand,npe,'\0'));
+    REQUIRE(pch.evalSolution(projected,integrand,npe,'D'));
+    REQUIRE(projected.cols() == direct.cols());
+    for (size_t i = 1; i <= direct.cols(); i++)
+    {
+      INFO("point " << i);
+      CHECK_THAT(projected(1,i), WithinAbs(direct(1,i), 1e-12));
+    }
   }
 };

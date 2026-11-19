@@ -17,7 +17,9 @@
 #include "GlobalIntegral.h"
 #include "LaplacianIntegrand.h"
 #include "TimeDomain.h"
+
 #include "Test/ASM2DTests.h"
+#include "Test/FieldValueIntegrand.h"
 #include "Test/IntegrationPointCounter.h"
 
 #include "Catch2Support.h"
@@ -159,6 +161,12 @@ TEST_CASE("TestASMu2D.SecondDerivatives")
   for (size_t i = 1; i <= sder.rows(); i++)
     for (size_t j = 1; j <= sder.cols(); j++)
       CHECK_THAT(uder(i,j), WithinAbs(sder(i,j), 1e-10));
+}
+
+
+TEST_CASE("TestASMu2D.EvalSecondary")
+{
+  ASM2DTests<ASMuSquare>::EvalSecondary();
 }
 
 
