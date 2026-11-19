@@ -176,6 +176,9 @@ public:
   //! \brief Sets the active patch.
   bool initPatch(size_t pIdx) override { return this->setPatch(pIdx); }
 
+  //! \brief Returns whether the function is time-independent or not.
+  bool isConstant() const override { return !hasMultipleLevels; }
+
   //! \brief Evaluates first derivatives of the function.
   Vec3 gradient(const Vec3& X) const override;
 
@@ -298,6 +301,9 @@ public:
   //! \brief Sets the active patch.
   bool initPatch(size_t pIdx) override { return this->setPatch(pIdx); }
 
+  //! \brief Returns whether the function is time-independent or not.
+  bool isConstant() const override { return !hasMultipleLevels; }
+
 protected:
   //! \brief Evaluates the vectorial field function.
   Vec3 evaluate(const Vec3& X) const override;
@@ -332,6 +338,9 @@ public:
 
   //! \brief Sets the active patch.
   virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return !hasMultipleLevels; }
 
 protected:
   //! \brief Evaluates the tensorial field function.
@@ -369,6 +378,9 @@ public:
   //! \brief Sets the active patch.
   virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
 
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return !hasMultipleLevels; }
+
 protected:
   //! \brief Evaluates the vectorial field function.
   virtual Vec3 evaluate(const Vec3& X) const;
@@ -396,6 +408,9 @@ public:
 
   //! \brief Sets the active patch.
   virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return !hasMultipleLevels; }
 
 protected:
   //! \brief Evaluates the vectorial field function.
@@ -425,6 +440,9 @@ public:
   //! \brief Sets the active patch.
   virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
 
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return !hasMultipleLevels; }
+
 protected:
   //! \brief Evaluates the tensorial field function.
   virtual Tensor evaluate(const Vec3& X) const;
@@ -453,6 +471,9 @@ public:
   //! \brief Sets the active patch.
   virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
 
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return !hasMultipleLevels; }
+
 protected:
   //! \brief Evaluates the tensorial field function.
   virtual Tensor evaluate(const Vec3& X) const;
@@ -480,6 +501,9 @@ public:
 
   //! \brief Sets the active patch.
   virtual bool initPatch(size_t pIdx) { return this->setPatch(pIdx); }
+
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return !hasMultipleLevels; }
 
 protected:
   //! \brief Evaluates the tensorial field function.

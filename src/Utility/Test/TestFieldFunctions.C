@@ -423,3 +423,23 @@ TEST_CASE("TestFieldFunctions.3D2P")
     REQUIRE_THAT(sten(3,3), WithinAbs(0.0, 1e-14));
   }
 }
+
+
+TEST_CASE("TestFieldFunctions.TimeDependence")
+{
+  // The time level follows the time, unless it is fixed
+  const std::string file = "src/Utility/Test/refdata/Field2D-1P";
+  for (int level : {0, FieldFuncBase::FIXED_LEVEL}) {
+    const bool fixed = level != 0;
+    CHECK(FieldFunction(file, "Stokes-2", "p", level).isConstant() == fixed);
+    CHECK(ScalarGradFieldFunction(file, "Stokes-2", "p", level).isConstant() == fixed);
+    CHECK(ScalarLaplacianFieldFunction(file, "Stokes-2", "p", level).isConstant() == fixed);
+    CHECK(VecFieldFunction(file, "Stokes-1", "u", level).isConstant() == fixed);
+    CHECK(VecGradFieldFunction(file, "Stokes-1", "u", level).isConstant() == fixed);
+    CHECK(VecLaplacianFieldFunction(file, "Stokes-1", "u", level).isConstant() == fixed);
+    CHECK(TensorFieldFunction(file, "Stokes-1", "u_x,x|u_x,y|u_y,x|u_y,y",
+                              level).isConstant() == fixed);
+    CHECK(STensorFieldFunction(file, "Stokes-1", "u_x,x|u_y,y|u_x,y",
+                               level).isConstant() == fixed);
+  }
+}
