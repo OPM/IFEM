@@ -40,7 +40,8 @@ public:
   SIMoptions();
 
   //! \brief Defines the linear equation solver to be used.
-  void setLinearSolver(const std::string& eqsolver);
+  //! \return \e false if \a eqsolver names no solver that is available
+  bool setLinearSolver(const std::string& eqsolver);
 
   //! \brief Parses a subelement of the \a console XML-tag.
   bool parseConsoleTag(const tinyxml2::XMLElement* elem);
