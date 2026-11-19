@@ -21,6 +21,8 @@ template<class Base>
 class ASMuTrap : public ASMTrap<Base>
 {
 public:
+  using ASMTrap<Base>::ASMTrap;
+
   std::tuple<double, std::vector<Vec3>, RealArray>
   getElementCorners(int iel) const
   {

@@ -36,6 +36,9 @@
 #include <fstream>
 #include <sstream>
 #include <numeric>
+#include <array>
+#include <map>
+#include <memory>
 
 
 SIMinput::SIMinput (IntegrandBase* itg) : SIMbase(itg)
@@ -2093,12 +2096,60 @@ bool SIMinput::setInitialCondition (SIMdependency* fieldHolder,
 }
 
 
+namespace
+{
+  /*!
+    \brief The vector function of the components of an initial condition.
+  */
+
+  class ComponentFunc : public VecFunc
+  {
+  public:
+    //! \brief The constructor sets the number of components.
+    explicit ComponentFunc(size_t n) : VecFunc(n), comps(n) {}
+
+    //! \brief Defines a component, zero where none is given.
+    void setComponent(size_t c, RealFunc* f) { comps[c].reset(f); }
+
+  protected:
+    //! \brief Evaluates the components at a point.
+    Vec3 evaluate(const Vec3& X) const override
+    {
+      Vec3 result;
+      for (size_t c = 0; c < comps.size() && c < 3; c++)
+        if (comps[c])
+          result[c] = (*comps[c])(X);
+      return result;
+    }
+
+  private:
+    std::vector<std::unique_ptr<RealFunc>> comps; //!< The components
+  };
+}
+
+
 bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
 {
   if (!fieldHolder)
     fieldHolder = this;
 
+  // The components of a velocity of mapped bases
+  const size_t nsd = this->getNoSpaceDim();
+  const int mapping = myProblem ? myProblem->getIntegrandType() &
+                                  Integrand::PIOLA_MAPPING : 0;
+  auto&& mappedComp = [this,nsd,mapping](const ICInfo& ic) -> int
+  {
+    const int c = ic.basis + std::max(static_cast<int>(ic.component),1) - 1;
+    if (!mapping || ic.basis < 1 || c > static_cast<int>(nsd))
+      return 0;
+    for (const ASMbase* pch : myModel)
+      if (pch->dofsFollowParametrization(ic.basis))
+        return c;
+    return 0;
+  };
+
   bool result = true;
+  std::map<std::string,std::vector<const ICInfo*>> mapped;
   for (const std::pair<const std::string,InitialCondVec>& it : myICs)
     if (it.first != "nofile")
       result &= this->setInitialCondition(fieldHolder,it.first,it.second);
@@ -2107,6 +2158,14 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
       // Do we have this field?
       RealArray* field = fieldHolder->getField(ic.sim_field);
       if (!field) continue;
+
+      if (int c = mappedComp(ic); c > 0)
+      {
+        std::vector<const ICInfo*>& comps = mapped[ic.sim_field];
+        comps.resize(nsd,nullptr);
+        comps[c-1] = &ic;
+        continue;
+      }
 
       IFEM::cout <<"\nLoading initial condition for \""<< ic.sim_field
                  <<"\" component "<< (int)ic.component
@@ -2117,6 +2176,51 @@ bool SIMinput::setInitialConditions (SIMdependency* fieldHolder)
                               this->getNoFields(ic.basis));
       delete fn;
     }
+
+  for (const std::pair<const std::string,std::vector<const ICInfo*>>& it : mapped)
+  {
+    RealArray* field = fieldHolder->getField(it.first);
+    ComponentFunc fn(nsd);
+    for (size_t c = 0; c < nsd; c++)
+      if (const ICInfo* ic = it.second[c]; ic)
+      {
+        IFEM::cout <<"\nLoading initial condition for \""<< it.first
+                   <<"\" mapped component "<< c+1
+                   <<"\nfrom "<< ic->file_field <<" function";
+        fn.setComponent(c,utl::parseRealFunc(ic->function,ic->file_field));
+        IFEM::cout << std::endl;
+      }
+      else
+        IFEM::cout <<"\nNo initial condition for \""<< it.first
+                   <<"\" mapped component "<< c+1 <<", it is zero"<< std::endl;
+
+    for (ASMbase* pch : myModel)
+    {
+      if (pch->empty())
+        continue;
+
+      Vector coefs;
+      if (!pch->L2projectionPiola(coefs,fn,mapping))
+      {
+        std::cerr <<" *** SIMinput::setInitialConditions: Failed to project"
+                  <<" the initial condition of \""<< it.first
+                  <<"\" onto the mapped bases of patch "<< pch->idx+1
+                  <<"."<< std::endl;
+        result = false;
+        continue;
+      }
+
+      // The coefficients of each mapped basis
+      size_t ofs = 0;
+      for (size_t b = 1; b <= nsd; b++)
+      {
+        const size_t n = pch->getNoNodes(b);
+        RealArray bcoefs(coefs.begin()+ofs, coefs.begin()+ofs+n);
+        result &= pch->injectNodeVec(bcoefs,*field,1,b);
+        ofs += n;
+      }
+    }
+  }
 
   return result;
 }
