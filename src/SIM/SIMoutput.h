@@ -90,7 +90,10 @@ public:
   //! \brief Writes boundary conditions as scalar fields to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier
-  bool writeGlvBC(int& nBlock, int iStep = 1) const;
+  //! \param[in] bcName Names of the constrained degrees of freedom,
+  //! the default names for those not given
+  bool writeGlvBC(int& nBlock, int iStep = 1,
+                  const std::vector<std::string>& bcName = {}) const;
 
   //! \brief Writes global node numbers as scalar fields to the VTF-file.
   //! \param nBlock Running result block counter
