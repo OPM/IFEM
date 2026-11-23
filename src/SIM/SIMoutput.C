@@ -812,7 +812,8 @@ int SIMoutput::writeGlvG (int& nBlock, double time, bool append)
 }
 
 
-bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
+bool SIMoutput::writeGlvBC (int& nBlock, int iStep,
+                            const std::vector<std::string>& bcName) const
 {
   if (!myVtf)
     return true;
@@ -912,9 +913,10 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
     "fix_X", "fix_Y", "fix_Z", "fix_RX", "fix_RY", "fix_RZ"
   };
 
-  for (int j = 0; j < 6; j++)
+  for (size_t j = 0; j < 6; j++)
     if (!dID[j].empty())
-      if (!myVtf->writeSblk(dID[j],label[j],1+j,iStep))
+      if (!myVtf->writeSblk(dID[j], j < bcName.size() ? bcName[j].c_str()
+                                                      : label[j], 1+j, iStep))
         return false;
 
   return true;
