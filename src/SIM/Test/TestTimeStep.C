@@ -234,6 +234,61 @@ TEST_CASE("TestTimeStep.SuggestCutback")
 }
 
 
+TEST_CASE("TestTimeStep.TargetIterations")
+{
+  // The next step size is suggested from the most iterations reported in a
+  // step, as the current one scaled by the target over them
+  TimeStep tp;
+  parse(tp,"<timestepping start=\"0\" end=\"1.0\" dt=\"0.1\""
+           " target_iterations=\"3\" maxCutbacks=\"3\"/>");
+  REQUIRE(tp.increment());
+  tp.reportIterations(2);
+  tp.reportIterations(6);
+  REQUIRE(tp.increment());
+  REQUIRE_THAT(tp.time.dt, WithinRel(0.05));
+
+  // Iterations around those of the solvers override them
+  tp.reportIterations(6);
+  tp.setIterations(2);
+  REQUIRE(tp.increment());
+  REQUIRE_THAT(tp.time.dt, WithinRel(0.075));
+
+  // Nothing is suggested without reported iterations, nor from those of a
+  // step which is cut back
+  REQUIRE(tp.increment());
+  REQUIRE_THAT(tp.time.dt, WithinRel(0.075));
+  tp.reportIterations(1);
+  REQUIRE(tp.cutback());
+  const double dt = tp.time.dt;
+  REQUIRE(tp.increment());
+  REQUIRE(tp.time.dt <= dt*1.5);
+
+  // A step trimmed to end a time step definition suggests from its size
+  // before the trimming, so the next definition starts at its own size
+  TimeStep trim;
+  parse(trim,"<timestepping target_iterations=\"2\">"
+             "  <step start=\"0\" end=\"0.25\">0.1</step>"
+             "  <step start=\"0.25\" end=\"1\">0.2</step>"
+             "</timestepping>");
+  check(advance(trim,2),{0.1,0.2});
+  trim.reportIterations(2);
+  REQUIRE(trim.increment());
+  REQUIRE_THAT(trim.time.dt, WithinRel(0.05));
+  trim.reportIterations(1);
+  REQUIRE(trim.increment());
+  REQUIRE_THAT(trim.time.t, WithinRel(0.45));
+  REQUIRE_THAT(trim.time.dt, WithinRel(0.2));
+
+  // Without a target, the reported iterations are not used
+  TimeStep plain;
+  parse(plain,"<timestepping start=\"0\" end=\"1.0\" dt=\"0.1\"/>");
+  REQUIRE(plain.increment());
+  plain.reportIterations(1);
+  REQUIRE(plain.increment());
+  REQUIRE_THAT(plain.time.dt, WithinRel(0.1));
+}
+
+
 TEST_CASE("TestTimeStep.Copy")
 {
   TimeStep tp;
@@ -276,6 +331,24 @@ TEST_CASE("TestTimeStep.Serialize")
   REQUIRE(replayed.deSerialize(data));
   REQUIRE(replayed.step == 3);
   REQUIRE_THAT(replayed.time.t, WithinRel(0.6));
+}
+
+
+TEST_CASE("TestTimeStep.SerializeTargetIterations")
+{
+  // The iterations reported in the step, and the suggestion from them
+  const char* target = "<timestepping start=\"0\" end=\"1.0\" dt=\"0.1\""
+                       " target_iterations=\"3\"/>";
+  TimeStep tp;
+  parse(tp,target);
+  REQUIRE(tp.increment());
+  tp.reportIterations(6);
+  std::map<std::string,std::string> data;
+  REQUIRE(tp.serialize(data));
+  TimeStep restarted;
+  parse(restarted,target);
+  REQUIRE(restarted.deSerialize(data));
+  check(advance(restarted,3),advance(tp,3));
 }
 
 

@@ -64,6 +64,10 @@ public:
   bool hasCutback() const { return maxCut > 0; }
   //! \brief Suggests a size of the next time increment.
   void suggestNextStep(double dt);
+  //! \brief Reports the number of iterations of a solver in current step.
+  void reportIterations(int n) { stepIts = std::max(stepIts,n); }
+  //! \brief Sets the number of iterations of current step.
+  void setIterations(int n) { stepIts = n; }
   //! \brief Returns \e true if the end of the simulation has been reached.
   bool finished() const;
 
@@ -91,6 +95,8 @@ private:
   int maxStep;   //!< Maximum number of time steps
   int maxCut;    //!< Maximum number of cut-backs of a time step
   int nCut;      //!< Number of cut-backs of current time step
+  int targetIts; //!< Target number of iterations of a time step (0: none)
+  int stepIts;   //!< Number of iterations of current time step, as reported
 
   double dtMin;  //!< Minimum time increment size
   double dtMax;  //!< Maximun time increment size
@@ -100,6 +106,7 @@ private:
   double dtSched; //!< Scheduled size of current time increment
   double dtCut;   //!< Step size limit after a cut-back (0.0: no limit)
   double dtHint;  //!< Suggested size of the next increment (0.0: none)
+  double dtFull;  //!< Size of current increment before trimming it to an end
   bool   limited; //!< If \e true, current increment is smaller than scheduled
 
   //! \brief A sequence of values stored as runs of equal values.

@@ -277,6 +277,7 @@ SIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
 
         model.dumpSolVec(solution.front());
         param.time.first = false;
+        param.reportIterations(param.iter);
         return SIM::CONVERGED;
 
       case SIM::DIVERGED:

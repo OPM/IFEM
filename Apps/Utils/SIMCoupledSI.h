@@ -134,6 +134,7 @@ public:
     this->S1.postSolve(tp);
     this->S2.postSolve(tp);
     tp.time.first = false;
+    tp.setIterations(tp.iter);
 
     return true;
   }
