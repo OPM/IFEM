@@ -19,6 +19,7 @@
 
 #include "Catch2Support.h"
 
+#include <array>
 #include <sstream>
 
 
@@ -151,13 +152,80 @@ public:
       REQUIRE(pch.uniformRefine(2, 2));
       REQUIRE(pch.generateFEMTopology());
 
-      pch.constrainFace(param.dir, false, 1, 1, 1);
+      pch.constrainFace(param.dir, ASM::CLOSED, 1, 1, 1);
 
       std::vector<int> glbNodes;
       pch.getBoundaryNodes(param.face, glbNodes, 1, 1, false, false);
 
       for (int node : glbNodes)
         REQUIRE(pch.findMPC(node,1) != nullptr);
+    }
+  }
+
+  static void ConstrainEdge()
+  {
+    struct EdgeTest
+    {
+      int edge;
+      std::array<int,3> start;
+      std::array<int,3> end;
+    };
+    // The ends of each edge in its own parameter direction: the first four
+    // run along I, the next four along J and the last four along K
+    const EdgeTest param = GENERATE(
+      EdgeTest{ 1, {{-1,-1,-1}}, {{ 1,-1,-1}}},
+      EdgeTest{ 2, {{-1, 1,-1}}, {{ 1, 1,-1}}},
+      EdgeTest{ 3, {{-1,-1, 1}}, {{ 1,-1, 1}}},
+      EdgeTest{ 4, {{-1, 1, 1}}, {{ 1, 1, 1}}},
+      EdgeTest{ 5, {{-1,-1,-1}}, {{-1, 1,-1}}},
+      EdgeTest{ 6, {{ 1,-1,-1}}, {{ 1, 1,-1}}},
+      EdgeTest{ 7, {{-1,-1, 1}}, {{-1, 1, 1}}},
+      EdgeTest{ 8, {{ 1,-1, 1}}, {{ 1, 1, 1}}},
+      EdgeTest{ 9, {{-1,-1,-1}}, {{-1,-1, 1}}},
+      EdgeTest{10, {{ 1,-1,-1}}, {{ 1,-1, 1}}},
+      EdgeTest{11, {{-1, 1,-1}}, {{-1, 1, 1}}},
+      EdgeTest{12, {{ 1, 1,-1}}, {{ 1, 1, 1}}}
+    );
+    const ASM::Closure closure = GENERATE(ASM::CLOSED, ASM::OPEN,
+                                          ASM::OPEN_START, ASM::OPEN_END);
+
+    const char* name = closure == ASM::CLOSED ? " closed" :
+                       closure == ASM::OPEN ? " open" :
+                       closure == ASM::OPEN_START ? " start" : " end";
+
+    MPCLess::compareSlaveDofOnly = true;
+
+    SECTION("Edge" + std::to_string(param.edge) + name)
+    {
+      ASMbase::resetNumbering();
+      Patch pch;
+      REQUIRE(pch.uniformRefine(0, 2));
+      REQUIRE(pch.uniformRefine(1, 2));
+      REQUIRE(pch.uniformRefine(2, 2));
+      REQUIRE(pch.generateFEMTopology());
+
+      pch.constrainEdge(param.edge, closure, 1, 1, 1);
+
+      std::vector<int> glbNodes;
+      pch.getBoundary1Nodes(param.edge, glbNodes, 1, 0, false, false);
+      REQUIRE(glbNodes.size() > 2);
+
+      const int first = pch.getCorner(param.start[0], param.start[1],
+                                      param.start[2], 1);
+      const int last = pch.getCorner(param.end[0], param.end[1],
+                                     param.end[2], 1);
+      REQUIRE(glbNodes.front() == first);
+      REQUIRE(glbNodes.back() == last);
+
+      for (int node : glbNodes)
+      {
+        const bool given = (node == first && (closure & ASM::OPEN_START)) ||
+                           (node == last && (closure & ASM::OPEN_END));
+        if (given)
+          REQUIRE(pch.findMPC(node,1) == nullptr);
+        else
+          REQUIRE(pch.findMPC(node,1) != nullptr);
+      }
     }
   }
 

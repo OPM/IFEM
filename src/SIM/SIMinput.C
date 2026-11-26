@@ -398,8 +398,59 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
           idim = 6;
         else
           utl::getAttribute(set,"dimension",idim);
+        short int closure = ASM::CLOSED;
         if (idim > 0 && idim < 4 && utl::getAttribute(set,"closure",type,true))
-          if (type == "open") idim = -idim; // i.e., excluding its boundary
+        {
+          // A closure gives up a side of the item it is on, so that a
+          // condition on the item next to it can have what they share. The
+          // item is named a parameter direction at a time, in the order of
+          // its own directions, and one word covers all of them. Start and
+          // end are the ends of the direction itself, which for two items
+          // that meet is in general not the same side in space.
+          std::istringstream words(type);
+          std::vector<short int> sides;
+          for (std::string word; words >> word;)
+            if (word == "closed")
+              sides.push_back(ASM::CLOSED);
+            else if (word == "open")
+              sides.push_back(ASM::OPEN);
+            else if (word == "start")
+              sides.push_back(ASM::OPEN_START);
+            else if (word == "end")
+              sides.push_back(ASM::OPEN_END);
+            else
+            {
+              std::cerr <<" *** SIMinput::parse: \""<< word <<"\" is not a"
+                        <<" closure. The ones there are:"
+                        <<" closed open start end"<< std::endl;
+              return false;
+            }
+
+          // The whole of a patch is bounded by items of a lower dimension
+          // rather than by sides of its own, so it has none to give up. In
+          // one dimension that leaves nothing for a closure to be on.
+          if (idim == static_cast<int>(this->getNoParamDim()))
+          {
+            std::cerr <<" *** SIMinput::parse: A closure gives up a side of"
+                      <<" a boundary item,\n     and the whole of a patch"
+                      <<" has none."<< std::endl;
+            return false;
+          }
+
+          if (sides.size() != 1 && sides.size() != static_cast<size_t>(idim))
+          {
+            std::cerr <<" *** SIMinput::parse: A closure names one side of"
+                      <<" the item per\n     parameter direction it has, "
+                      << idim <<" of them here, or one for all."<< std::endl;
+            return false;
+          }
+
+          for (int d = 0; d < idim; d++)
+            closure |= sides[sides.size() == 1 ? 0 : d] << 2*d;
+
+          if (closure == ASM::wholeBoundary(idim))
+            idim = -idim; // as it has always been written, for the whole item
+        }
 
         TopEntity& top = myEntitys[name];
         const tinyxml2::XMLElement* item = set->FirstChildElement("item");
@@ -451,7 +502,7 @@ bool SIMinput::parseGeometryTag (const tinyxml2::XMLElement* elem)
                 IntVec items;
                 utl::parseIntegers(items,child->Value());
                 for (int item : items)
-                  top.emplace(pid,item,idim);
+                  top.emplace(pid,item,idim,closure);
               }
             }
         }
@@ -1580,7 +1631,8 @@ bool SIMinput::createPropertySet (const std::string& setName, int pc)
 
   // Create the actual property objects that are used during simulation
   for (const TopItem& top : tit->second)
-    myProps.emplace_back(Property::UNDEFINED,pc,top.patch,top.idim,top.item);
+    myProps.emplace_back(Property::UNDEFINED,pc,top.patch,
+                         top.idim,top.item,0,top.closure);
 
   return true;
 }

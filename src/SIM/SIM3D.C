@@ -595,7 +595,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 
 
 bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-                           int& ngnod, char basis, bool ovrD)
+                           int& ngnod, char basis, bool ovrD, char closure)
 {
   // Lambda function for error message generation
   auto&& error = [](const char* message, int idx, bool coutNL = false)
@@ -613,10 +613,18 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (this->SIMbase::addConstraint(patch,lndx,aldim,dirs,code,ngnod,basis,ovrD))
     return true;
 
-  bool open = ldim < 0; // open means without face edges or edge ends
   bool project = lndx < -10;
   if (project) lndx += 10;
   if (lndx < 0 && aldim > 3) aldim = 2; // local tangent direction is indicated
+
+  // A negative dimension is how an item without any of its boundary has
+  // always been written; a closure which names a side says which. The
+  // dimension has to be the one of the item by here, a local tangent
+  // direction being encoded into it rather than a count of anything.
+  if (ldim < 0 && closure == ASM::CLOSED)
+    closure = ASM::wholeBoundary(aldim);
+
+  const ASM::Closure clos = static_cast<ASM::Closure>(closure);
 
   // Must dynamic cast here, since ASM3D is not derived from ASMbase
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
@@ -641,7 +649,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
     case 1: // Edge constraints
       if (lndx > 0 && lndx <= 12)
-        pch->constrainEdge(lndx,open,dirs,code,basis);
+        pch->constrainEdge(lndx,clos,dirs,code,basis);
       else
         return error("edge index",lndx,true);
       break;
@@ -649,29 +657,29 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     case 2: // Face constraints
       switch (lndx)
         {
-        case  1: pch->constrainFace(-1,open,dirs,code,basis); break;
-        case  2: pch->constrainFace( 1,open,dirs,code,basis); break;
-        case  3: pch->constrainFace(-2,open,dirs,code,basis); break;
-        case  4: pch->constrainFace( 2,open,dirs,code,basis); break;
-        case  5: pch->constrainFace(-3,open,dirs,code,basis); break;
-        case  6: pch->constrainFace( 3,open,dirs,code,basis); break;
+        case  1: pch->constrainFace(-1,clos,dirs,code,basis); break;
+        case  2: pch->constrainFace( 1,clos,dirs,code,basis); break;
+        case  3: pch->constrainFace(-2,clos,dirs,code,basis); break;
+        case  4: pch->constrainFace( 2,clos,dirs,code,basis); break;
+        case  5: pch->constrainFace(-3,clos,dirs,code,basis); break;
+        case  6: pch->constrainFace( 3,clos,dirs,code,basis); break;
         case -1:
-          ngnod += pch->constrainFaceLocal(-1,open,dirs,code,project,ldim);
+          ngnod += pch->constrainFaceLocal(-1,clos,dirs,code,project,ldim);
           break;
         case -2:
-          ngnod += pch->constrainFaceLocal( 1,open,dirs,code,project,ldim);
+          ngnod += pch->constrainFaceLocal( 1,clos,dirs,code,project,ldim);
           break;
         case -3:
-          ngnod += pch->constrainFaceLocal(-2,open,dirs,code,project,ldim);
+          ngnod += pch->constrainFaceLocal(-2,clos,dirs,code,project,ldim);
           break;
         case -4:
-          ngnod += pch->constrainFaceLocal( 2,open,dirs,code,project,ldim);
+          ngnod += pch->constrainFaceLocal( 2,clos,dirs,code,project,ldim);
           break;
         case -5:
-          ngnod += pch->constrainFaceLocal(-3,open,dirs,code,project,ldim);
+          ngnod += pch->constrainFaceLocal(-3,clos,dirs,code,project,ldim);
           break;
         case -6:
-          ngnod += pch->constrainFaceLocal( 3,open,dirs,code,project,ldim);
+          ngnod += pch->constrainFaceLocal( 3,clos,dirs,code,project,ldim);
           break;
         default:
           return error("face index",lndx,true);

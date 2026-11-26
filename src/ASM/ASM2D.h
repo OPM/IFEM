@@ -83,21 +83,21 @@ public:
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
-  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] closure Which end points the condition leaves out
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Which basis to constrain edge for
-  virtual void constrainEdge(int dir, bool open, int dof, int code = 0,
+  virtual void constrainEdge(int dir, ASM::Closure closure, int dof, int code = 0,
                              char basis = 1) = 0;
   //! \brief Constrains all DOFs in local directions on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
-  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] closure Which end points the condition leaves out
   //! \param[in] dof Which local DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
-  virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code = 0,
-                                    bool project = false) = 0;
+  virtual size_t constrainEdgeLocal(int dir, ASM::Closure closure, int dof,
+                                    int code = 0, bool project = false) = 0;
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction

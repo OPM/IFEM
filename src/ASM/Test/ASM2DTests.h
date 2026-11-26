@@ -88,7 +88,7 @@ public:
       REQUIRE(pch.uniformRefine(1, 2));
       REQUIRE(pch.generateFEMTopology());
 
-      pch.constrainEdge(param.edgeIdx, false, 1, 1, 1);
+      pch.constrainEdge(param.edgeIdx, ASM::CLOSED, 1, 1, 1);
 
       std::vector<int> glbNodes;
       pch.getBoundaryNodes(param.edge, glbNodes, 1);
@@ -116,7 +116,7 @@ public:
       REQUIRE(pch.uniformRefine(0, 2));
       REQUIRE(pch.uniformRefine(1, 2));
       REQUIRE(pch.generateFEMTopology());
-      pch.constrainEdge(param.edgeIdx, true, 1, 1, 1);
+      pch.constrainEdge(param.edgeIdx, ASM::OPEN, 1, 1, 1);
 
       std::vector<int> glbNodes;
       pch.getBoundaryNodes(param.edge, glbNodes, 1);
@@ -127,6 +127,45 @@ public:
       crn = pch.getCorner(param.c2[0], param.c2[1], 1);
       REQUIRE(pch.findMPC(crn,1) == nullptr);
       glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));
+
+      for (int node : glbNodes)
+        REQUIRE(pch.findMPC(node,1) != nullptr);
+    }
+  }
+
+  static void ConstrainEdgeHalfOpen()
+  {
+    const EdgeTest param = GENERATE(
+      EdgeTest{1, -1, {{-1, -1}}, {{-1 , 1}}},
+      EdgeTest{2,  1, {{ 1, -1}}, {{ 1 , 1}}},
+      EdgeTest{3, -2, {{-1, -1}}, {{ 1, -1}}},
+      EdgeTest{4,  2, {{-1,  1}}, {{ 1,  1}}}
+    );
+    const ASM::Closure closure = GENERATE(ASM::OPEN_START, ASM::OPEN_END);
+
+    MPCLess::compareSlaveDofOnly = true;
+
+    SECTION("Edge" + std::to_string(param.edge) +
+            (closure == ASM::OPEN_START ? " start" : " end"))
+    {
+      ASMbase::resetNumbering();
+      Patch pch;
+      REQUIRE(pch.uniformRefine(0, 2));
+      REQUIRE(pch.uniformRefine(1, 2));
+      REQUIRE(pch.generateFEMTopology());
+      pch.constrainEdge(param.edgeIdx, closure, 1, 1, 1);
+
+      std::vector<int> glbNodes;
+      pch.getBoundaryNodes(param.edge, glbNodes, 1);
+
+      // The end the closure names is left out and the other one is not,
+      // which is the whole point of naming one rather than both
+      const auto& out = closure == ASM::OPEN_START ? param.c1 : param.c2;
+      const auto& kept = closure == ASM::OPEN_START ? param.c2 : param.c1;
+      int crn = pch.getCorner(out[0], out[1], 1);
+      REQUIRE(pch.findMPC(crn,1) == nullptr);
+      glbNodes.erase(std::find(glbNodes.begin(), glbNodes.end(), crn));
+      REQUIRE(pch.findMPC(pch.getCorner(kept[0], kept[1], 1),1) != nullptr);
 
       for (int node : glbNodes)
         REQUIRE(pch.findMPC(node,1) != nullptr);

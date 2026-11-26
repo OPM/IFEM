@@ -252,22 +252,23 @@ public:
 
   //! \brief Constrains all DOFs on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
-  //! \param[in] open If \e true, exclude all points along the face boundary
+  //! \param[in] closure Which of its boundary the face leaves out
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Which basis to constrain face for
-  virtual void constrainFace(int dir, bool open, int dof,
+  virtual void constrainFace(int dir, ASM::Closure closure, int dof,
                              int code = 0, char basis = 1);
   //! \brief Constrains all DOFs in local directions on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
-  //! \param[in] open If \e true, exclude all points along the face boundary
+  //! \param[in] closure Which of its boundary the face leaves out
   //! \param[in] dof Which local DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
   //! \param[in] T1 Desired global direction of first local tangent direction
   //! \return Number of additional nodes added due to local axis constraints
-  virtual size_t constrainFaceLocal(int dir, bool open, int dof, int code = 0,
-                                    bool project = false, char T1 = '\0');
+  virtual size_t constrainFaceLocal(int dir, ASM::Closure closure, int dof,
+                                    int code = 0, bool project = false,
+                                    char T1 = '\0');
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] lEdge Local index [1,12] of the edge to constrain
@@ -275,7 +276,7 @@ public:
   //! \param[in] dof Which DOFs to constrain at each node along the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Which basis to constrain edge for
-  virtual void constrainEdge(int lEdge, bool open, int dof,
+  virtual void constrainEdge(int lEdge, ASM::Closure closure, int dof,
                              int code = 0, char basis = 1);
 
   //! \brief Constrains all DOFs along a line on a given boundary face.

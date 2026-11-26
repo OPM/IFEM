@@ -621,8 +621,10 @@ protected:
   //! \param ngnod Total number of global nodes in the model (might be updated)
   //! \param[in] basis Which basis to apply the constraint to (mixed methods)
   //! \param[in] ovrD If \e true, override conflicting Dirichlet conditions
+  //! \param[in] closure Which end points the item leaves out
   virtual bool addConstraint(int patch, int lndx, int ldim, int dirs, int code,
-                             int& ngnod, char basis = 1, bool ovrD = false);
+                             int& ngnod, char basis = 1, bool ovrD = false,
+                             char closure = 0);
 
   //! \brief Preprocessing performed before the FEM model generation.
   //! \return \e false if the model asks for something that cannot be honoured

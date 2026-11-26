@@ -178,7 +178,8 @@ void ASMs2DC1::closeBoundaries (int dir, int, int)
 }
 
 
-void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
+void ASMs2DC1::constrainEdge (int dir, ASM::Closure closure, int dof,
+                              int code, char)
 {
   int n1, n2, node = 1;
   if (!this->getSize(n1,n2)) return;
@@ -190,8 +191,9 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
     case -1: // Left edge (negative I-direction)
       for (int i2 = 1; i2 <= n2; i2++, node += n1)
       {
-        if (open && (i2 == 1 || i2 == n2))
-          continue; // Skip the end points
+        if ((i2 == 1  && (closure & ASM::OPEN_START)) ||
+            (i2 == n2 && (closure & ASM::OPEN_END)))
+          continue; // Skip an end point the closure leaves out
 
         this->prescribe(node,dof%1000,code);
         if (dof < 1000) continue;
@@ -210,8 +212,9 @@ void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
     case -2: // Front edge (negative J-direction)
       for (int i1 = 1; i1 <= n1; i1++, node++)
       {
-        if (open && (i1 == 1 || i1 == n1))
-          continue; // Skip the end points
+        if ((i1 == 1  && (closure & ASM::OPEN_START)) ||
+            (i1 == n1 && (closure & ASM::OPEN_END)))
+          continue; // Skip an end point the closure leaves out
 
         this->prescribe(node,dof%1000,code);
         if (dof < 1000) continue;

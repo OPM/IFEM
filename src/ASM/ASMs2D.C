@@ -850,7 +850,8 @@ bool ASMs2D::collapseEdge (int edge, int basis)
   non-constant functions).
 */
 
-void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
+void ASMs2D::constrainEdge (int dir, ASM::Closure closure, int dof,
+                            int code, char basis)
 {
   if (basis < 1) basis = 1;
 
@@ -881,7 +882,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
     case  1: // Right edge (positive I-direction)
       node += n1-1;
     case -1: // Left edge (negative I-direction)
-      if (!open)
+      if (!(closure & ASM::OPEN_START))
       {
         this->prescribe(node,dof,bcode);
         if (piolaBC)
@@ -896,7 +897,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
         if (this->prescribe(node,dof,-code) == 0 && code > 0)
           dirich.back().nodes.emplace_back(i2,node);
       }
-      if (!open)
+      if (!(closure & ASM::OPEN_END))
       {
         this->prescribe(node,dof,bcode);
         if (piolaBC)
@@ -907,7 +908,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
     case  2: // Back edge (positive J-direction)
       node += n1*(n2-1);
     case -2: // Front edge (negative J-direction)
-      if (!open)
+      if (!(closure & ASM::OPEN_START))
       {
         this->prescribe(node,dof,bcode);
         if (piolaBC)
@@ -922,7 +923,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
         if (this->prescribe(node,dof,-code) == 0 && code > 0)
           dirich.back().nodes.emplace_back(i1,node);
       }
-      if (!open)
+      if (!(closure & ASM::OPEN_END))
       {
         this->prescribe(node,dof,bcode);
         if (piolaBC)
@@ -963,8 +964,8 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   non-constant functions).
 */
 
-size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
-				   bool project)
+size_t ASMs2D::constrainEdgeLocal (int dir, ASM::Closure closure, int dof,
+                                   int code, bool project)
 {
   if (shareFE == 'F')
   {
@@ -1072,8 +1073,9 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
   RealArray::const_iterator it = locc ? locc->coefs_begin() : gdata.begin();
   for (i = 0; i < gpar.size(); i++, iSnod += incNod, it += 6)
   {
-    // Skip the end points if this should be regarded an open boundary
-    if (open && (i == 0 || i+1 == gpar.size())) continue;
+    // Skip an end point the closure leaves out
+    if ((i == 0 && (closure & ASM::OPEN_START)) ||
+        (i+1 == gpar.size() && (closure & ASM::OPEN_END))) continue;
     // Check if this node already has been constrained or fixed
     if (this->isFixed(MLGN[iSnod],dof)) continue;
 

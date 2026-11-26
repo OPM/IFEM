@@ -264,20 +264,21 @@ public:
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
-  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] closure Which end points the condition leaves out
   //! \param[in] dof Which DOFs to constrain at each node along the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Which basis to constrain edge for
-  virtual void constrainEdge(int dir, bool open, int dof, int code, char basis);
+  virtual void constrainEdge(int dir, ASM::Closure closure, int dof, int code,
+                             char basis);
   //! \brief Constrains all DOFs in local directions on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
-  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] closure Which end points the condition leaves out
   //! \param[in] dof Which local DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
-  virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code,
-                                    bool project = false);
+  virtual size_t constrainEdgeLocal(int dir, ASM::Closure closure, int dof,
+                                    int code, bool project = false);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -498,12 +499,22 @@ protected:
     int                 code;      //!< Inhomogeneous Dirichlet condition code
     int                 basis;     //!< Basis the constrained DOF belongs to
     int                 corners[2];//!< Index of the two end-points of this line
+    ASM::Closure        closure;   //!< Which end points the condition gave up
 
     //! \brief The constructor detects the edge end points.
     DirichletEdge(LR::LRSplineSurface* sf, int dir, int d = 0, int c = 0,
-                  int offset = 1, int b = 1);
+                  int offset = 1, int b = 1,
+                  ASM::Closure cl = ASM::CLOSED);
     //! \brief Returns \e true if basis function \a b is at a corner point.
     bool isCorner(int b) const { return b == corners[0] || b == corners[1]; }
+    //! \brief Returns \e true if a corner is left out by a closure.
+    //! \param[in] b Basis function at the corner
+    //! \param[in] closure Which end points the condition leaves out
+    bool isOmitted(int b, ASM::Closure closure) const
+    {
+      return (b == corners[0] && (closure & ASM::OPEN_START)) ||
+             (b == corners[1] && (closure & ASM::OPEN_END));
+    }
   };
 
   //! \brief Projects the secondary solution field onto the primary basis.

@@ -47,6 +47,12 @@ TEST_CASE("TestASMu2D.ConstrainEdge")
 }
 
 
+TEST_CASE("TestASMu2D.ConstrainEdgeHalfOpen")
+{
+  ASM2DTests<ASMuSquare>::ConstrainEdgeHalfOpen();
+}
+
+
 TEST_CASE("TestASMu2D.ConstrainEdgeOpen")
 {
   ASM2DTests<ASMuSquare>::ConstrainEdgeOpen();

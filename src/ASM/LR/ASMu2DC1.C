@@ -32,10 +32,10 @@ bool ASMu2DC1::generateFEMTopology ()
 }
 
 
-void ASMu2DC1::constrainEdge (int dir, bool open, int dof, int code, char basis)
+void ASMu2DC1::constrainEdge (int dir, ASM::Closure closure, int dof, int code, char basis)
 {
   if (dof < 1000)
-    this->ASMu2D::constrainEdge(dir,open,dof,code,basis);
+    this->ASMu2D::constrainEdge(dir,closure,dof,code,basis);
   else if (basis > 1 || code != 0)
     std::cerr <<"  ** ASMu2DC1::constrainEdge: Not implemented for"
               <<" mixed basis and/or inhomogeneous Dirichlet conditions"
@@ -53,13 +53,13 @@ void ASMu2DC1::constrainEdge (int dir, bool open, int dof, int code, char basis)
 
     if (dof%1000) // Add constraints for all basis functions on the edge
       for (LR::Basisfunction* b : edgeFunc1)
-        if (!open || !de.isCorner(1+b->getId())) // skip ends for open boundary
+        if (!de.isOmitted(1+b->getId(),closure)) // unless left out
           this->prescribe(1+b->getId(),dof%1000,code);
 
     // Add constraints for the basis functions just inside the edge
     for (LR::Basisfunction* b : edgeFunc2)
       if (std::find(edgeFunc1.begin(),edgeFunc1.end(),b) == edgeFunc1.end())
-        if (!open || !de.isCorner(1+b->getId())) // skip ends for open boundary
+        if (!de.isOmitted(1+b->getId(),closure)) // unless left out
           this->prescribe(1+b->getId(),dof/1000,code);
   }
 }

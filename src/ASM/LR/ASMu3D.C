@@ -538,7 +538,8 @@ bool ASMu3D::DirichletFace::isCorner (int b) const
   non-constant functions).
 */
 
-void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
+void ASMu3D::constrainFace (int dir, ASM::Closure closure, int dof,
+                            int code, char basis)
 {
   if (basis < 1) basis = 1;
 
@@ -553,6 +554,15 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
   // Get all basis functions on this face
   std::vector<LR::Basisfunction*> faceFunctions;
   de.lr->getEdgeFunctions(faceFunctions,de.edg);
+
+  // An LR patch has no parameter directions to take a side along, so the
+  // boundary of a face is given up whole or not at all
+  if (closure != ASM::CLOSED && closure != ASM::wholeBoundary(2))
+    std::cout <<"  ** ASMu3D::constrainFace: A closure of part of the"
+              <<" boundary is not supported for LR B-splines. The whole of"
+              <<" it is given up."<< std::endl;
+
+  const bool open = closure != ASM::CLOSED;
 
   // Add constraints for all basis functions on the face
   for (LR::Basisfunction* b : faceFunctions)
@@ -593,8 +603,8 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char basis)
 }
 
 
-size_t ASMu3D::constrainFaceLocal (int dir, bool open, int dof, int code,
-                                   bool project, char T1)
+size_t ASMu3D::constrainFaceLocal (int dir, ASM::Closure closure, int dof,
+                                   int code, bool project, char T1)
 {
   return 0; // TODO...
 }
@@ -649,9 +659,10 @@ void ASMu3D::getBoundary1Nodes (int lEdge, IntVec& nodes,
 }
 
 
-void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char basis)
+void ASMu3D::constrainEdge (int lEdge, ASM::Closure closure, int dof,
+                            int code, char basis)
 {
-  if (open)
+  if (closure != ASM::CLOSED)
     std::cout <<"  ** ASMu3D::constrainEdge: Open boundary conditions are not"
               <<" supported for LR B-splines. Treated as closed."<< std::endl;
 

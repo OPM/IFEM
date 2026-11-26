@@ -369,7 +369,7 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
             myModel[p.patch-1]->addPiolaDirichlet(code);
           }
           if (this->addConstraint(p.patch,p.lindx,p.ldim,dofs,code,nGlbNodes,
-                                  pbasis,overrideDirichlet))
+                                  pbasis,overrideDirichlet,p.closure))
             IFEM::cout << std::endl;
           else
             ++ierr;
@@ -481,7 +481,7 @@ bool SIMbase::preprocessC (const IntVec& ignored, bool fixDup, double time0)
 */
 
 bool SIMbase::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-                             int& ngnod, char basis, bool ovrD)
+                             int& ngnod, char basis, bool ovrD, char)
 {
   if (patch < 1 || patch > static_cast<int>(myModel.size()))
   {

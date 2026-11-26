@@ -140,7 +140,7 @@ TEST_CASE("TestASMu3D.ConstrainFaceScalar")
   REQUIRE(pch.uniformRefine(1,1));
   REQUIRE(pch.uniformRefine(2,1));
   REQUIRE(pch.generateFEMTopology());
-  pch.constrainFace(-1,false,123,2);
+  pch.constrainFace(-1,ASM::CLOSED,123,2);
 
   LinearYFunc f(2.0,1.0);
   const std::map<int,RealFunc*> func{{2,&f}};

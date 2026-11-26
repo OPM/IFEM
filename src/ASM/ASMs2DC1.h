@@ -48,12 +48,12 @@ public:
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
-  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] closure Which end points the condition leaves out
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Basis to constrain
-  virtual void constrainEdge(int dir, bool open, int dof = 12, int code = 0,
-                             char basis = 1);
+  virtual void constrainEdge(int dir, ASM::Closure closure, int dof = 12,
+                             int code = 0, char basis = 1);
 
   using ASMs2D::constrainCorner;
   //! \brief Constrains a corner node identified by the two parameter indices.

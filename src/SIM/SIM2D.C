@@ -703,7 +703,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 
 
 bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-                           int& ngnod, char basis, bool ovrD)
+                           int& ngnod, char basis, bool ovrD, char closure)
 {
   // Lambda function for error message generation
   auto&& error = [](const char* message, int idx, bool coutNL = false)
@@ -718,10 +718,15 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     return error("patch index",patch);
 
   if (this->SIMbase::addConstraint(patch,lndx,abs(ldim),dirs,code,
-                                   ngnod,basis,ovrD))
+                                   ngnod,basis,ovrD,closure))
     return true;
 
-  bool open = ldim < 0; // open means without its end points
+  // A negative dimension is how an item without any of its boundary has
+  // always been written; a closure which names a side says which
+  if (ldim < 0 && closure == ASM::CLOSED)
+    closure = ASM::wholeBoundary(abs(ldim));
+
+  const ASM::Closure clos = static_cast<ASM::Closure>(closure);
   bool project = lndx < -10;
   if (project) lndx += 10;
 
@@ -745,21 +750,21 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     case 1: // Edge constraints
       switch (lndx)
 	{
-	case  1: pch->constrainEdge(-1,open,dirs,code,basis); break;
-	case  2: pch->constrainEdge( 1,open,dirs,code,basis); break;
-	case  3: pch->constrainEdge(-2,open,dirs,code,basis); break;
-	case  4: pch->constrainEdge( 2,open,dirs,code,basis); break;
+	case  1: pch->constrainEdge(-1,clos,dirs,code,basis); break;
+	case  2: pch->constrainEdge( 1,clos,dirs,code,basis); break;
+	case  3: pch->constrainEdge(-2,clos,dirs,code,basis); break;
+	case  4: pch->constrainEdge( 2,clos,dirs,code,basis); break;
 	case -1:
-	  ngnod += pch->constrainEdgeLocal(-1,open,dirs,code,project);
+	  ngnod += pch->constrainEdgeLocal(-1,clos,dirs,code,project);
 	  break;
 	case -2:
-	  ngnod += pch->constrainEdgeLocal( 1,open,dirs,code,project);
+	  ngnod += pch->constrainEdgeLocal( 1,clos,dirs,code,project);
 	  break;
 	case -3:
-	  ngnod += pch->constrainEdgeLocal(-2,open,dirs,code,project);
+	  ngnod += pch->constrainEdgeLocal(-2,clos,dirs,code,project);
 	  break;
 	case -4:
-	  ngnod += pch->constrainEdgeLocal( 2,open,dirs,code,project);
+	  ngnod += pch->constrainEdgeLocal( 2,clos,dirs,code,project);
 	  break;
 	default:
 	  return error("edge index",lndx,true);

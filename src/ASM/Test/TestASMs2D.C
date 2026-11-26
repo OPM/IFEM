@@ -91,6 +91,12 @@ TEST_CASE("TestASMs2D.ConstrainEdgeOpen")
 }
 
 
+TEST_CASE("TestASMs2D.ConstrainEdgeHalfOpen")
+{
+  ASM2DTests<ASMSquare>::ConstrainEdgeHalfOpen();
+}
+
+
 TEST_CASE("TestASMs2D.ElementConnectivities")
 {
   const auto ref = std::array{

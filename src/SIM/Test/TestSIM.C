@@ -10,12 +10,18 @@
 //!
 //==============================================================================
 
+#include "SAM.h"
+#include "SIM1D.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
 #include "ASMmxBase.h"
 #include "IntegrandBase.h"
 
 #include "Catch2Support.h"
+
+#include <array>
+#include <fstream>
+#include <memory>
 
 
 template<class Dim> class TestProjectSIM : public Dim
@@ -81,6 +87,153 @@ TEST_CASE("TestSIM2D.UniqueBoundaryNodes")
 
   std::sort(vec.begin(), vec.end());
   REQUIRE(std::unique(vec.begin(), vec.end()) == vec.end());
+}
+
+
+TEST_CASE("TestSIM2D.ClosureValues")
+{
+  // Which end points a condition gives up is stated by the closure. What it
+  // does with them is the constraint layer's business and is checked there;
+  // what matters here is that the three ways of saying it are understood and
+  // that anything else is refused rather than quietly taken for the whole.
+  auto model = [](const char* closure)
+  {
+    std::string xml = "<geometry><refine patch='1' u='3' v='3'/>"
+                      "<topologysets><set name='side' type='edge'";
+    if (closure) xml += std::string(" closure='") + closure + "'";
+    return xml + "><item patch='1'>1</item></set></topologysets></geometry>";
+  };
+
+  for (const char* closure : std::array<const char*,4>{nullptr,"open","start","end"})
+  {
+    INFO("closure " << (closure ? closure : "(none)"));
+    SIM2D sim(1);
+    REQUIRE(sim.loadXML(model(closure).c_str()));
+    REQUIRE(sim.createFEMmodel());
+  }
+
+  SIM2D bad(1);
+  REQUIRE_FALSE(bad.loadXML(model("sideways").c_str()));
+}
+
+
+TEST_CASE("TestSIM.ClosureNeedsAnItemWithEnds")
+{
+  // A closure gives up an end point of a boundary item. The whole of a
+  // patch is bounded by items rather than by two points, so it has none,
+  // and in one dimension that is every item a closure could be written on.
+  auto model = [](const char* type)
+  {
+    return std::string("<geometry><topologysets><set name='whole' type='") +
+           type + "' closure='open'><item patch='1'>1</item></set>"
+                  "</topologysets></geometry>";
+  };
+
+  SIM1D one(1);
+  REQUIRE_FALSE(one.loadXML(model("edge").c_str()));
+
+  SIM2D two(1);
+  REQUIRE_FALSE(two.loadXML(model("face").c_str()));
+
+  SIM3D three(1);
+  REQUIRE_FALSE(three.loadXML(model("volume").c_str()));
+
+  // The items which do have ends keep them
+  SIM2D edge(1);
+  REQUIRE(edge.loadXML(model("edge").c_str()));
+  SIM3D face(1);
+  REQUIRE(face.loadXML(model("face").c_str()));
+}
+
+
+TEST_CASE("TestSIM3D.ClosureOfAFace")
+{
+  // A face is named a parameter direction at a time, in the order of its
+  // own two, and one word covers both. Anything else is refused rather
+  // than taken for part of what was meant.
+  auto model = [](const char* closure)
+  {
+    return std::string("<geometry><topologysets>"
+                       "<set name='side' type='face' closure='") + closure +
+           "'><item patch='1'>1</item></set></topologysets></geometry>";
+  };
+
+  for (const char* closure : {"open", "closed end", "start end", "open open"})
+  {
+    INFO("closure " << closure);
+    SIM3D sim(1);
+    CHECK(sim.loadXML(model(closure).c_str()));
+  }
+
+  for (const char* closure : {"sideways", "open end start", "start sideways"})
+  {
+    INFO("closure " << closure);
+    SIM3D sim(1);
+    CHECK_FALSE(sim.loadXML(model(closure).c_str()));
+  }
+}
+
+
+TEST_CASE("TestSIM.ClosureFromAnInputFile")
+{
+  // What an input file asks for has to reach the patch: a closure is read
+  // from the topology set, carried on the property, and taken off the item
+  // when the condition is resolved. Each direction of this model has five
+  // nodes, so an edge of it has five and a face twenty-five, and what each
+  // closure leaves is counted.
+  struct Case
+  {
+    int dim;             //!< Number of parameter directions of the model
+    const char* type;    //!< Which kind of item the condition is on
+    const char* closure; //!< What it gives up, or none at all
+    size_t fixed;        //!< How many nodes are left constrained
+  };
+  const Case param = GENERATE(
+    Case{2, "edge", nullptr,      5},
+    Case{2, "edge", "start",      4},
+    Case{2, "edge", "end",        4},
+    Case{2, "edge", "open",       3},
+    Case{3, "edge", "start",      4},
+    Case{3, "edge", "open",       3},
+    Case{3, "face", nullptr,     25},
+    Case{3, "face", "open",       9},
+    Case{3, "face", "closed end", 20},
+    Case{3, "face", "start end",  16},
+    Case{3, "face", "end",        16}
+  );
+
+  SECTION(std::to_string(param.dim) + "D " + param.type + " " +
+          (param.closure ? param.closure : "closed"))
+  {
+    const std::string file = "/tmp/ifem_closure_test.xinp";
+    {
+      std::ofstream os(file);
+      os <<"<simulation><geometry>"
+         <<"<refine patch='1' u='3' v='3' w='3'/>"
+         <<"<topologysets><set name='side' type='"<< param.type <<"'";
+      if (param.closure) os <<" closure='"<< param.closure <<"'";
+      os <<"><item patch='1'>1</item></set></topologysets>"
+         <<"</geometry><boundaryconditions>"
+         <<"<dirichlet set='side' comp='1'/>"
+         <<"</boundaryconditions></simulation>"<< std::endl;
+    }
+
+    std::unique_ptr<SIMbase> sim;
+    if (param.dim == 2)
+      sim = std::make_unique<SIM2D>(1);
+    else
+      sim = std::make_unique<SIM3D>(1);
+
+    REQUIRE(sim->read(file.c_str()));
+    REQUIRE(sim->preprocess());
+
+    size_t fixed = 0;
+    for (int n = 1; n <= sim->getSAM()->getNoNodes(); n++)
+      if (sim->getSAM()->getEquation(n,1) == 0)
+        ++fixed;
+
+    CHECK(fixed == param.fixed);
+  }
 }
 
 

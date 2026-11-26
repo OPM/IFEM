@@ -48,11 +48,11 @@ public:
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
-  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] closure Which end points the condition leaves out
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Which basis to constrain edge for
-  virtual void constrainEdge(int dir, bool open, int dof, int code, char basis);
+  virtual void constrainEdge(int dir, ASM::Closure closure, int dof, int code, char basis);
 };
 
 #endif

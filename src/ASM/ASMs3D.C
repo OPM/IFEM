@@ -1043,6 +1043,19 @@ int ASMs3D::findStartNode (int& n1, int& n2, int& n3, char basis) const
 }
 
 
+bool ASMs3D::leftOut (ASM::Closure closure,
+                      int i1, int n1, int i2, int n2)
+{
+  const ASM::Closure c1 = ASM::inDirection(closure,1);
+  const ASM::Closure c2 = ASM::inDirection(closure,2);
+
+  return (i1 ==  1 && (c1 & ASM::OPEN_START)) ||
+         (i1 == n1 && (c1 & ASM::OPEN_END))   ||
+         (i2 ==  1 && (c2 & ASM::OPEN_START)) ||
+         (i2 == n2 && (c2 & ASM::OPEN_END));
+}
+
+
 /*!
   A negative \a code value implies direct evaluation of the Dirichlet condition
   function at the control point. Positive \a code implies projection onto the
@@ -1050,7 +1063,7 @@ int ASMs3D::findStartNode (int& n1, int& n2, int& n3, char basis) const
   non-constant functions).
 */
 
-void ASMs3D::constrainFace (int dir, bool open, int dof,
+void ASMs3D::constrainFace (int dir, ASM::Closure closure, int dof,
                             int code, char basis)
 {
   if (basis < 1) basis = 1;
@@ -1081,8 +1094,8 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
     case -1: // Left face (negative I-direction)
       for (int i3 = 1; i3 <= n3; i3++)
 	for (int i2 = 1; i2 <= n2; i2++, node += n1)
-	  if (open && (i2 == 1 || i2 == n2 || i3 == 1 || i3 == n3))
-	    continue; // skip all edge nodes if an open boundary is requested
+	  if (this->leftOut(closure,i2,n2,i3,n3))
+	    continue; // the sides of the face its closure gives up
 	  else if ((i2 == 1 || i2 == n2) && (i3 == 1 || i3 == n3))
 	  {
 	    this->prescribe(node,dof,bcode); // corner node
@@ -1104,8 +1117,8 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
     case -2: // Front face (negative J-direction)
       for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  if (open && (i1 == 1 || i1 == n1 || i3 == 1 || i3 == n3))
-	    continue; // skip all edge nodes if an open boundary is requested
+	  if (this->leftOut(closure,i1,n1,i3,n3))
+	    continue; // the sides of the face its closure gives up
 	  else if ((i1 == 1 || i1 == n1) && (i3 == 1 || i3 == n3))
 	  {
 	    this->prescribe(node,dof,bcode); // corner node
@@ -1127,8 +1140,8 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
     case -3: // Bottom face (negative K-direction)
       for (int i2 = 1; i2 <= n2; i2++)
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  if (open && (i1 == 1 || i1 == n1 || i2 == 1 || i2 == n2))
-	    continue; // skip all edge nodes if an open boundary is requested
+	  if (this->leftOut(closure,i1,n1,i2,n2))
+	    continue; // the sides of the face its closure gives up
 	  else if ((i1 == 1 || i1 == n1) && (i2 == 1 || i2 == n2))
 	  {
 	    this->prescribe(node,dof,bcode); // corner node
@@ -1163,8 +1176,8 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
   non-constant functions).
 */
 
-size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
-				   bool project, char T1)
+size_t ASMs3D::constrainFaceLocal (int dir, ASM::Closure closure, int dof,
+                                   int code, bool project, char T1)
 {
   if (shareFE == 'F')
   {
@@ -1271,9 +1284,8 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
   for (j = k = 0; j < vpar.size(); j++, iSnod += incJ)
     for (i = 0; i < upar.size(); i++, k++, iSnod += incI, it += 3)
     {
-      // Skip the edge points if this should be regarded an open boundary
-      if (open && (i == 0 || i+1 == upar.size())) continue;
-      if (open && (j == 0 || j+1 == vpar.size())) continue;
+      // Skip the sides of the face its closure gives up
+      if (ASMs3D::leftOut(closure,i+1,upar.size(),j+1,vpar.size())) continue;
       // Check if this node already has been constrained or fixed
       if (this->isFixed(MLGN[iSnod],dof)) continue;
 
@@ -1358,13 +1370,21 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 }
 
 
-void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
+void ASMs3D::constrainEdge (int lEdge, ASM::Closure closure, int dof,
                             int code, char basis)
 {
   IntVec edgeNodes;
-  this->getBoundary1Nodes(lEdge,edgeNodes,basis,0,true,open);
-  for (int node : edgeNodes)
-    this->prescribe(node,dof,code);
+  this->getBoundary1Nodes(lEdge,edgeNodes,basis,0,true,false);
+
+  // The nodes come in the parameter direction of the edge, so the ends of
+  // the list are the end points a closure gives up
+  size_t first = closure & ASM::OPEN_START ? 1 : 0;
+  size_t last = edgeNodes.size();
+  if ((closure & ASM::OPEN_END) && last > first)
+    --last;
+
+  for (size_t i = first; i < last; i++)
+    this->prescribe(edgeNodes[i],dof,code);
 }
 
 
