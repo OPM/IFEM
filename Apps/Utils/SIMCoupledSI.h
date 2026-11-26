@@ -116,6 +116,10 @@ public:
           prevSol *= 1.0 - omega;
           prevSol.add(this->getRelaxationVector(), omega);
           this->setRelaxedSolution(prevSol);
+          // The relaxed solution as the simulator took it, which may differ,
+          // as where it clamps its unknowns, is the base of the next cycle
+          if (!this->getRelaxationVector().empty())
+            prevSol = this->getRelaxationVector();
         } else {
           omega = omega0;
           prevSol = this->getRelaxationVector();
