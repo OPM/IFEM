@@ -661,15 +661,16 @@ class DiracSpaceFunc : public RealFunc
 {
   int  nsd;  //!< Number of spatial dimensions
   Real amp;  //!< The amplitude of the dirac function
-  Vec3 Xmax; //!< Associated \a X value
-  Real eps2; //!< Equals \a eps^2
-  Real epsd; //!< Equals \a eps^nsd times a normalization factor
+  Vec3 Xmax; //!< Associated \b X value
+  Real eps2; //!< \brief Equals &epsilon;<sup>2</sup>
+             //! where &epsilon; is the radius of the non-zero domain
+  Real fact; //!< Normalization factor such that the integral equals #amp
 
 public:
   //! \brief Constructor initializing the function parameters.
   //! \param[in] a The amplitude of the dirac function
   //! \param[in] X Coordinate of the point of maximum function value
-  //! \param[in] eps Radius of nonzero function value domain
+  //! \param[in] eps Radius (&epsilon;) of the non-zero function value domain
   //! \param[in] n Number of spatial dimensions
   DiracSpaceFunc(Real a, const Vec3& X, Real eps = Real(0), int n = 3);
 

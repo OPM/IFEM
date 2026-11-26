@@ -863,20 +863,45 @@ Real StepXYZFunc::evaluate (const Vec3& X) const
 }
 
 
-DiracSpaceFunc::DiracSpaceFunc (Real a, const Vec3& X, Real eps, int n)
-  : nsd(n), amp(a), Xmax(X)
-{
-  eps2 = eps*eps;
-  epsd = pow(eps,Real(nsd));
+/*!
+  \class DiracSpaceFunc
+  \details This class defines a spatial
+  <a href="https://en.wikipedia.org/wiki/Mollifier">mollifier function</a>
+  that smooths out a discrete Dirac function around the point #Xmax over a disk
+  (or sphere) with radius &epsilon; (&epsilon;<sup>2</sup>=#eps2), or
+  (in 1D) over the line segment \f$x\in[x_{max}-\epsilon,x_{max}+\epsilon]\f$.
 
-  // Need to normalize to 1 since evaluated by Gauss quadrature
-  // akva: what are these numbers actually?
+  The function is defined as follows:
+  \f[
+    f({\bf x}) = \frac{A}{A_0}\exp(\frac{\epsilon^2}{\epsilon^2-r^2})
+  \f]
+  where
+  - \f$ r=|{\bf x} - {\bf X}_{max}| \f$ and \f${\bf X}_{max}\f$ = #Xmax.
+  - \a A is the function amplitude (#amp).
+  - \a A<sub>0</sub> is the normalization factor (#fact) ensuring that
+    the integral of the function over the entire domain equals \a A.
+
+  The constant \a A<sub>0</sub> (or #fact) is computed numerically as follows:
+  \f[
+    A_0=\int\limits_{r<\epsilon}\exp{\frac{-\epsilon^2}{\epsilon^2-r^2}}d{\bf x}
+    \;\approx\left\{\begin{array}{ll}
+      0.44399381616807944\,\epsilon   & \mbox{in 1D} \\
+      0.46651239317833007\,\epsilon^2 & \mbox{in 2D} \\
+      0.44108888727660440\,\epsilon^3 & \mbox{in 3D}
+    \end{array}\right.
+  \f]
+*/
+
+DiracSpaceFunc::DiracSpaceFunc (Real a, const Vec3& X, Real eps, int n)
+  : nsd(n), amp(a), Xmax(X), eps2(eps*eps)
+{
+  // Define the normalization factor such that the integral equals amp
   if (nsd == 1)
-    epsd *= 0.44399381616807944;
+    fact = 0.44399381616807944 * eps;
   else if (nsd == 2)
-    epsd *= 0.46651239317833007;
+    fact = 0.46651239317833007 * eps2;
   else
-    epsd *= 0.44108888727660440;
+    fact = 0.44108888727660440 * eps2*eps;
 }
 
 
@@ -886,7 +911,7 @@ Real DiracSpaceFunc::evaluate (const Vec3& X) const
   for (int i = 0; i < nsd; i++)
     r2 += (X[i] - Xmax[i]) * (X[i] - Xmax[i]);
 
-  return r2 < eps2 ? amp * exp(-eps2/(eps2-r2)) / epsd : Real(0);
+  return r2 < eps2 ? amp * exp(-eps2/(eps2-r2)) / fact : Real(0);
 }
 
 
