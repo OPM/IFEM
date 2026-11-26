@@ -20,10 +20,13 @@
 #endif
 
 
-bool GlbForceVec::initNodeMap (const std::vector<int>& globalNodes, size_t nfc)
+bool GlbForceVec::initNodeMap (const std::vector<int>& globalNodes, size_t nfc,
+                               const std::vector<char>& firstComp)
 {
   nodeMap.clear();
   nodeNum = globalNodes;
+  nodeComp = firstComp;
+  nodeComp.resize(globalNodes.size(), 1);
 
   int illegal = 0, nnod = sam.getNoNodes();
   for (size_t i = 0; i < globalNodes.size(); i++)
@@ -58,24 +61,18 @@ bool GlbForceVec::assemble (const LocalIntegral* elmObj, int elmId)
   std::vector<int> mnpc;
   if (!sam.getElmNodes(mnpc,elmId))
     return false;
-/*  else if (ES.size() < nfc*mnpc.size())
-  {
-    std::cerr <<" *** GlbForceVec::assemble: Invalid element force vector,"
-              <<" size="<< ES.size() <<" should be (at least) "
-              << nfc*mnpc.size() << std::endl;
-    return false;
-  }
-*/
+
   // Assemble the nodal forces into the Matrix F
   size_t i, j, k, ninod = 0;
   std::map<int,size_t>::const_iterator nit;
   for (i = k = 0; i < mnpc.size(); i++) {
+    const size_t ndof = sam.getNoDOFs(mnpc[i]);
     if ((nit = nodeMap.find(mnpc[i])) == nodeMap.end())
       ninod++;
-    else for (j = 0; j < nfc; j++)
-      F(j+1,nit->second) -= ES[k+j];
-    auto dofs = sam.getNodeDOFs(mnpc[i]);
-    k += dofs.second-dofs.first+1;
+    else if (const size_t first = nodeComp[nit->second-1]; first > 0)
+      for (j = 0; j < ndof && first+j <= nfc; j++)
+        F(first+j,nit->second) -= ES[k+j];
+    k += ndof;
   }
 
   if (ninod < mnpc.size())

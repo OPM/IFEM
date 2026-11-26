@@ -71,6 +71,8 @@ public:
   int getNoNodes(char dofType = 'A') const;
   //! \brief Returns the total number of DOFs in the model.
   int getNoDOFs() const { return ndof; }
+  //! \brief Returns the number of DOFs for a node.
+  int getNoDOFs(int inod) const { return madof[inod] - madof[inod-1]; }
   //! \brief Returns the number of specified DOFs in the model.
   int getNoSpecifiedDOFs() const { return nspdof; }
   //! \brief Returns the total number of constraint equations in the model.

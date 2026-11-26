@@ -561,6 +561,7 @@ IFEM_add_test_app(
       src/ASM/Test/TestBlockElmMats.C
       src/ASM/Test/TestDomainDecomposition.C
       src/ASM/Test/TestFiniteElement.C
+      src/ASM/Test/TestGlbForceVec.C
       src/ASM/Test/TestLagrangeField.C
       src/ASM/Test/TestLagrangeFields.C
       src/ASM/Test/TestMatlabPatch.C

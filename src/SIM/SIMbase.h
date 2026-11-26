@@ -230,6 +230,11 @@ public:
   void getBoundaryNodes(int pcode, IntVec& glbNodes,
                         std::vector<Vec3>* XYZ = nullptr) const;
 
+  //! \brief Returns which force component each node's first dof carries.
+  //! \param[in] glbNodes Global node numbers nodal forces are gathered at
+  //! \param[out] firstComp 1-based index of the force components
+  virtual char getFirstForceComponent(int globalNode) const { return 1; }
+
   //! \brief Finds the node that is closest to the given point \b X.
   int findClosestNode(const Vec3&) const;
 
