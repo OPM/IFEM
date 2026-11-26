@@ -84,7 +84,13 @@ bool SIM::initBoundaryNodeMap (SIMbase* model, int code, GlbForceVec& force)
 {
   IntVec glbNodes;
   model->getBoundaryNodes(code,glbNodes);
-  return force.initNodeMap(glbNodes,model->getNoSpaceDim());
+
+  std::vector<char> firstComp;
+  firstComp.reserve(glbNodes.size());
+  for (int inod : glbNodes)
+    firstComp.push_back(model->getFirstForceComponent(inod));
+
+  return force.initNodeMap(glbNodes,model->getNoSpaceDim(),firstComp);
 }
 
 

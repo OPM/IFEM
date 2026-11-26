@@ -38,7 +38,9 @@ public:
   //! \brief Initializes the global node map and allocates the force vector.
   //! \param[in] globalNodes The global node numbers that will have force terms
   //! \param[in] nfc Number of force components
-  bool initNodeMap(const std::vector<int>& globalNodes, size_t nfc);
+  //! \param[in] firstComp 1-based index of the force components
+  bool initNodeMap(const std::vector<int>& globalNodes, size_t nfc,
+                   const std::vector<char>& firstComp = {});
 
   //! \brief Initializes the global nodal force vector to zero.
   virtual void initialize(char = 0);
@@ -70,6 +72,7 @@ private:
   const SAM&           sam;     //!< Data for FE assembly management
   Matrix               F;       //!< Global nodal forces
   std::vector<int>     nodeNum; //!< Global node numbers with forces
+  std::vector<char>    nodeComp; //!< First force component of each node
   std::map<int,size_t> nodeMap; //!< Maps from global node number to force index
 };
 
