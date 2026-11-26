@@ -15,6 +15,7 @@
 #define SIM_COUPLED_SI_H_
 
 #include "SIMCoupled.h"
+#include "SAM.h"
 #include "SIMenums.h"
 #include "MatVec.h"
 #include "TimeStep.h"
@@ -96,7 +97,7 @@ public:
           if (aitken) {
             Vector r1 = this->getAitkenResidual();
             r1 -= prevRes;
-            omega *= -prevRes.dot(r1) / r1.dot(r1);
+            omega *= -this->aitkenDot(prevRes,r1) / this->aitkenDot(r1,r1);
             if (fabs(omega) < 1e-6) {
               std::cerr <<"\n  ** Relaxation weight "<< omega <<" too small,"
                         <<" resetting to default "<< omega0 << std::endl;
@@ -155,6 +156,18 @@ public:
   }
 
 protected:
+  //! \brief Returns the dot product of two residuals of the Aitken
+  //! acceleration.
+  double aitkenDot(const Vector& a, const Vector& b) const
+  {
+    const SAM* sam = this->S1.getSAM();
+    const size_t ndof = sam ? sam->getNoDOFs() : 0;
+    if (ndof > 0 && a.size() == ndof && b.size() == ndof)
+      return sam->dot(a,b,'A');
+
+    return a.dot(b);
+  }
+
   //! \brief Parses sub-iteration setup from an XML tag.
   void parseIterations(const tinyxml2::XMLElement* elem)
   {

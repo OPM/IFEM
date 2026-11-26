@@ -35,6 +35,8 @@ public:
   bool postSolve(const TimeStep&) { return true; }
   //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return adm; }
+  //! \brief Returns no equation system administrator.
+  const SAM* getSAM() const { return nullptr; }
 
   // Stubs of the methods of the coupling
   bool advanceStep(TimeStep&) { return true; } //!< Stub
