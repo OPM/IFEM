@@ -314,7 +314,8 @@ bool ASMs2DLag::integrateElm (Integrand& integrand, GlobalIntegral& glInt,
     return true; // zero-area or de-activated element, silently ignore
 
   Matrix Def, Vel;
-  Vec4 X(nullptr,time.t);
+  double param[3] = { 0.0, 0.0, 0.0 };
+  Vec4   X(param,time.t);
 
   // Set up nodal point coordinates for current element
   this->getElementCoordinates(fe.Xn,1+iel);
@@ -375,8 +376,8 @@ bool ASMs2DLag::integrateElm (Integrand& integrand, GlobalIntegral& glInt,
         fe.eta = xr[j];
 
         // Parameter value of current integration point
-        fe.u = cache.getParam(0,iel1,i,true);
-        fe.v = cache.getParam(1,iel2,j,true);
+        fe.u = param[0] = cache.getParam(0,iel1,i,true);
+        fe.v = param[1] = cache.getParam(1,iel2,j,true);
 
         if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
           fe.N = cache.getVals(iel,ip,true).N;
@@ -427,8 +428,8 @@ bool ASMs2DLag::integrateElm (Integrand& integrand, GlobalIntegral& glInt,
       fe.eta = xg[1][j];
 
       // Parameter value of current integration point
-      fe.u = cache.getParam(0,iel1,i);
-      fe.v = cache.getParam(1,iel2,j);
+      fe.u = param[0] = cache.getParam(0,iel1,i);
+      fe.v = param[1] = cache.getParam(1,iel2,j);
 
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
 	fe.N = cache.getVals(iel,ip).N;
@@ -570,7 +571,8 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
   Matrix dNdu, Def, Vel;
-  Vec4   X(nullptr,time.t);
+  double prm[3] = { fe.u, fe.v, 0.0 };
+  Vec4   X(prm,time.t);
   Vec3   normal;
   double xi[2];
 
@@ -628,9 +630,9 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 
         // Parameter values of current integration point
         if (upar.size() > 1)
-          fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
+          fe.u = prm[0] = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
         if (vpar.size() > 1)
-          fe.v = 0.5*(vpar[i2]*(1.0-xg[i]) + vpar[i2+1]*(1.0+xg[i]));
+          fe.v = prm[1] = 0.5*(vpar[i2]*(1.0-xg[i]) + vpar[i2+1]*(1.0+xg[i]));
 
         // Compute the basis functions and their derivatives, using
         // tensor product of one-dimensional Lagrange polynomials
@@ -863,8 +865,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         }
 
         // Now evaluate the solution field
-        X.assign(fe.Xn * fe.N);
-        if (!integrand.evalSol(solPt,fe,X,mnpc))
+        if (!integrand.evalSol(solPt,fe,X.assign(fe.Xn*fe.N),mnpc))
           return false;
         else if (sField.empty())
           sField.resize(solPt.size(),nPoints,true);
@@ -898,6 +899,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector        solPt;
   Vectors       globSolPt(nPoints);
   Matrix        dNdu;
+  Vec4          X(nullptr,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each point or element center
   int iel = 0;
@@ -928,8 +930,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (fe.detJxW == 0.0) continue; // skip singular points
 
     // Now evaluate the solution field
-    utl::Point X4(fe.Xn*fe.N,{fe.u,fe.v});
-    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel-1]))
+    if (!integrand.evalSol(solPt,fe,X.assign(fe.Xn*fe.N),MNPC[iel-1]))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

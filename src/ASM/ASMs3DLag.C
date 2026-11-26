@@ -366,7 +366,8 @@ bool ASMs3DLag::integrate (Integrand& integrand,
     {
       FiniteElement fe;
       Matrix Jac;
-      Vec4 X(nullptr,time.t);
+      double param[3] = { 0.0, 0.0, 0.0 };
+      Vec4   X(param,time.t);
       for (size_t e = 0; e < group.size() && ok; e++)
       {
         int iel = group[e];
@@ -428,9 +429,9 @@ bool ASMs3DLag::integrate (Integrand& integrand,
                 fe.zeta = xr[k];
 
                 // Parameter value of current integration point
-                fe.u = cache.getParam(0,i1,i,true);
-                fe.v = cache.getParam(1,i2,j,true);
-                fe.w = cache.getParam(2,i3,k,true);
+                fe.u = param[0] = cache.getParam(0,i1,i,true);
+                fe.v = param[1] = cache.getParam(1,i2,j,true);
+                fe.w = param[2] = cache.getParam(2,i3,k,true);
 
                 // Compute basis function derivatives at current point
                 if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
@@ -471,9 +472,9 @@ bool ASMs3DLag::integrate (Integrand& integrand,
               fe.zeta = xg[2][k];
 
               // Parameter value of current integration point
-              fe.u = cache.getParam(0,i1,i);
-              fe.v = cache.getParam(1,i2,j);
-              fe.w = cache.getParam(2,i3,k);
+              fe.u = param[0] = cache.getParam(0,i1,i);
+              fe.v = param[1] = cache.getParam(1,i2,j);
+              fe.w = param[2] = cache.getParam(2,i3,k);
 
               if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
                 fe.N = cache.getVals(iel,ip).N;
@@ -625,8 +626,8 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       fe.w = wpar.front();
 
       Matrix dNdu, Jac;
-      double param[3] = { fe.u, fe.v, fe.w };
-      Vec4   X(param,time.t);
+      double prm[3] = { fe.u, fe.v, fe.w };
+      Vec4   X(prm,time.t);
       Vec3   normal;
       double xi[3];
 
@@ -697,9 +698,9 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
               case 2: k1 = i; k3 = j; break;
               case 3: k1 = i; k2 = j; break;
             }
-            if (xg[0]) fe.u = linearInt(xg[0][k1],upar[i1],upar[i1+1]);
-            if (xg[1]) fe.v = linearInt(xg[1][k2],vpar[i2],vpar[i2+1]);
-            if (xg[2]) fe.w = linearInt(xg[2][k3],wpar[i3],wpar[i3+1]);
+            if (xg[0]) fe.u = prm[0] = linearInt(xg[0][k1],upar[i1],upar[i1+1]);
+            if (xg[1]) fe.v = prm[1] = linearInt(xg[1][k2],vpar[i2],vpar[i2+1]);
+            if (xg[2]) fe.w = prm[2] = linearInt(xg[2][k3],wpar[i3],wpar[i3+1]);
 
             // Compute the basis functions and their derivatives, using
             // tensor product of one-dimensional Lagrange polynomials
@@ -1115,8 +1116,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
           }
 
           // Now evaluate the solution field
-          X.assign(fe.Xn * fe.N);
-          if (!integrand.evalSol(solPt,fe,X,mnpc))
+          if (!integrand.evalSol(solPt,fe,X.assign(fe.Xn*fe.N),mnpc))
             return false;
           else if (sField.empty())
             sField.resize(solPt.size(),nPoints,true);
@@ -1150,6 +1150,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector        solPt;
   Vectors       globSolPt(nPoints);
   Matrix        dNdu, Jac;
+  Vec4          X(nullptr,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each point or element center
   int iel = 0;
@@ -1181,8 +1182,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (fe.detJxW == 0.0) continue; // skip singular points
 
     // Now evaluate the solution field
-    utl::Point X4(fe.Xn*fe.N,{fe.u,fe.v,fe.w});
-    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel-1]))
+    if (!integrand.evalSol(solPt,fe,X.assign(fe.Xn*fe.N),MNPC[iel-1]))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

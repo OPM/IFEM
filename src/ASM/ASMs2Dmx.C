@@ -522,10 +522,11 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
         int iel = groups[g][t][l];
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+          continue; // zero-area or inactive element
+
         fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (fe.iel < 1) continue; // zero-area element
-
         int i1 = p1 + iel % nel1;
         int i2 = p2 + iel / nel1;
 
@@ -594,7 +595,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
               ok = false;
             else if (piola)
-              fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+              fe.piolaMapping(Jac,Xnod,bfs,
+                              piolaType & Integrand::CONTRAVARIANT,
                               piolaType & Integrand::COVARIANT);
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
@@ -720,10 +722,6 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       if (!this->isElementInPartition(iel))
         continue; // this element is in the partition of another process
 
-      fe.idx = firstEl + iel;
-      fe.iel = MLGE[iel];
-      if (fe.iel < 1) continue; // zero-area element
-
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
@@ -734,6 +732,12 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
         case  2: if (i2 < n2) skipMe = true; break;
       }
       if (skipMe) continue;
+
+      if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+        continue; // zero-area or inactive element
+
+      fe.idx = firstEl + iel;
+      fe.iel = MLGE[iel];
 
       // Get element edge length in the parameter space
       double dS = 0.5*this->getParametricLength(1+iel,t2);
@@ -795,7 +799,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
         else if (usePiola) {
           const double dS_ip = fe.detJxW;
           fe.detJxW = detJ;
-          fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+          fe.piolaMapping(Jac,Xnod,bfs,
+                          piolaType & Integrand::CONTRAVARIANT,
                           piolaType & Integrand::COVARIANT);
           fe.detJxW = dS_ip;
         }
@@ -891,7 +896,8 @@ double ASMs2Dmx::evalBoundaryPoint (int iel, short int lIndex,
   {
     const double dS = fe.detJxW;
     fe.detJxW = detJ;
-    fe.piolaMapping(Jac,Xnod,bfs,piola & Integrand::CONTRAVARIANT,
+    fe.piolaMapping(Jac,Xnod,bfs,
+                    piola & Integrand::CONTRAVARIANT,
                     piola & Integrand::COVARIANT);
     fe.detJxW = dS;
   }
@@ -965,12 +971,14 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
+      if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+        continue; // zero-area or inactive element
+
       if (!this->isElementInPartition(iel))
         continue; // this element is in the partition of another process
 
       fe.idx = firstEl + iel;
       fe.iel = abs(MLGE[iel]);
-      if (fe.iel < 1) continue; // zero-area element
 
       short int status = iChk.hasContribution(iel,i1,i2);
       if (!status) continue; // no interface contributions for this element
@@ -1337,6 +1345,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector          solPt;
   BasisValues     bfs(m_basis.size() + separateGeometry);
   Matrix          Jac;
+  double          param[3] = { 0.0, 0.0, 0.0 };
+  Vec4            X(param,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each point
   size_t nPoints = splinex[0].size();
@@ -1369,8 +1379,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       utl::gather(ip.front(), nsd, Xnod, Xtmp);
     }
 
-    fe.u = splinex[0][i].param[0];
-    fe.v = splinex[0][i].param[1];
+    fe.u = param[0] = splinex[0][i].param[0];
+    fe.v = param[1] = splinex[0][i].param[1];
 
     // Fetch basis function derivatives at current integration point
     for (size_t b = 0; b < splinex.size(); ++b)
@@ -1392,15 +1402,15 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       continue; // skip singular points
 
     if (usePiola)
-      fe.piolaMapping(Jac,Xtmp,bfs,piolaType & Integrand::CONTRAVARIANT,
+      fe.piolaMapping(Jac,Xtmp,bfs,
+                      piolaType & Integrand::CONTRAVARIANT,
                       piolaType & Integrand::COVARIANT);
 
     // Cartesian coordinates of current integration point
-    utl::Point X4(Xtmp * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)),
-                  {fe.u,fe.v});
+    X.assign(Xtmp * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)));
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,X4,ipa,elem_size,nb))
+    if (!integrand.evalSol(solPt,fe,X,ipa,elem_size,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
@@ -1445,9 +1455,8 @@ void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 {
   if (basis > 0)
     this->ASMs2D::getBoundaryNodes(lIndex, nodes, basis, thick, 0, local);
-  else
-    for (size_t b = 1; b <= m_basis.size(); b++)
-      this->ASMs2D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
+  else for (size_t b = 1; b <= m_basis.size(); b++)
+    this->ASMs2D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
 }
 
 
