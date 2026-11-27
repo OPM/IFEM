@@ -11,7 +11,6 @@
 //==============================================================================
 
 #include "ASMuCube.h"
-#include "ASMuTrap3.h"
 #include "ASMs3D.h"
 #include "Functions.h"
 #include "GaussQuadrature.h"
@@ -24,6 +23,7 @@
 
 #include "Catch2Support.h"
 
+#include "Test/ASMTrap3.h"
 #include "Test/ASM3DTests.h"
 
 #include <LRSpline/LRSplineVolume.h>
@@ -218,7 +218,7 @@ TEST_CASE("TestASMu3D.FaceIntegrate")
 
 TEST_CASE("TestASMu3D.GetElementCorners")
 {
-  ASM3DTests<ASMuTrap3<ASMu3D>>::GetElementCorners();
+  ASM3DTests<ASMTrap3<ASMu3D>>::GetElementCorners();
 }
 
 

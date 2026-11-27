@@ -16,6 +16,16 @@
 
 #include "Catch2Support.h"
 
+#include "ASMs3DmxLag.h"
+#include "FiniteElement.h"
+#include "GlobalIntegral.h"
+#include "IntegrandBase.h"
+#include "TimeDomain.h"
+
+#include <cmath>
+#include <map>
+#include <sstream>
+
 
 namespace {
 
@@ -368,6 +378,36 @@ const char* cubeRT_3 =
   "0 1 1\n"
   "1 1 1\n\n";
 
+/*!
+  \brief Records the element corners and sizes.
+*/
+
+class CornerIntegrand : public IntegrandBase
+{
+public:
+  //! \brief The constructor sets the number of space dimensions.
+  explicit CornerIntegrand(unsigned short int n) : IntegrandBase(n) {}
+
+  //! \brief Returns the integrand type.
+  int getIntegrandType() const override { return ELEMENT_CORNERS; }
+
+  using IntegrandBase::evalIntMx;
+  //! \brief Records the element corners and size.
+  bool evalIntMx(LocalIntegral&, const MxFiniteElement& fe,
+                 const Vec3&) const override
+  {
+#pragma omp critical
+    {
+      corners[fe.iel] = fe.XC;
+      sizes[fe.iel] = fe.h;
+    }
+    return true;
+  }
+
+  mutable std::map<int,std::vector<Vec3>> corners; //!< Corners of each element
+  mutable std::map<int,double> sizes; //!< Size of each element
+};
+
 }
 
 
@@ -633,4 +673,48 @@ TEST_CASE("TestASMs3Dmx.ContinuousOverBoundary")
   for (int face = 1; face <= 6; face++)
     for (size_t b = 1; b <= 2; b++)
       REQUIRE(pch2.isContinuousOverBoundary(face,b));
+}
+
+
+TEST_CASE("TestASMs3DmxLag.ElementCorners")
+{
+  // A unit cube with an interior knot, repeated when raising the order,
+  // such that the Lagrange elements are not the knot spans
+  std::ostringstream cube;
+  cube <<"700 1 0 0\n3 0\n";
+  for (int d = 0; d < 3; d++)
+    cube <<"4 3\n0 0 0 0.5 1 1 1\n";
+  for (double z : {0.0, 0.25, 0.75, 1.0})
+    for (double y : {0.0, 0.25, 0.75, 1.0})
+      for (double x : {0.0, 0.25, 0.75, 1.0})
+        cube << x <<' '<< y <<' '<< z <<'\n';
+
+  ASMs3DmxLag pch({3,1});
+  std::istringstream is(cube.str());
+  REQUIRE(pch.read(is));
+  REQUIRE(pch.raiseOrder(1,1,1));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+
+  CornerIntegrand itg(3);
+  GlobalIntegral dummy;
+  pch.generateThreadGroups(itg,true,false);
+  REQUIRE(pch.integrate(itg,dummy,TimeDomain()));
+
+  // Each element is an eighth of the cube
+  REQUIRE(itg.corners.size() == 8);
+  for (int iel = 1; iel <= 8; iel++)
+  {
+    INFO("element " << iel);
+    const Vec3 X0(0.5*((iel-1)%2), 0.5*(((iel-1)/2)%2), 0.5*((iel-1)/4));
+    const std::vector<Vec3>& XC = itg.corners[iel];
+    REQUIRE(XC.size() == 8);
+    for (size_t c = 0; c < 8; c++)
+    {
+      CHECK_THAT(XC[c].x, WithinAbs(X0.x + 0.5*(c%2), 1e-14));
+      CHECK_THAT(XC[c].y, WithinAbs(X0.y + 0.5*((c/2)%2), 1e-14));
+      CHECK_THAT(XC[c].z, WithinAbs(X0.z + 0.5*(c/4), 1e-14));
+    }
+    CHECK_THAT(itg.sizes[iel], WithinAbs(0.5*sqrt(3.0), 1e-14));
+  }
 }

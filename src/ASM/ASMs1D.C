@@ -966,6 +966,18 @@ void ASMs1D::getElementBorders (int iel, double* ub) const
 }
 
 
+double ASMs1D::getElementCorners (int iel, Vec3Vec& XC, RealArray* uC) const
+{
+  if (uC)
+  {
+    uC->resize(2);
+    this->getElementBorders(iel,uC->data());
+  }
+
+  return this->getElementEnds(iel-1+curv->order(),XC);
+}
+
+
 double ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
 {
   RealArray::const_iterator uit = curv->basis().begin();
@@ -1133,7 +1145,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     }
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      fe.h = this->getElementEnds(p1+iel,fe.XC);
+      fe.h = this->getElementCorners(1+iel,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
       this->getElementNodalRotations(fe.Tn,iel);
@@ -1334,7 +1346,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   }
 
   if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-    fe.h = this->getElementEnds(iel+curv->order(),fe.XC);
+    fe.h = this->getElementCorners(1+iel,fe.XC);
 
   if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
     this->getElementNodalRotations(fe.Tn,iel);
