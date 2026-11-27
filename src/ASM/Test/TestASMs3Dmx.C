@@ -11,6 +11,7 @@
 //==============================================================================
 
 #include "ASMCube.h"
+#include "MixedJumpIntegrand.h"
 
 #include "GoTools/trivariate/SplineVolume.h"
 
@@ -633,4 +634,39 @@ TEST_CASE("TestASMs3Dmx.ContinuousOverBoundary")
   for (int face = 1; face <= 6; face++)
     for (size_t b = 1; b <= 2; b++)
       REQUIRE(pch2.isContinuousOverBoundary(face,b));
+}
+
+
+TEST_CASE("TestASMs3Dmx.InterfaceJumps")
+{
+  // A field on a C1 first basis has no jumps in its normal derivative on a
+  // C1 non-affine geometry, when the derivatives of the neighbor element
+  // are mapped with its own coordinates
+  const ASMmxBase::MixedType oldType = ASMmxBase::Type;
+  ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
+
+  std::istringstream is("700 1 0 0\n3 0\n"
+                        "3 3\n0 0 0 1 1 1\n3 3\n0 0 0 1 1 1\n"
+                        "3 3\n0 0 0 1 1 1\n"
+                        "0 0 0\n0.5 0.1 0\n1 0 0.1\n"
+                        "0.1 0.5 0\n0.6 0.6 0.1\n1.1 0.4 0\n"
+                        "0 1 0\n0.4 1.1 0\n1 1 0.1\n"
+                        "0 0 0.5\n0.5 0 0.6\n1 0.1 0.5\n"
+                        "0 0.5 0.4\n0.5 0.5 0.5\n1 0.6 0.5\n"
+                        "0.1 1 0.5\n0.5 1 0.6\n1 1 0.5\n"
+                        "0 0 1\n0.5 0 1.1\n1 0 1\n"
+                        "0 0.5 1\n0.4 0.5 1\n1 0.5 1.1\n"
+                        "0 1 1\n0.5 1.1 1\n1 1 1\n");
+  ASMs3Dmx pch({3,1});
+  REQUIRE(pch.read(is));
+  REQUIRE(pch.uniformRefine(0,1));
+  REQUIRE(pch.uniformRefine(1,1));
+  REQUIRE(pch.uniformRefine(2,1));
+  ASMbase::resetNumbering();
+  REQUIRE(pch.generateFEMTopology());
+  pch.setGauss(3);
+
+  checkNoJumps(pch,ASMs3D::InterfaceChecker(pch));
+
+  ASMmxBase::Type = oldType;
 }
