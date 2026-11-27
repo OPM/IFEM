@@ -35,7 +35,8 @@ TimeStep::TimeStep () : step(0), iter(time.it), lstep(0), endStep(0)
   f2 = 0.25;
   maxStep = niter = 0;
   maxCut = nCut = 0;
-  dtSched = 1.0;
+  targetIts = stepIts = 0;
+  dtSched = dtFull = 1.0;
   dtCut = dtHint = 0.0;
   limited = false;
   stepIt = mySteps.end();
@@ -58,11 +59,14 @@ TimeStep& TimeStep::operator= (const TimeStep& ts)
   maxStep = ts.maxStep;
   maxCut = ts.maxCut;
   nCut = ts.nCut;
+  targetIts = ts.targetIts;
+  stepIts = ts.stepIts;
   niter = ts.niter;
   iter = ts.iter;
   dtSched = ts.dtSched;
   dtCut = ts.dtCut;
   dtHint = ts.dtHint;
+  dtFull = ts.dtFull;
   limited = ts.limited;
   taken = ts.taken;
 
@@ -128,6 +132,7 @@ bool TimeStep::parse (const tinyxml2::XMLElement* elem)
   utl::getAttribute(elem,"f1",f1);
   utl::getAttribute(elem,"f2",f2);
   utl::getAttribute(elem,"maxCutbacks",maxCut);
+  utl::getAttribute(elem,"target_iterations",targetIts);
 
   if (f1 < 1.0) f1 = 1.0;
   if (f2 > 1.0) f2 = 1.0;
@@ -316,10 +321,12 @@ void TimeStep::scheduleIncrement ()
 
 bool TimeStep::increment ()
 {
+  if (targetIts > 0 && stepIts > 0)
+    this->suggestNextStep(dtFull*targetIts/stepIts);
+  stepIts = 0;
+
   time.dtn = time.dt;
 
-  // A step taken before, as in a replay of the time steps, has its size,
-  // and advances in the time step definitions as it did
   const bool replay = static_cast<size_t>(step) < taken.dt.size();
   const size_t lprev = lstep;
   if (replay)
@@ -350,6 +357,7 @@ bool TimeStep::increment ()
   niter = iter;
   nCut = 0;
   endStep = 0;
+  dtFull = time.dt;
   time.t += time.dt;
 
   if (stepIt != mySteps.end() && this->hasReached(stepIt->second))
@@ -420,9 +428,11 @@ bool TimeStep::cutback ()
 
   ++nCut;
   iter = 0;
+  stepIts = 0;
   niter = 10;
   time.first = 'c';
   time.t += time.dt - dt;
+  dtFull = time.dt;
 
   // The reduced step no longer ends the time step definition it ended
   if (endStep > 0)
@@ -540,6 +550,13 @@ bool TimeStep::serialize (std::map<std::string,std::string>& data) const
     ar(taken.dtCut,taken.limited,taken.niter,taken.dtHint);
   }
   data.emplace("TimeStep::schedule",str2.str());
+
+  std::ostringstream str3;
+  {
+    cereal::BinaryOutputArchive ar(str3);
+    ar(stepIts,dtFull);
+  }
+  data.emplace("TimeStep::iterations",str3.str());
   return true;
 #else
   return false;
@@ -559,7 +576,6 @@ bool TimeStep::deSerialize (const std::map<std::string,std::string>& data)
     it = data.find("TimeStep::schedule");
     if (it == data.end())
     {
-      // Replay the time step definitions, as new steps
       taken = Taken();
       return this->reset(step);
     }
@@ -578,6 +594,15 @@ bool TimeStep::deSerialize (const std::map<std::string,std::string>& data)
     if (taken.sched.size() != taken.dt.size() ||
         taken.defined.size() != taken.dt.size())
       return false;
+
+    stepIts = 0;
+    dtFull = time.dt;
+    if ((it = data.find("TimeStep::iterations")) != data.end())
+    {
+      std::stringstream str3(it->second);
+      cereal::BinaryInputArchive ar3(str3);
+      ar3(stepIts,dtFull);
+    }
 
     stepIt = mySteps.begin() + seg;
     endStep = 0;
