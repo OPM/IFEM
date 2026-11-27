@@ -312,20 +312,21 @@ public:
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
-  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] closure Which end points the condition leaves out
   //! \param[in] dof Which DOFs to constrain at each node along the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Which basis to constrain edge for
-  virtual void constrainEdge(int dir, bool open, int dof, int code, char basis);
+  virtual void constrainEdge(int dir, ASM::Closure closure, int dof,
+                             int code, char basis);
   //! \brief Constrains all DOFs in local directions on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
-  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] closure Which end points the condition leaves out
   //! \param[in] dof Which local DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
-  virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code,
-				    bool project = false);
+  virtual size_t constrainEdgeLocal(int dir, ASM::Closure closure, int dof,
+                                    int code, bool project = false);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -664,7 +665,7 @@ protected:
   //! \param[in] dir Local index of the boundary edge
   double getParametricLength(int iel, int dir) const;
 
-  //! \brief Returns a matrix with nodal coordinates for element containing given parameters.
+  //! \brief Returns a matrix with nodal coordinates for element.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! \param[in] u First parameter of point
   //! \param[in] v Second parameter of point

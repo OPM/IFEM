@@ -473,7 +473,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 
 
 bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-                           int& ngnod, char, bool ovrD)
+                           int& ngnod, char, bool ovrD, char)
 {
   // Lambda function for error message generation
   auto&& error = [](const char* message, int idx, bool coutNL = false)

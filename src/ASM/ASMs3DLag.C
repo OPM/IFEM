@@ -1416,17 +1416,19 @@ bool ASMs3DLag::evaluate (const ASMbase* basis, const Vector& locVec,
 }
 
 
-void ASMs3DLag::constrainFace (int dir, bool open, int dof,
+void ASMs3DLag::constrainFace (int dir, ASM::Closure closure, int dof,
                                int code, char basis)
 {
-  this->ASMs3D::constrainFace(dir, open, dof, code > 0 ? -code : code, basis);
+  this->ASMs3D::constrainFace(dir, closure, dof,
+                              code > 0 ? -code : code, basis);
 }
 
 
-void ASMs3DLag::constrainEdge (int lEdge, bool open, int dof,
+void ASMs3DLag::constrainEdge (int lEdge, ASM::Closure closure, int dof,
                                int code, char basis)
 {
-  this->ASMs3D::constrainEdge(lEdge, open, dof, code > 0 ? -code : code, basis);
+  this->ASMs3D::constrainEdge(lEdge, closure, dof,
+                              code > 0 ? -code : code, basis);
 }
 
 

@@ -132,11 +132,11 @@ public:
 
   //! \brief Constrains all DOFs on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
-  //! \param[in] open If \e true, exclude all points along the face boundary
+  //! \param[in] closure Which of its boundary the face leaves out
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Which basis to constrain face for
-  virtual void constrainFace(int dir, bool open, int dof,
+  virtual void constrainFace(int dir, ASM::Closure closure, int dof,
                              int code = 0, char basis = 1);
 
   //! \brief Constrains all DOFs on a given boundary edge.
@@ -145,7 +145,7 @@ public:
   //! \param[in] dof Which DOFs to constrain at each node along the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Which basis to constrain edge for
-  virtual void constrainEdge(int lEdge, bool open, int dof,
+  virtual void constrainEdge(int lEdge, ASM::Closure closure, int dof,
                              int code = 0, char basis = 1);
 
 protected:

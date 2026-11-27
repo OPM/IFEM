@@ -732,10 +732,10 @@ bool ASMs2DLag::tesselate (ElementBlock& grid, const int*) const
 }
 
 
-void ASMs2DLag::constrainEdge (int dir, bool open, int dof, int code,
+void ASMs2DLag::constrainEdge (int dir, ASM::Closure closure, int dof, int code,
                                char basis)
 {
-  this->ASMs2D::constrainEdge(dir, open, dof, code > 0 ? -code : code, basis);
+  this->ASMs2D::constrainEdge(dir, closure, dof, code > 0 ? -code : code, basis);
 }
 
 

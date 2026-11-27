@@ -30,13 +30,15 @@ struct TopItem
   size_t    patch; //!< Patch index (one-based)
   short int item;  //!< Local item index within the patch (one-based)
   short int idim;  //!< Dimension on the local item [-3,3]
+  short int closure; //!< Which end points the item leaves out, see ASM::Closure
 
   //! \brief Default constructor.
   //! \param[in] p Patch index
   //! \param[in] i Index of topology item
   //! \param[in] d Dimension of topology item
-  TopItem(size_t p = 0, short int i = 0, short int d = 0)
-  : patch(p), item(i), idim(d) {}
+  //! \param[in] c Which end points the item leaves out
+  TopItem(size_t p = 0, short int i = 0, short int d = 0, short int c = 0)
+  : patch(p), item(i), idim(d), closure(c) {}
 
   //! \brief The less-than operator defining the ordering of topological items.
   friend bool operator<(const TopItem& a, const TopItem& b)

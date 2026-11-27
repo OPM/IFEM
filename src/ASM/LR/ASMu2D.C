@@ -730,8 +730,9 @@ bool ASMu2D::connectBasis (int edge, ASMu2D& neighbor, int nedge, bool revers,
 
 
 ASMu2D::DirichletEdge::DirichletEdge (LR::LRSplineSurface* sf, int dir,
-                                      int d, int c, int offset, int b)
-  : lr(sf), edg(LR::NONE), dof(d), code(c), basis(b)
+                                      int d, int c, int offset, int b,
+                                      ASM::Closure cl)
+  : lr(sf), edg(LR::NONE), dof(d), code(c), basis(b), closure(cl)
 {
   // Figure out what edge we are at, and
   // find the corners since these are not to be included in the L2-fitting
@@ -753,8 +754,8 @@ ASMu2D::DirichletEdge::DirichletEdge (LR::LRSplineSurface* sf, int dir,
     break;
   case 1:
     edg = LR::EAST;
-    lr->getEdgeFunctions(c1, LR::NORTH_EAST);
-    lr->getEdgeFunctions(c2, LR::SOUTH_EAST);
+    lr->getEdgeFunctions(c1, LR::SOUTH_EAST);
+    lr->getEdgeFunctions(c2, LR::NORTH_EAST);
     break;
   case 2:
     edg = LR::NORTH;
@@ -778,7 +779,8 @@ ASMu2D::DirichletEdge::DirichletEdge (LR::LRSplineSurface* sf, int dir,
   non-constant functions).
 */
 
-void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
+void ASMu2D::constrainEdge (int dir, ASM::Closure closure, int dof, int code,
+                            char basis)
 {
   if (basis < 1) basis = 1;
 
@@ -788,7 +790,8 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
     offset += this->getNoNodes(i);
 
   // Figure out what edge we are at
-  DirichletEdge de(this->getBasis(basis), dir, dof, code, offset, basis);
+  DirichletEdge de(this->getBasis(basis), dir, dof, code, offset, basis,
+                   closure);
 
   // Get all basis functions on this edge
   std::vector<LR::Basisfunction*> edgeFunctions;
@@ -802,7 +805,7 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   for (LR::Basisfunction* b : edgeFunctions)
     if (!de.isCorner(b->getId()+offset))
       this->prescribe(b->getId()+offset, dof, -code);
-    else if (!open) // skip corners for open boundaries
+    else if (!de.isOmitted(b->getId()+offset,closure)) // unless left out
       // corners are always interpolated (positive 'code')
       this->prescribe(b->getId()+offset, dof, abs(code));
 
@@ -837,8 +840,8 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 }
 
 
-size_t ASMu2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
-                                   bool project)
+size_t ASMu2D::constrainEdgeLocal (int dir, ASM::Closure closure, int dof,
+                                   int code, bool project)
 {
   return 0; // TODO...
 }
@@ -2475,7 +2478,8 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     // Loop over the (non-corner) nodes of this boundary curve
     const bool piolaBC = this->isPiolaDirichlet(dedg.code);
     for (size_t j = 0; j < dedg.MLGN.size(); j++)
-      if (piolaBC || !dedg.isCorner(dedg.MLGN[j]))
+      if ((piolaBC || !dedg.isCorner(dedg.MLGN[j])) &&
+          !dedg.isOmitted(dedg.MLGN[j],dedg.closure))
         for (int dofs = dedg.dof; dofs > 0; dofs /= 10)
         {
           int dof = dofs%10;

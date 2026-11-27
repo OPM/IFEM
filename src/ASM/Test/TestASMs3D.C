@@ -279,6 +279,12 @@ TEST_CASE("TestASMs3D.ConnectUneven")
 }
 
 
+TEST_CASE("TestASMs3D.ConstrainEdge")
+{
+  ASM3DTests<ASMCube>::ConstrainEdge();
+}
+
+
 TEST_CASE("TestASMs3D.ConstrainFace")
 {
   ASM3DTests<ASMCube>::ConstrainFace();
@@ -365,7 +371,7 @@ TEST_CASE("TestASMs3D.ConstrainFaceLocal")
   REQUIRE(pch.uniformRefine(2,2));
   REQUIRE(pch.generateFEMTopology());
   const size_t nnod = pch.getNoNodes();
-  REQUIRE(pch.constrainFaceLocal(-3,false,1,2,true) == 16);
+  REQUIRE(pch.constrainFaceLocal(-3,ASM::CLOSED,1,2,true) == 16);
 
   LinearXFunc f(1.0);
   REQUIRE(pch.updateDirichlet({{2,&f}},std::map<int,VecFunc*>(),0.0,nullptr,false));

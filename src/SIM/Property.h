@@ -52,13 +52,16 @@ struct Property
   char   lindx; //!< Local entity index (1-based) which is assigned the property
   char   ldim;  //!< Local entity dimension flag [0,3]
   char   basis; //!< Which basis the property is defined on
+  char   closure; //!< Which end points are left out, see ASM::Closure
 
   //! \brief Default constructor.
-  Property() : pcode(UNDEFINED), pindx(0), patch(0) { lindx=ldim = basis = 0; }
+  Property() : pcode(UNDEFINED), pindx(0), patch(0)
+  { lindx = ldim = basis = closure = 0; }
 
   //! \brief Constructor creating an initialized property instance.
-  Property(Type t, int px, size_t p, char ld, char lx = 0, char b = 0) :
-    pcode(t), pindx(px), patch(p), lindx(lx), ldim(ld), basis(b) {}
+  Property(Type t, int px, size_t p, char ld, char lx = 0, char b = 0,
+           char c = 0) :
+    pcode(t), pindx(px), patch(p), lindx(lx), ldim(ld), basis(b), closure(c) {}
 };
 
 using PropertyVec = std::vector<Property>; //!< Vector of properties
