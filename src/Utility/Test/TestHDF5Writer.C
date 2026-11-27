@@ -17,6 +17,7 @@
 #include "HDF5Writer.h"
 #include "IntegrandBase.h"
 #include "ProcessAdm.h"
+#include "ASMbase.h"
 #include "SIM2D.h"
 
 #include "Catch2Support.h"
@@ -53,7 +54,7 @@ public:
 class DummySIM : public SIM2D
 {
 public:
-  explicit DummySIM(bool multiPatch) : SIM2D({1,1})
+  explicit DummySIM(bool multiPatch, const CharVec& unf = {1,1}) : SIM2D(unf)
   {
     myProblem = new DummyIntegrand(2);
     if (multiPatch) {
@@ -177,6 +178,55 @@ std::vector<std::pair<std::string,hsize_t>> dump (SIMbase& sim,
   return contents(stem + ".hdf5");
 }
 
+//! \brief Returns the contents of one dataset.
+std::vector<double> values (const std::string& file, const std::string& path)
+{
+  hid_t f = H5Fopen(file.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+  REQUIRE(f >= 0);
+  hid_t set = H5Dopen2(f, path.c_str(), H5P_DEFAULT);
+  REQUIRE(set >= 0);
+  hid_t space = H5Dget_space(set);
+  hsize_t len = 0;
+  H5Sget_simple_extent_dims(space,&len,nullptr);
+  std::vector<double> read(len);
+  if (len > 0)
+    H5Dread(set,H5T_NATIVE_DOUBLE,H5S_ALL,H5S_ALL,H5P_DEFAULT,read.data());
+  H5Sclose(space);
+  H5Dclose(set);
+  H5Fclose(f);
+  return read;
+}
+
+
+//! \brief Writes a field of the projection basis and returns what it holds.
+std::vector<std::pair<std::string,hsize_t>> dumpProjected (SIMbase& sim,
+                                                           const Vector& sol,
+                                                           const std::string& stem,
+                                                           int ncmp)
+{
+  ProcessAdm adm;
+  {
+    DataExporter exporter(true,1);
+    exporter.registerWriter(new HDF5Writer(stem,adm));
+    REQUIRE(exporter.registerField("rs","a&&b&&c&&d&&e&&f",DataExporter::SIM,
+                                   -(DataExporter::PRIMARY |
+                                     DataExporter::PROJECTED),"",ncmp));
+    REQUIRE(exporter.setFieldValue("rs",&sim,&sol));
+    REQUIRE(exporter.dumpTimeLevel());
+  }
+  return contents(stem + ".hdf5");
+}
+
+
+//! \brief The projection nodes of every patch, in order.
+std::vector<size_t> projNodes (const SIMbase& sim)
+{
+  std::vector<size_t> n;
+  for (int i = 1; i <= sim.getNoPatches(); ++i)
+    n.push_back(sim.getPatch(i)->getNoProjectionNodes());
+  return n;
+}
+
 } // anonymous namespace
 
 
@@ -247,6 +297,227 @@ TEST_CASE("TestHDF5Writer.EveryPatchGetsARecord")
       INFO(path << " should be empty");
       REQUIRE(len == 0);
     }
+}
+
+
+/*!
+  A projected field is of no basis of the model's own numbering: it is laid
+  out over the projection nodes of each patch in turn. So it is sliced by
+  those rather than extracted, it is written under the basis it was fitted
+  onto, and six components of it are six components and not a translation
+  and a rotation.
+*/
+
+TEST_CASE("TestHDF5Writer.AProjectedFieldIsWrittenOnItsOwnBasis")
+{
+  const int ncmp = 6;
+
+  DummySIM sim(true);
+  const std::vector<size_t> nodes = projNodes(sim);
+  size_t total = 0;
+  for (size_t n : nodes)
+    total += ncmp*n;
+
+  Vector sol(total);
+  std::iota(sol.begin(), sol.end(), 1.0);
+
+  ScratchFile out("TestHDF5Writer_proj");
+  const auto held = dumpProjected(sim, sol, out.stem(), ncmp);
+
+  // written under the basis it was fitted onto, which this model has one of
+  REQUIRE(sim.fieldProjections());
+  const std::string group = "0/Dummy-proj/fields/";
+
+  // and that basis is in the file, this being the only field of it
+  REQUIRE(std::find_if(held.begin(), held.end(), [](const auto& e)
+                       { return e.first == "0/Dummy-proj/basis/1"; })
+          != held.end());
+  size_t ofs = 0;
+  for (size_t p = 0; p < nodes.size(); ++p)
+  {
+    const std::string path = group + "a&&b&&c&&d&&e&&f/" + std::to_string(p+1);
+    const auto it = std::find_if(held.begin(), held.end(),
+                                 [&path](const auto& e)
+                                 { return e.first == path; });
+    INFO(path << " is missing");
+    REQUIRE(it != held.end());
+
+    // sliced by the projection nodes, and not halved as rotations would be
+    INFO(path << " is not as long as the patch is");
+    REQUIRE(it->second == ncmp*nodes[p]);
+
+    const std::vector<double> got = values(out.stem() + ".hdf5", path);
+    REQUIRE(got.size() == ncmp*nodes[p]);
+    REQUIRE_THAT(got.front(), WithinRel(sol[ofs]));
+    REQUIRE_THAT(got.back(), WithinRel(sol[ofs + ncmp*nodes[p] - 1]));
+    ofs += ncmp*nodes[p];
+  }
+}
+
+
+/*!
+  Where the model projects onto a basis of its own numbering there is no
+  separate one written, and the field belongs under that basis like any
+  other rather than under a group with no geometry.
+*/
+
+TEST_CASE("TestHDF5Writer.AProjectedFieldOfOneBasisGoesUnderIt")
+{
+  const int ncmp = 6;
+
+  DummySIM sim(true,{1});
+  REQUIRE(!sim.fieldProjections());
+
+  const std::vector<size_t> nodes = projNodes(sim);
+  size_t total = 0;
+  for (size_t n : nodes)
+    total += ncmp*n;
+
+  Vector sol(total);
+  std::iota(sol.begin(), sol.end(), 1.0);
+
+  ScratchFile out("TestHDF5Writer_proj1");
+  const auto held = dumpProjected(sim, sol, out.stem(), ncmp);
+
+  // the basis it falls back to is in the file, this being its only field
+  REQUIRE(std::find_if(held.begin(), held.end(), [](const auto& e)
+                       { return e.first == "0/Dummy-1/basis/1"; })
+          != held.end());
+
+  size_t ofs = 0;
+  for (size_t p = 0; p < nodes.size(); ++p)
+  {
+    const std::string path = "0/Dummy-1/fields/a&&b&&c&&d&&e&&f/"
+                           + std::to_string(p+1);
+    const auto it = std::find_if(held.begin(), held.end(),
+                                 [&path](const auto& e)
+                                 { return e.first == path; });
+    INFO(path << " is missing");
+    REQUIRE(it != held.end());
+    REQUIRE(it->second == ncmp*nodes[p]);
+
+    // laid out over the patches in turn here as well, not over the model
+    const std::vector<double> got = values(out.stem() + ".hdf5", path);
+    REQUIRE(got.size() == ncmp*nodes[p]);
+    REQUIRE_THAT(got.front(), WithinRel(sol[ofs]));
+    REQUIRE_THAT(got.back(), WithinRel(sol[ofs + ncmp*nodes[p] - 1]));
+    ofs += ncmp*nodes[p];
+  }
+
+  for (const auto& [path,len] : held)
+  {
+    INFO(path << " should not be there, the model projects onto basis one");
+    REQUIRE(path.find("Dummy-proj") == std::string::npos);
+  }
+}
+
+
+/*!
+  A projected field of basis one reaches that basis before an ordinary field
+  of it does, the fields being taken in the order of their names. What the
+  file holds is the same either way; the test is here for the arrangement,
+  which is the one in which the basis was written twice.
+*/
+
+TEST_CASE("TestHDF5Writer.AProjectedFieldSharesABasisWithAnOrdinaryOne")
+{
+  const int ncmp = 6;
+
+  DummySIM sim(true,{1});
+  REQUIRE(!sim.fieldProjections());
+
+  const std::vector<size_t> nodes = projNodes(sim);
+  size_t total = 0;
+  for (size_t n : nodes)
+    total += ncmp*n;
+
+  Vector rs(total);
+  std::iota(rs.begin(), rs.end(), 1.0);
+  Vector sol(sim.getNoDOFs());
+  std::iota(sol.begin(), sol.end(), 1.0);
+
+  ScratchFile out("TestHDF5Writer_once");
+  {
+    ProcessAdm adm;
+    DataExporter exporter(true,1);
+    exporter.registerWriter(new HDF5Writer(out.stem(),adm));
+
+    // "rs" is reached before "u" is, the fields being taken in order
+    REQUIRE(exporter.registerField("rs","a&&b&&c&&d&&e&&f",DataExporter::SIM,
+                                   -(DataExporter::PRIMARY |
+                                     DataExporter::PROJECTED),"",ncmp));
+    REQUIRE(exporter.setFieldValue("rs",&sim,&rs));
+    REQUIRE(exporter.registerField("u","primary",DataExporter::SIM,
+                                   DataExporter::PRIMARY |
+                                   DataExporter::SECONDARY));
+    REQUIRE(exporter.setFieldValue("u",&sim,&sol));
+
+    REQUIRE(exporter.dumpTimeLevel());
+  }
+
+  const auto held = contents(out.stem() + ".hdf5");
+  const auto it = std::find_if(held.begin(), held.end(), [](const auto& e)
+                               { return e.first == "0/Dummy-1/basis/1"; });
+  REQUIRE(it != held.end());
+  REQUIRE(it->second > 0);
+}
+
+
+/*!
+  One basis, two fields of it, and the node numbers asked for by the second
+  of them. The first writes the geometry; what the second asks for is still
+  owed, the geometry and the numbering being two datasets and not one.
+*/
+
+TEST_CASE("TestHDF5Writer.ASharedBasisStillOwesTheNodeNumbersAskedForLater")
+{
+  const int ncmp = 6;
+
+  DummySIM sim(true,{1});
+  const std::vector<size_t> nodes = projNodes(sim);
+  size_t total = 0;
+  for (size_t n : nodes)
+    total += ncmp*n;
+
+  Vector rs(total);
+  std::iota(rs.begin(), rs.end(), 1.0);
+  Vector sol(sim.getNoDOFs());
+  std::iota(sol.begin(), sol.end(), 1.0);
+
+  ScratchFile out("TestHDF5Writer_l2g");
+  {
+    ProcessAdm adm;
+    DataExporter exporter(true,1);
+    exporter.registerWriter(new HDF5Writer(out.stem(),adm));
+
+    // "rs" is reached first and asks for no numbering; "u" asks for it
+    REQUIRE(exporter.registerField("rs","a&&b&&c&&d&&e&&f",DataExporter::SIM,
+                                   -(DataExporter::PRIMARY |
+                                     DataExporter::PROJECTED),"",ncmp));
+    REQUIRE(exporter.setFieldValue("rs",&sim,&rs));
+    REQUIRE(exporter.registerField("u","primary",DataExporter::SIM,
+                                   DataExporter::PRIMARY |
+                                   DataExporter::SECONDARY |
+                                   DataExporter::L2G_NODE));
+    REQUIRE(exporter.setFieldValue("u",&sim,&sol));
+    REQUIRE(exporter.dumpTimeLevel());
+  }
+
+  const auto held = contents(out.stem() + ".hdf5");
+  auto has = [&held](const std::string& path)
+  {
+    return std::find_if(held.begin(), held.end(), [&path](const auto& e)
+                        { return e.first == path; }) != held.end();
+  };
+
+  for (size_t p = 1; p <= nodes.size(); ++p)
+  {
+    const std::string n = std::to_string(p);
+    INFO("the geometry of patch " << n << " is missing");
+    REQUIRE(has("0/Dummy-1/basis/" + n));
+    INFO("the node numbers of patch " << n << " were never written");
+    REQUIRE(has("0/Dummy-1/l2g-node/" + n));
+  }
 }
 
 #endif // HAS_HDF5

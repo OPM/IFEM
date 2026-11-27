@@ -58,7 +58,8 @@ public:
     GRID         = 128, //!< Always store an updated grid
     REDUNDANT    = 256, //!< Field is redundantly calculated on all processes
     L2G_NODE     = 512, //!< Storage of local-to-global node mapping
-    ELEMENT_MASK = 1024 //!< Storage of element activation flags
+    ELEMENT_MASK = 1024, //!< Storage of element activation flags
+    PROJECTED    = 2048, //!< Field is fitted onto the projection basis
   };
 
   //! \brief A structure holding information about registered fields
