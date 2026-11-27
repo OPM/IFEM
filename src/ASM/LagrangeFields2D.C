@@ -51,24 +51,33 @@ bool LagrangeFields2D::valueNode (size_t node, Vector& vals) const
 bool LagrangeFields2D::valueFE (const ItgPoint& x, Vector& vals) const
 {
   vals.resize(nf,true);
-  if (x.iel < 1 || (size_t)x.iel > nelm)
+  Vector N;
+  std::vector<int> ip;
+  if (!this->basisFE(x,N,ip))
+    return false;
+
+  for (size_t a = 0; a < ip.size(); a++)
+    for (int i = 1; i <= nf; ++i)
+      vals(i) += values(ip[a]*nf + i)*N[a];
+
+  return true;
+}
+
+
+bool LagrangeFields2D::basisFE (const ItgPoint& x, Vector& N,
+                                std::vector<int>& ip) const
+{
+  if (x.iel < 1 || static_cast<size_t>(x.iel) > nelm)
   {
-    std::cerr <<" *** LagrangeFields2D::valueFE: Element index "<< x.iel
+    std::cerr <<" *** LagrangeFields2D::basisFE: Element index "<< x.iel
               <<" out of range [1,"<< nelm <<"]."<< std::endl;
     return false;
   }
 
-  Vector N;
   if (!Lagrange::computeBasis(N,p1,x.xi,p2,x.eta))
     return false;
 
-  int locNode = 1;
-  for (const int node : mnpc[x.iel-1]) {
-    for (int i = 1; i <= nf; ++i)
-      vals(i) +=  values(node*nf + i)* N(locNode);
-    ++locNode;
-  }
-
+  ip = mnpc[x.iel-1];
   return true;
 }
 

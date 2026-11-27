@@ -52,6 +52,12 @@ public:
   //! \param[out] vals Values in local point in given element
   bool valueFE(const ItgPoint& x, Vector& vals) const;
 
+  //! \brief Evaluates the basis functions of the field at a local coordinate.
+  //! \param[in] x Local coordinate of evaluation point
+  //! \param[out] N Values of the basis functions of the element of the point
+  //! \param[out] ip 0-based indices of these basis functions in the basis
+  bool basisFE(const ItgPoint& x, Vector& N, std::vector<int>& ip) const;
+
   //! \brief Computes the gradient for a given local coordinate.
   //! \param[in] x Local coordinate of evaluation point
   //! \param[out] grad Gradient of solution in a given local coordinate

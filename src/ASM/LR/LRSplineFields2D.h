@@ -69,6 +69,12 @@ public:
   //! \param[out] vals Values in local point in given element
   bool valueFE(const ItgPoint& x, Vector& vals) const;
 
+  //! \brief Evaluates the basis functions of the field at a local coordinate.
+  //! \param[in] x Local coordinate of evaluation point
+  //! \param[out] N Values of the basis functions that are nonzero at the point
+  //! \param[out] ip 0-based indices of these basis functions in the basis
+  bool basisFE(const ItgPoint& x, Vector& N, std::vector<int>& ip) const;
+
   //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
   //! \param[out] vals Values in given physical coordinate

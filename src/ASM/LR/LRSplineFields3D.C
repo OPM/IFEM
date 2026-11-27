@@ -18,6 +18,7 @@
 
 #include "ASMu3D.h"
 #include "ItgPoint.h"
+#include "Utilities.h"
 #include "Vec3.h"
 
 
@@ -75,6 +76,23 @@ bool LRSplineFields3D::valueNode (size_t node, Vector& vals) const
 
 bool LRSplineFields3D::valueFE (const ItgPoint& x, Vector& vals) const
 {
+  Vector N;
+  std::vector<int> ip;
+  if (!this->basisFE(x,N,ip))
+    return false;
+
+  // Evaluate the solution field at the given point
+  Matrix Vnod;
+  utl::gather(ip,nf,values,Vnod);
+  Vnod.multiply(N,vals); // vals = Vnod * N
+
+  return true;
+}
+
+
+bool LRSplineFields3D::basisFE (const ItgPoint& x, Vector& N,
+                                std::vector<int>& ip) const
+{
   if (!basis) return false;
 
   // Evaluate the basis functions at the given point
@@ -84,16 +102,10 @@ bool LRSplineFields3D::valueFE (const ItgPoint& x, Vector& vals) const
   Go::BasisPts spline;
   basis->computeBasis(x.u,x.v,x.w,spline,iel);
 
-  // Evaluate the solution field at the given point
-  Matrix Vnod(nf, elm->nBasisFunctions());
-  size_t i = 1;
-  for (const LR::Basisfunction* f : elm->support()) {
-    for (size_t j = 1; j <= nf; ++j)
-      Vnod(j,i) = values(f->getId()*nf+j);
-    ++i;
-  }
-
-  Vnod.multiply(spline.basisValues,vals); // vals = Vnod * basisValues
+  ip.clear();
+  for (const LR::Basisfunction* f : elm->support())
+    ip.push_back(f->getId());
+  N = spline.basisValues;
 
   return true;
 }

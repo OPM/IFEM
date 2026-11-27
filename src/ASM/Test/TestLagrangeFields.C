@@ -15,6 +15,12 @@
 #include "Test/FieldTests.h"
 
 
+TEST_CASE("TestLagrangeFields.Basis2D")
+{
+  Fields2DTests<ASMSquareLag>::Basis();
+}
+
+
 TEST_CASE("TestLagrangeFields.Value2D")
 {
   Fields2DTests<ASMSquareLag>::Value();
@@ -25,6 +31,12 @@ TEST_CASE("TestLagrangeFields.Value2D")
 TEST_CASE("TestLagrangeFields.Grad2D")
 {
   Fields2DTests<ASMSquareLag>::Grad();
+}
+
+
+TEST_CASE("TestLagrangeFields.Basis3D")
+{
+  Fields3DTests<ASMCubeLag>::Basis();
 }
 
 
