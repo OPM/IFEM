@@ -18,6 +18,7 @@
 
 #include <sstream>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 
@@ -25,7 +26,9 @@ template<class Base>
 class ASMTrap3 : public Base
 {
 public:
-  ASMTrap3()
+  //! \brief The constructor forwards its arguments to the base class.
+  template<class... Args>
+  explicit ASMTrap3(Args&&... args) : Base(std::forward<Args>(args)...)
   {
     constexpr const char* trap =
       "700 1 0 0\n"

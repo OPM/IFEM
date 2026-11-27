@@ -882,6 +882,17 @@ public:
   //! \note The implementation of this method is placed in GlbL2projector.C
   bool L2projection(const std::vector<Matrix*>& fVals,
                     const std::vector<FunctionBase*>& funcs, double t = 0.0);
+  //! \brief Projects a vector function onto the Piola mapped bases.
+  //! \param[out] coefs The coefficients of the reference functions, the
+  //! nodes of the mapped bases one after the other
+  //! \param[in] func The vector function to project
+  //! \param[in] mapping The Piola mapping of the integrand type flags,
+  //! contravariant or covariant
+  //! \param[in] t Current time
+  //!
+  //! \note The implementation of this method is placed in GlbL2projector.C
+  bool L2projectionPiola(Vector& coefs, const FunctionBase& func,
+                         int mapping, double t = 0.0);
 
   //! \brief Returns the number of projection nodes for this patch.
   virtual size_t getNoProjectionNodes() const { return this->getNoNodes(1); }
