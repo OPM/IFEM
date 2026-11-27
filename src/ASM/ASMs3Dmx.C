@@ -544,10 +544,11 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
       for (size_t l = 0; l < groups[g][t].size() && ok; l++)
       {
         int iel = groups[g][t][l];
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+          continue; // zero-volume or inactive element
+
         fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (fe.iel < 1) continue; // zero-volume element
-
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
         int i3 = p3 + iel / (nel1*nel2);
@@ -621,7 +622,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
                 ok = false;
               else if (piola)
-                fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+                fe.piolaMapping(Jac,Xnod,bfs,
+                                piolaType & Integrand::CONTRAVARIANT,
                                 piolaType & Integrand::COVARIANT);
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
@@ -760,10 +762,11 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
       for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
       {
         int iel = threadGrp[g][t][l];
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+          continue; // zero-area or inactive element
+
         fe.idx = firstEl + iel;
         fe.iel = MLGE[iel];
-        if (fe.iel < 1) continue; // zero-volume element
-
         int i1 = p1 + iel % nel1;
         int i2 = p2 + (iel / nel1) % nel2;
         int i3 = p3 + iel / (nel1*nel2);
@@ -863,7 +866,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
               // The mapping is scaled by |J|, not by the face dilation
               const double dS_ip = fe.detJxW;
               fe.detJxW = detJ;
-              fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+              fe.piolaMapping(Jac,Xnod,bfs,
+                              piolaType & Integrand::CONTRAVARIANT,
                               piolaType & Integrand::COVARIANT);
               fe.detJxW = dS_ip;
             }
@@ -978,7 +982,8 @@ double ASMs3Dmx::evalBoundaryPoint (int iel, short int lIndex,
     // determinant of the geometry mapping. Swap it in for the call.
     const double dS = fe.detJxW;
     fe.detJxW = detJ;
-    fe.piolaMapping(Jac,Xnod,bfs,piola & Integrand::CONTRAVARIANT,
+    fe.piolaMapping(Jac,Xnod,bfs,
+                    piola & Integrand::CONTRAVARIANT,
                     piola & Integrand::COVARIANT);
     fe.detJxW = dS;
   }
@@ -1061,12 +1066,14 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
+        if ((fe.age = this->getAge(iel,time.t)) < 0.0)
+          continue; // zero-area or inactive element
+
         if (!this->isElementInPartition(iel))
           continue; // this element is in the partition of another process
 
         fe.idx = firstEl + iel;
         fe.iel = abs(MLGE[iel]);
-        if (fe.iel < 1) continue; // zero-area element
 
         short int status = iChk.hasContribution(iel,i1,i2,i3);
         if (!status) continue; // no interface contributions for this element
@@ -1228,13 +1235,12 @@ int ASMs3Dmx::evalPoint (const double* xi, double* param, Vec3& X) const
 {
   if (!svol) return -3;
 
-  int i;
-  for (i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++)
     param[i] = (1.0-xi[i])*svol->startparam(i) + xi[i]*svol->endparam(i);
 
   Go::Point X0;
   svol->point(X0,param[0],param[1],param[2]);
-  for (i = 0; i < 3 && i < svol->dimension(); i++)
+  for (int i = 0; i < 3 && i < svol->dimension(); i++)
     X[i] = X0[i];
 
   // Check if this point matches any of the control points (nodes)
@@ -1465,6 +1471,8 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector          solPt;
   BasisValues     bfs(m_basis.size() + separateGeometry);
   Matrix          Jac;
+  double          param[3] = { 0.0, 0.0, 0.0 };
+  Vec4            X(param,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each point
   size_t nPoints = splinex.front().size();
@@ -1497,9 +1505,9 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       utl::gather(ip.front(), 3, Xnod, Xtmp);
     }
 
-    fe.u = splinex[0][i].param[0];
-    fe.v = splinex[0][i].param[1];
-    fe.w = splinex[0][i].param[2];
+    fe.u = param[0] = splinex[0][i].param[0];
+    fe.v = param[1] = splinex[0][i].param[1];
+    fe.w = param[2] = splinex[0][i].param[2];
 
     // Fetch basis function derivatives at current integration point
     for (size_t b = 0; b < splinex.size(); ++b)
@@ -1516,15 +1524,15 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       continue; // skip singular points
 
     if (usePiola)
-      fe.piolaMapping(Jac,Xtmp,bfs,piolaType & Integrand::CONTRAVARIANT,
+      fe.piolaMapping(Jac,Xtmp,bfs,
+                      piolaType & Integrand::CONTRAVARIANT,
                       piolaType & Integrand::COVARIANT);
 
     // Cartesian coordinates of current integration point
-    utl::Point X4(Xtmp * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)),
-                  {fe.u,fe.v,fe.w});
+    X.assign(Xtmp * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)));
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,X4,ipa,elem_size,nb))
+    if (!integrand.evalSol(solPt,fe,X,ipa,elem_size,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
@@ -1573,21 +1581,18 @@ void ASMs3Dmx::generateThreadGroups (char lIndex, bool silence, bool)
     threadGroupsFace[lIndex].stripDir = ThreadGroups::NONE;
 
   std::map<char,ThreadGroups>::iterator tit = threadGroupsFace.find(lIndex);
-  if (tit != threadGroupsFace.end())
-  {
-    if (tit->second.stripDir == ThreadGroups::NONE)
-    {
-      // Single group with the elements on the boundary face 'lIndex' only
-      IntVec elms;
-      this->findBoundaryElms(elms,lIndex);
-      tit->second.oneGroup(nel,elms);
-    }
-  }
-  else
+  if (tit == threadGroupsFace.end())
   {
     const std::array<int,3> p = this->getMaxSplineOrder();
     this->ASMs3D::generateThreadGroups(p[0]-1, p[1]-1, p[2]-1,
                                        lIndex,silence,false);
+  }
+  else if (tit->second.stripDir == ThreadGroups::NONE)
+  {
+    // Single group with the elements on the boundary face 'lIndex' only
+    IntVec elms;
+    this->findBoundaryElms(elms,lIndex);
+    tit->second.oneGroup(nel,elms);
   }
 }
 
@@ -1597,9 +1602,8 @@ void ASMs3Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis,
 {
   if (basis > 0)
     this->ASMs3D::getBoundaryNodes(lIndex, nodes, basis, thick, 0, local);
-  else
-    for (size_t b = 1; b <= m_basis.size(); b++)
-      this->ASMs3D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
+  else for (size_t b = 1; b <= m_basis.size(); b++)
+    this->ASMs3D::getBoundaryNodes(lIndex, nodes, b, thick, 0, local);
 }
 
 

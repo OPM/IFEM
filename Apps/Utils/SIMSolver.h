@@ -32,7 +32,8 @@ template<class T1> class SIMSolverStat : public SIMadmin
 {
 public:
   //! \brief The constructor initializes the reference to the actual solver.
-  explicit SIMSolverStat(T1& s1, const char* head = nullptr) : SIMadmin(head), S1(s1)
+  explicit SIMSolverStat(T1& s1, const char* head = nullptr)
+    : SIMadmin(head), S1(s1)
   {
     exporter = nullptr;
     startExpLevel = 0;
@@ -140,6 +141,9 @@ public:
   //! \brief Returns a const reference to the time stepping information.
   const TimeStep& getTimePrm() const { return tp; }
 
+  //! \brief Overrides the stop time that was read from the input file.
+  void setStopTime(double t) { tp.stopTime = t; }
+
   //! \brief Advances the time step one step forward.
   bool advanceStep() { return tp.increment() && this->S1.advanceStep(tp); }
 
@@ -154,27 +158,37 @@ public:
 
     this->printHeading(heading);
 
-    // Save the solver state to restart a failing time step from
+    // Check if cutback is enabled
     HDF5Restart::SerializeData state;
-    bool cutback = tp.hasCutback() && this->saveSolverState(state);
+    bool cutback = tp.hasCutback();
+#ifndef HAS_CEREAL
+    if (cutback)
+    {
+      cutback = false;
+      IFEM::cout <<"\n  ** This build has no serialization support (cereal),"
+                 <<" cutback is deactivated."<< std::endl;
+    }
+#endif
 
     // Solve for each time step up to final time
     while (this->advanceStep())
     {
-      // Restart the time step with a smaller step size if it fails
       bool ok = this->S1.solveStep(tp);
+      // Try to restart the time step with a smaller step size if it diverged
       while (!ok && cutback && tp.cutback())
-        if (!this->S1.deSerialize(state))
+        if (state.empty())
+          break; // No cutback in the first step
+        else if (!this->S1.deSerialize(state))
         {
           std::cerr <<" *** SIMSolver: Could not restore the solver state"
-                    <<" to cut back from."<< std::endl;
-          return 3;
+                    <<" to cutback from."<< std::endl;
+          break;
         }
         else if (!this->S1.advanceStep(tp))
         {
-          std::cerr <<" *** SIMSolver: Could not advance the restored"
+          std::cerr <<" *** SIMSolver: Could not advance from the restored"
                     <<" solver state."<< std::endl;
-          return 3;
+          break;
         }
         else
           ok = this->S1.solveStep(tp);
@@ -186,9 +200,14 @@ public:
       else
         IFEM::pollControllerFifo();
 
-      // Save the solver state to restart a failing time step from
       if (cutback)
-        cutback = this->saveSolverState(state);
+      {
+        // Save the solver state to restart a diverging time step from
+        state.clear();
+        if (!(cutback = this->S1.serialize(state)))
+          IFEM::cout <<"\n  ** The solver state could not be saved,"
+                     <<" cutback is deactivated."<< std::endl;
+      }
     }
 
     return 0;
@@ -251,24 +270,6 @@ protected:
         dumpLog = true;
 
     return true;
-  }
-
-  //! \brief Saves the solver state before a time step, to cut back to.
-  //! \param state Container for the serialized state
-  //! \return \e false if the solver state can not be serialized
-  bool saveSolverState(HDF5Restart::SerializeData& state)
-  {
-    state.clear();
-    if (this->S1.serialize(state))
-      return true;
-
-    IFEM::cout <<"\n  ** The solver state can not be saved,"
-               <<" time steps will not be cut back."<< std::endl;
-#ifndef HAS_CEREAL
-    IFEM::cout <<"     This build has no serialization support (cereal)."
-               << std::endl;
-#endif
-    return false;
   }
 
   //! \brief Saves geometry and results to VTF and HDF5 for current time step.

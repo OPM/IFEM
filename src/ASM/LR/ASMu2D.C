@@ -1113,7 +1113,7 @@ void ASMu2D::getCornerPoints (int iel, PointVec& XC) const
   XC.clear();
   XC.reserve(4);
   for (int i = 0; i < 4; i++)
-    XC.push_back(utl::Point(XYZ[i], { uC[2*i], uC[2*i+1] }));
+    XC.emplace_back(XYZ[i], RealArray{ uC[2*i], uC[2*i+1] });
 }
 
 
@@ -2306,6 +2306,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix   dNdu, Jac, Xnod;
   Matrix3D d2Ndu2, Hess;
   Matrix4D d3Ndu3;
+  double   param[3] = { 0.0, 0.0, 0.0 };
+  Vec4     X(param,integrand.getTimeLevel());
 
   if (integrand.getIntegrandType() & Integrand::UPDATED_NODES)
   {
@@ -2324,8 +2326,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   {
     // Fetch element containing evaluation point
     // sadly, points are not always ordered in the same way as the elements
-    fe.u = gpar[0][i];
-    fe.v = gpar[1][i];
+    fe.u = param[0] = gpar[0][i];
+    fe.v = param[1] = gpar[1][i];
     int iel = lrspline->getElementContaining(fe.u,fe.v);
 
     // Evaluate the basis functions at current parametric point
@@ -2379,11 +2381,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     std::cout <<"\n"<< fe;
 #endif
 
-    // Cartesian coordinates of current integration point
-    utl::Point X4(Xnod*fe.N,{fe.u,fe.v});
-
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel]))
+    if (!integrand.evalSol(solPt,fe,X.assign(Xnod*fe.N),MNPC[iel]))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

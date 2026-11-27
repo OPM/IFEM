@@ -482,7 +482,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand,
             if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
               ok = false;
             else if (piola)
-              fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+              fe.piolaMapping(Jac,Xnod,bfs,
+                              piolaType & Integrand::CONTRAVARIANT,
                               piolaType & Integrand::COVARIANT);
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
@@ -693,7 +694,8 @@ bool ASMu3Dmx::integrate (Integrand& integrand, int lIndex,
           // The mapping is scaled by |J|, not by the face dilation
           const double dS_ip = fe.detJxW;
           fe.detJxW = detJ;
-          fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+          fe.piolaMapping(Jac,Xnod,bfs,
+                          piolaType & Integrand::CONTRAVARIANT,
                           piolaType & Integrand::COVARIANT);
           fe.detJxW = dS_ip;
         }
@@ -900,6 +902,11 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   const int piolaType = integrand.getIntegrandType() & Integrand::PIOLA_MAPPING;
   const bool piolaMapping = separateGeometry && piolaType != 0;
 
+  Matrix   Jac, Xnod;
+  Matrix3D Hess;
+  double   param[3] = { 0.0, 0.0, 0.0 };
+  Vec4     X(param,integrand.getTimeLevel());
+
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++)
   {
@@ -912,8 +919,7 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Evaluate the basis functions at current parametric point
     MxFiniteElement fe(elem_sizes,firstIp+i);
     BasisValues     bfs(m_basis.size() + separateGeometry);
-    Matrix Jac, Xnod;
-    Matrix3D Hess;
+
     if (use2ndDer || piolaMapping)
       for (size_t b = 0; b < bfs.size(); ++b) {
         Go::BasisDerivs2 spline;
@@ -943,7 +949,8 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       continue; // skip singular points
 
     if (piolaMapping)
-      fe.piolaMapping(Jac,Xnod,bfs,piolaType & Integrand::CONTRAVARIANT,
+      fe.piolaMapping(Jac,Xnod,bfs,
+                      piolaType & Integrand::CONTRAVARIANT,
                       piolaType & Integrand::COVARIANT);
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
@@ -951,16 +958,14 @@ bool ASMu3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       return false;
 
     // Cartesian coordinates of current integration point
-    fe.u = gpar[0][i];
-    fe.v = gpar[1][i];
-    fe.w = gpar[2][i];
-    utl::Point X4(Xnod * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)),
-                  {fe.u, fe.v, fe.w});
+    fe.u = param[0] = gpar[0][i];
+    fe.v = param[1] = gpar[1][i];
+    fe.w = param[2] = gpar[2][i];
+    X.assign(Xnod * (separateGeometry ? bfs.back().N : fe.basis(itgBasis)));
 
     // Now evaluate the solution field
     Vector solPt;
-    if (!integrand.evalSol(solPt,fe,X4,
-                           MNPC[els[itgBasis-1]-1],elem_sizes,nb))
+    if (!integrand.evalSol(solPt,fe,X,MNPC[els[itgBasis-1]-1],elem_sizes,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

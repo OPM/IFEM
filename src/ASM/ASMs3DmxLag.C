@@ -510,6 +510,9 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 	    xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
 	    xi[t1-1] = xg[i];
 	    xi[t2-1] = xg[j];
+	    fe.xi    = xi[0];
+	    fe.eta   = xi[1];
+	    fe.zeta  = xi[2];
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
@@ -595,6 +598,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vectors         globSolPt(nPoints);
   BasisValues     bfs(nxx.size());
   Matrix          Xnod, Jac;
+  Vec4            X(nullptr,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each point
   for (size_t iel = 0; iel < nel; iel++)
@@ -629,8 +633,8 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
             continue; // skip singular points
 
           // Now evaluate the solution field
-          if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(itgBasis),
-                                 MNPC[iel],elem_size,nb))
+          X.assign(Xnod*fe.basis(itgBasis));
+          if (!integrand.evalSol(solPt,fe,X,MNPC[iel],elem_size,nb))
             return false;
           else if (sField.empty())
             sField.resize(solPt.size(),nPoints,true);
@@ -657,10 +661,12 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = gpar[0].size();
 
   MxFiniteElement fe(elem_size);
-  Vector        solPt;
-  Vectors       globSolPt(nPoints);
-  Matrix        Xnod, Jac;
-  BasisValues   bfs(nxx.size());
+  Vector          solPt;
+  Vectors         globSolPt(nPoints);
+  Matrix          Xnod, Jac;
+  BasisValues     bfs(nxx.size());
+  double          param[3] = { 0.0, 0.0, 0.0 };
+  Vec4            X(param,integrand.getTimeLevel());
 
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++)
@@ -682,17 +688,17 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                                   elem_sizes[b][2],fe.zeta))
         return false;
 
-    fe.u = gpar[0][i];
-    fe.v = gpar[1][i];
-    fe.w = gpar[2][i];
+    fe.u = param[0] = gpar[0][i];
+    fe.v = param[1] = gpar[1][i];
+    fe.w = param[2] = gpar[2][i];
 
     // Compute the Jacobian inverse
     if (!fe.Jacobian(Jac,Xnod,itgBasis,bfs))
       continue; // skip singular points
 
     // Now evaluate the solution field
-    utl::Point X4(Xnod*fe.basis(itgBasis),{fe.u,fe.v,fe.w});
-    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel],elem_size,nb))
+    X.assign(Xnod*fe.basis(itgBasis));
+    if (!integrand.evalSol(solPt,fe,X,MNPC[iel],elem_size,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

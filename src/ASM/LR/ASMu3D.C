@@ -871,7 +871,7 @@ void ASMu3D::getCornerPoints (int iel, PointVec& XC) const
   XC.clear();
   XC.reserve(8);
   for (int i = 0; i < 8; i++)
-    XC.push_back(utl::Point(XYZ[i], { uC[3*i], uC[3*i+1], uC[3*i+2] }));
+    XC.emplace_back(XYZ[i], RealArray{ uC[3*i], uC[3*i+1], uC[3*i+2] });
 }
 
 
@@ -949,7 +949,6 @@ bool ASMu3D::integrate (Integrand& integrand,
   if (!myElms.empty() && myElms.front() == -1) return true;
 
   PROFILE2("ASMu3D::integrate(I)");
-
 
   bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
 
@@ -1783,6 +1782,8 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Vector   solPt;
   Matrix   dNdu, Jac, Xnod;
   Matrix3D d2Ndu2, Hess;
+  double   param[3] = { 0.0, 0.0, 0.0 };
+  Vec4     X(param,integrand.getTimeLevel());
 
   const int p1 = lrspline->order(0);
   const int p2 = lrspline->order(1);
@@ -1808,9 +1809,9 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Evaluate the basis functions at current parametric point
     FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
-    fe.u   = gpar[0][i];
-    fe.v   = gpar[1][i];
-    fe.w   = gpar[2][i];
+    fe.u = param[0] = gpar[0][i];
+    fe.v = param[1] = gpar[1][i];
+    fe.w = param[2] = gpar[2][i];
 
     std::vector<double> u(2*p1), v(2*p2), w(2*p3);
     basis1.computeBasisValues(gpar[0][i], u.data(), 1);
@@ -1855,11 +1856,8 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       std::cout <<"\n"<< fe;
 #endif
 
-    // Cartesian coordinates of current integration point
-    utl::Point X4(Xnod*fe.N, {fe.u, fe.v, fe.w});
-
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,X4,MNPC[iel]))
+    if (!integrand.evalSol(solPt,fe,X.assign(Xnod*fe.N),MNPC[iel]))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
